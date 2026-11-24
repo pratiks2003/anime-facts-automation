@@ -15,6 +15,11 @@
                 <label>New</label>
             </value>
             <value>
+                <fullName>Suggested</fullName>
+                <default>false</default>
+                <label>Suggested</label>
+            </value>
+            <value>
                 <fullName>Used</fullName>
                 <default>false</default>
                 <label>Used</label>

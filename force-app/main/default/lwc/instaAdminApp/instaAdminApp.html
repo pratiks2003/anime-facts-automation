@@ -40,6 +40,9 @@
                     <template lwc:if={isPublished}>
                         <c-insta-posts></c-insta-posts>
                     </template>
+                    <template lwc:if={isIdeas}>
+                        <c-insta-ideas></c-insta-ideas>
+                    </template>
                     <template lwc:if={isSettings}>
                         <c-insta-settings settings={settings} onchanged={handleChanged}></c-insta-settings>
                     </template>

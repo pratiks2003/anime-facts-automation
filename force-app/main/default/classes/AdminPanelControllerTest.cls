@@ -90,4 +90,24 @@ private class AdminPanelControllerTest {
             Assert.isNotNull(AdminPanelController.listPosts(5));
         }
     }
+
+    @IsTest
+    static void ideasModeration() {
+        System.runAs(InstaAgentTestUtil.adminUser()) {
+            Topic_Idea__c idea = new Topic_Idea__c(Name = 'Zoro gets lost', Status__c = 'Suggested', Source__c = 'Public Vote');
+            insert idea;
+            insert new Performance_Review__c(Summary__c = 'ok', Period_End__c = Date.today());
+            Map<String, Object> data = AdminPanelController.getIdeas();
+            Assert.areEqual(1, ((List<Object>) data.get('ideas')).size());
+            Assert.areEqual(1, ((List<Object>) data.get('review')).size());
+            AdminPanelController.setIdeaStatus(idea.Id, 'New');
+            Assert.areEqual('New', [SELECT Status__c FROM Topic_Idea__c].Status__c);
+            try {
+                AdminPanelController.setIdeaStatus(idea.Id, 'Used');
+                Assert.fail('only New/Rejected allowed');
+            } catch (AuraHandledException e) {
+                Assert.isTrue(e.getMessage().contains('New or Rejected'));
+            }
+        }
+    }
 }

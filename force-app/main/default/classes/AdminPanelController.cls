@@ -147,6 +147,44 @@ public with sharing class AdminPanelController {
     }
 
     @AuraEnabled
+    public static Map<String, Object> getIdeas() {
+        try {
+            return new Map<String, Object>{
+                'ideas' => [
+                    SELECT Id, Name, Anime__c, Format__c, Source__c, Votes__c, Status__c, CreatedDate
+                    FROM Topic_Idea__c
+                    WHERE Status__c IN ('Suggested', 'New')
+                    WITH USER_MODE
+                    ORDER BY Status__c DESC, Votes__c DESC NULLS LAST, CreatedDate DESC
+                    LIMIT 100
+                ],
+                'review' => [
+                    SELECT Name, Period_End__c, Summary__c, Feature_Anime__c, Avoid_Anime__c, Hook_Lessons__c, Reels_Analysed__c
+                    FROM Performance_Review__c
+                    WITH USER_MODE
+                    ORDER BY CreatedDate DESC
+                    LIMIT 1
+                ]
+            };
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
+    /** Approve a public suggestion into the backlog (New) or reject it. */
+    @AuraEnabled
+    public static void setIdeaStatus(Id ideaId, String status) {
+        try {
+            if (status != 'New' && status != 'Rejected') {
+                throw new InstaAgentConfig.InstaAgentException('Status must be New or Rejected');
+            }
+            update as user new Topic_Idea__c(Id = ideaId, Status__c = status);
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
+    @AuraEnabled
     public static List<String> getFormats() {
         List<String> values = new List<String>();
         for (Schema.PicklistEntry e : Anime_Content__c.Format__c.getDescribe().getPicklistValues()) {

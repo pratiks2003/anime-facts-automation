@@ -1,0 +1,38 @@
+<template>
+    <template lwc:if={error}><div class="error spaced">{error}</div></template>
+    <template lwc:if={review}>
+        <section class="panel spaced">
+            <h2 class="panel-title">Performance Analyst · {review.Name}</h2>
+            <p>{review.Summary__c}</p>
+            <p class="muted small">Feature: {review.Feature_Anime__c} · Avoid: {review.Avoid_Anime__c} · Reels analysed: {review.Reels_Analysed__c}</p>
+            <ul class="lessons">
+                <template for:each={lessons} for:item="l"><li key={l}>{l}</li></template>
+            </ul>
+        </section>
+    </template>
+    <section class="panel">
+        <h2 class="panel-title">Topic backlog</h2>
+        <p class="muted small">Public suggestions wait as "Suggested" until you approve them. Approved ideas (New) feed the next Reels, most-voted first.</p>
+        <template lwc:if={loading}><div class="empty">Loading…</div></template>
+        <template lwc:elseif={hasIdeas}>
+            <ul class="list">
+                <template for:each={ideas} for:item="i">
+                    <li key={i.Id} class="row">
+                        <div>
+                            <div class="row-title">{i.Name}</div>
+                            <div class="muted small">{i.Anime__c} · {i.Format__c} · {i.Source__c} · {i.Votes__c} votes · {i.when}</div>
+                        </div>
+                        <div class="side">
+                            <span class={i.badge}>{i.Status__c}</span>
+                            <template lwc:if={i.suggested}>
+                                <button class="btn btn_good" data-id={i.Id} onclick={handleApprove}>Approve</button>
+                            </template>
+                            <button class="btn btn_danger" data-id={i.Id} onclick={handleReject}>Reject</button>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template lwc:else><div class="empty">No ideas yet.</div></template>
+    </section>
+</template>

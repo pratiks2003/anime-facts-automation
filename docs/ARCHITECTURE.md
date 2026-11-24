@@ -73,3 +73,39 @@ InstaAgent publishes anime Reels to Instagram automatically, using only free tie
 | `rag/`, `knowledge/` | Fact schema, BM25 retrieval, the knowledge base |
 | `integrations/` | Instagram and Salesforce clients |
 | `.github/workflows/` | `reel.yml`, `publish.yml`, tests, sample render |
+
+
+## Agentforce brain (Phase A)
+Every Reel is written by Prompt Builder agents running GPT-4.1 through the Einstein Trust Layer, on the free tier of 150 outputs per hour.
+
+| Agent (template) | Job |
+|---|---|
+| `Insta_Script_Writer` | Writes the script from verified facts only, applying the Performance Analyst's lessons |
+| `Insta_Creative_Director` | Scores hook, flow, repetition, payoff order, why-care, pacing, visual variety and call to action (0–10); rewrites until 8.5; writes the production brief (voice, music mood and keywords, SFX) |
+| `Insta_Fact_Checker` | Checks each claim against its cited facts; problems go back to the Director for one fix pass |
+| `Insta_Caption_Writer` | Writes the caption and 5 real hashtags |
+| `Insta_JSON_Task` | Generic JSON task used for Wikipedia fact extraction and verification |
+| `Insta_Music_Supervisor` | Picks a track (available, not yet wired into the pipeline) |
+
+- **Chain and endpoint:** `ScriptStudio` runs the chain with at most 7 generations per Reel, exposed at `/services/apexrest/insta/studio/script`.
+- **Script source order:** Agentforce → Cloudflare LLM → template. Every source must pass the code rules.
+- **Quality gate:** the `Reel_Quality_Gate` Flow holds any auto-approved Reel scoring below `Quality_Threshold__c` (8), or with QA issues, for review.
+- **Voice:** a random Deepgram Aura-2 voice per Reel, stable per Reel ID. If Aura is unavailable, the whole narration falls back to Kokoro.
+- **Deploying prompts:** `tools/deploy_prompts.py` deploys the templates and activates their latest versions.
+
+## Learning loop (Phase B)
+- **Daily (`metrics.yml`, 07:17 IST):** syncs Instagram likes and comments, plus views, reach, watch time, shares and saves once `instagram_manage_insights` is granted. New comments go to the Community Manager agent (`/insta/studio/comments`), which writes reply drafts and topic ideas.
+- **Weekly (Mondays 08:00 IST):** the Performance Analyst writes a `Performance_Review__c` (summary, what to feature or avoid, hook lessons) and adds topic ideas.
+- **Topic backlog (`Topic_Idea__c`):** fed by the Analyst, comments, public votes and the admin. Each Reel uses the top-voted idea for its format.
+
+## Websites (Phase C)
+| Site | URL | Access |
+|---|---|---|
+| Admin | `/admin` | Login required: dashboard, Reels queue, Published, Ideas & Insights, Settings |
+| Public "Senpai Secrets" | `/senpai` | Guests |
+
+The public site shows Latest Reels (Instagram embeds), This Week in Anime (live AniList data, IST times), the Fact Vault (verified, low-spoiler facts with sources) and voting.
+
+- **Guest backend:** `PublicSiteController` is the only class the guest can call (permission set `InstaAgent_Public`). It returns only published, verified or curated data, through explicit field lists.
+- **Public suggestions** enter as "Suggested" and reach the backlog only after admin approval.
+- **Org-specific files:** the site and network files are kept out of git because they contain org usernames and emails. Recreate a site with `sf community create` and the steps in this repo's history.

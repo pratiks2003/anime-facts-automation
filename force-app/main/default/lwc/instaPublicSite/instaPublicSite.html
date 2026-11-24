@@ -1,0 +1,120 @@
+<template>
+    <div class="site">
+        <header class="nav">
+            <div class="brand">
+                <div class="logo">先輩</div>
+                <span class="brand-name">Senpai Secrets</span>
+            </div>
+            <nav class="links">
+                <a href="#reels">Reels</a>
+                <a href="#week">This week</a>
+                <a href="#vault">Fact Vault</a>
+                <a href="#vote">Vote</a>
+            </nav>
+            <a class="follow" href={instagramUrl} target="_blank" rel="noopener">Follow</a>
+        </header>
+
+        <section class="hero">
+            <p class="eyebrow">Daily anime secrets · verified facts · zero spoilers by default</p>
+            <h1>The anime facts your friends <span class="accent">didn't know</span>.</h1>
+            <p class="lede">Hidden details, wild backstories, fan theories (clearly labelled) and this week's must-watch drops, in 40 seconds a day.</p>
+            <div class="cta">
+                <a class="btn btn_primary" href={instagramUrl} target="_blank" rel="noopener">Follow on Instagram</a>
+                <a class="btn" href="#vote">Pick tomorrow's Reel</a>
+            </div>
+        </section>
+
+        <section id="reels" class="section">
+            <h2>Latest Reels</h2>
+            <template lwc:if={hasReels}>
+                <div class="reels">
+                    <template for:each={reels} for:item="r">
+                        <iframe key={r.key} class="embed" src={r.embed} title={r.title} loading="lazy"></iframe>
+                    </template>
+                </div>
+            </template>
+            <template lwc:else><p class="muted">First Reels are dropping soon. Follow so you don't miss them.</p></template>
+        </section>
+
+        <section id="week" class="section">
+            <h2>This week in anime</h2>
+            <p class="muted">The most popular episodes airing in the next 7 days (times in IST).</p>
+            <template lwc:if={hasDrops}>
+                <div class="drops">
+                    <template for:each={drops} for:item="d">
+                        <a key={d.key} class="drop" href={d.url} target="_blank" rel="noopener">
+                            <img src={d.poster} alt={d.title} loading="lazy" />
+                            <div class="drop-body">
+                                <div class="drop-title">{d.title}</div>
+                                <div class="drop-meta">Episode {d.episode}</div>
+                                <div class="drop-time">{d.airs}</div>
+                            </div>
+                        </a>
+                    </template>
+                </div>
+            </template>
+            <template lwc:elseif={dropsError}><p class="muted">{dropsError}</p></template>
+            <template lwc:else><p class="muted">Loading the schedule…</p></template>
+        </section>
+
+        <section id="vault" class="section">
+            <h2>Fact Vault</h2>
+            <p class="muted">{factCount} verified facts, each with its source. Spoiler-light.</p>
+            <input class="search" type="search" placeholder="Search Luffy, Hokage, Gear 5…" value={query} oninput={handleQuery} aria-label="Search facts" />
+            <div class="chips">
+                <template for:each={animeOptions} for:item="a">
+                    <button key={a.value} class={a.className} data-value={a.value} onclick={handleAnime}>{a.value}</button>
+                </template>
+            </div>
+            <template lwc:if={loadingFacts}><p class="muted">Opening the vault…</p></template>
+            <template lwc:elseif={hasFacts}>
+                <div class="facts">
+                    <template for:each={visibleFacts} for:item="f">
+                        <article key={f.id} class="fact">
+                            <div class="fact-anime">{f.anime}</div>
+                            <div class="fact-title">{f.title}</div>
+                            <p>{f.content}</p>
+                            <a href={f.source} target="_blank" rel="noopener" class="source">Source ↗</a>
+                        </article>
+                    </template>
+                </div>
+            </template>
+            <template lwc:else><p class="muted">No facts match that search yet.</p></template>
+        </section>
+
+        <section id="vote" class="section">
+            <h2>Vote the next Reel</h2>
+            <p class="muted">The most-voted idea gets made. One vote per idea.</p>
+            <template lwc:if={voteError}><p class="error">{voteError}</p></template>
+            <template lwc:if={hasIdeas}>
+                <ul class="ideas">
+                    <template for:each={ideaCards} for:item="i">
+                        <li key={i.id} class="idea">
+                            <div>
+                                <div class="idea-text">{i.idea}</div>
+                                <div class="muted small">{i.anime} · {i.format}</div>
+                            </div>
+                            <div class="idea-side">
+                                <span class="votes">{i.votes}</span>
+                                <button class="btn btn_small" data-id={i.id} onclick={handleVote} disabled={i.voted}>{i.label}</button>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <div class="suggest">
+                <h3>Suggest an idea</h3>
+                <input class="search" placeholder="Anime (optional)" value={suggestAnime} oninput={handleSuggestAnime} aria-label="Anime" maxlength="120" />
+                <input class="search" placeholder="e.g. Zoro gets lost in every arc" value={suggestIdea} oninput={handleSuggestIdea} aria-label="Your idea" maxlength="140" />
+                <button class="btn btn_primary" onclick={handleSuggest}>Send to Senpai</button>
+                <template lwc:if={suggestMessage}><p class="ok">{suggestMessage}</p></template>
+                <template lwc:if={suggestError}><p class="error">{suggestError}</p></template>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>Senpai Secrets is an unofficial fan channel. Anime titles, characters and key art belong to their creators and studios.
+                Facts link to their sources; illustrations are AI-generated fan art.</p>
+        </footer>
+    </div>
+</template>

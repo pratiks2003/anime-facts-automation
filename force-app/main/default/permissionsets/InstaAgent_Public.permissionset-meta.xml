@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>PublicSiteController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Guest user of the public Senpai Secrets site: may call PublicSiteController only (no object access).</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>InstaAgent Public Site Guest</label>
+</PermissionSet>

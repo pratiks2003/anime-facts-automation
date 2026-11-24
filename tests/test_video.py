@@ -128,3 +128,35 @@ class ValidateVideoTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VoiceTests(unittest.TestCase):
+    def test_pick_voice_is_stable_and_varies(self):
+        from video.tts import AURA_VOICES, pick_voice
+
+        self.assertEqual(pick_voice(AURA_VOICES, "R-1"), pick_voice(AURA_VOICES, "R-1"))
+        picks = {pick_voice(AURA_VOICES, f"R-{i}") for i in range(40)}
+        self.assertGreater(len(picks), 6)
+
+    def test_aura_failure_falls_back_to_kokoro_for_whole_reel(self):
+        from video.tts import KOKORO_VOICES, Narrator
+
+        class BrokenAura:
+            def synthesize(self, text, voice):
+                raise RuntimeError("429 daily allocation")
+
+        n = Narrator(aura=BrokenAura())
+        calls = []
+        def fake(text, voice, speed):
+            calls.append((n.backend, voice))
+            if n.backend == "aura":
+                raise RuntimeError("429 daily allocation")
+            return np.ones(2400, dtype=np.float32) * 0.5
+
+        n.synthesize = fake
+        scenes = [{"role": "hook", "headline": "h", "narration": "One. Two."}, {"role": "outro", "headline": "o", "narration": "Three."}]
+        narration = n.narrate_random(scenes, seed="R-9")
+        self.assertEqual(n.backend, "kokoro")
+        self.assertIn(n.voice_used, KOKORO_VOICES)
+        self.assertTrue(all(b == "kokoro" for b, _ in calls[-3:]))
+        self.assertGreater(narration.duration, 0)

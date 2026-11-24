@@ -3,5 +3,7 @@
   "voice": "am_fenrir",
   "speed": 1.1,
   "show_ai_label": false,
-  "show_sources_on_video": false
+  "show_sources_on_video": false,
+  "voice_provider": "aura",
+  "random_voice": true
 }

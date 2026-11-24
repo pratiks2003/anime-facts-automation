@@ -266,10 +266,16 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     sources_note, unverified, missing = sources_for(ids, extra_records)
 
     t0 = time.time()
-    log(f"narration: voice={voice} speed={speed}")
-    narration = Narrator().narrate(script["scenes"], voice=voice, speed=speed)
+    from .tts import AuraVoice
+
+    narrator = Narrator(aura=AuraVoice.from_env() if channel.get("voice_provider", "aura") == "aura" else None)
+    if channel.get("random_voice", True) and not script.get("voice_locked"):
+        narration = narrator.narrate_random(script["scenes"], seed=script["id"], speed=speed)
+        voice = f"{narrator.backend}:{narrator.voice_used}"
+    else:
+        narration = narrator.narrate(script["scenes"], voice=voice, speed=speed)
     duration = narration.duration
-    log(f"narration done: {duration:.1f}s audio in {time.time() - t0:.1f}s")
+    log(f"narration: {voice} - {duration:.1f}s audio in {time.time() - t0:.1f}s")
     (out / "timeline.json").write_text(json.dumps(narration.timeline_dict(), indent=2), encoding="utf-8")
     (out / "captions.srt").write_text(to_srt(narration.scenes), encoding="utf-8")
 

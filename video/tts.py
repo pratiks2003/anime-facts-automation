@@ -142,25 +142,99 @@ def time_sentence(sentence: str, audio: np.ndarray, sr: int, offset: float) -> L
     return distribute_words(sentence.split(), offset + s / sr, offset + e / sr)
 
 
-class Narrator:
-    def __init__(self, model_file: Path = MODEL_FILE, voices_file: Path = VOICES_FILE):
-        from kokoro_onnx import Kokoro  # imported lazily: heavy
+# Natural narrator voices. Aura-2 (Deepgram, on Cloudflare Workers AI) sounds like a real
+# voice actor; Kokoro runs locally and is the always-available fallback.
+AURA_MODEL = "@cf/deepgram/aura-2-en"
+AURA_VOICES = ["apollo", "arcas", "orion", "odysseus", "atlas", "zeus",          # male
+               "thalia", "luna", "andromeda", "helena", "asteria", "aurora"]   # female
+KOKORO_VOICES = ["af_heart", "af_bella", "am_fenrir", "am_michael", "am_puck", "bm_george"]
 
-        if not Path(model_file).exists() or not Path(voices_file).exists():
-            raise FileNotFoundError(
-                f"Kokoro model files missing in {MODEL_DIR}. Run: python -m video.fetch_models"
-            )
-        self._kokoro = Kokoro(str(model_file), str(voices_file))
+
+def pick_voice(pool: List[str], seed: str) -> str:
+    """Random-per-Reel but stable for a given Reel id (re-renders keep their voice)."""
+    import hashlib
+
+    return pool[int(hashlib.sha1(seed.encode()).hexdigest(), 16) % len(pool)]
+
+
+class AuraVoice:
+    """Deepgram Aura-2 via Cloudflare Workers AI REST (free daily allocation)."""
+
+    def __init__(self, account_id: str, token: str, opener=None):
+        import urllib.request
+
+        self._url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{AURA_MODEL}"
+        self._token = token
+        self._opener = opener or urllib.request.urlopen
+
+    @classmethod
+    def from_env(cls) -> Optional["AuraVoice"]:
+        import os
+
+        a, t = os.environ.get("CF_ACCOUNT_ID"), os.environ.get("CF_API_TOKEN")
+        return cls(a, t) if a and t else None
+
+    def synthesize(self, text: str, voice: str) -> np.ndarray:
+        import io
+        import json as _json
+        import urllib.request
+
+        import soundfile as sf
+
+        body = {"text": text, "speaker": voice, "encoding": "linear16", "container": "wav", "sample_rate": SAMPLE_RATE}
+        req = urllib.request.Request(self._url, data=_json.dumps(body).encode(), method="POST",
+                                     headers={"Authorization": f"Bearer {self._token}", "Content-Type": "application/json",
+                                              "User-Agent": "anime-facts-automation/0.1"})
+        with self._opener(req, timeout=90) as resp:
+            raw = resp.read()
+        audio, sr = sf.read(io.BytesIO(raw), dtype="float32")
+        if audio.ndim > 1:
+            audio = audio.mean(axis=1)
+        if sr != SAMPLE_RATE:  # simple linear resample (Aura honours sample_rate, this is a guard)
+            idx = np.linspace(0, len(audio) - 1, int(len(audio) * SAMPLE_RATE / sr))
+            audio = np.interp(idx, np.arange(len(audio)), audio).astype(np.float32)
+        return audio
+
+
+class Narrator:
+    def __init__(self, model_file: Path = MODEL_FILE, voices_file: Path = VOICES_FILE, aura: Optional[AuraVoice] = None):
+        self._model_file, self._voices_file = model_file, voices_file
+        self._kokoro = None
+        self.aura = aura
         self.respell = load_pronunciations()
+        self.backend = "kokoro"
+        self.voice_used = None
+
+    def _kokoro_engine(self):
+        if self._kokoro is None:
+            from kokoro_onnx import Kokoro  # imported lazily: heavy
+
+            if not Path(self._model_file).exists() or not Path(self._voices_file).exists():
+                raise FileNotFoundError(f"Kokoro model files missing in {MODEL_DIR}. Run: python -m video.fetch_models")
+            self._kokoro = Kokoro(str(self._model_file), str(self._voices_file))
+        return self._kokoro
 
     def voices(self) -> List[str]:
-        return list(self._kokoro.get_voices())
+        return list(self._kokoro_engine().get_voices())
 
     def synthesize(self, text: str, voice: str, speed: float) -> np.ndarray:
-        samples, sr = self._kokoro.create(apply_pronunciations(text, self.respell), voice=voice, speed=speed, lang="en-us")
+        if self.backend == "aura":
+            return self.aura.synthesize(text, voice)
+        samples, sr = self._kokoro_engine().create(apply_pronunciations(text, self.respell), voice=voice, speed=speed, lang="en-us")
         if sr != SAMPLE_RATE:
             raise RuntimeError(f"unexpected Kokoro sample rate {sr}")
         return np.asarray(samples, dtype=np.float32)
+
+    def narrate_random(self, scenes: List[dict], seed: str, speed: float = 1.1) -> "Narration":
+        """Natural Aura voice picked at random for this Reel; whole narration falls back to Kokoro on failure."""
+        if self.aura is not None:
+            self.backend, self.voice_used = "aura", pick_voice(AURA_VOICES, seed)
+            try:
+                return self.narrate(scenes, voice=self.voice_used, speed=1.0)
+            except Exception as exc:
+                print(f"[tts] Aura voice unavailable ({type(exc).__name__}: {str(exc)[:120]}); using Kokoro")
+        self.backend, self.voice_used = "kokoro", pick_voice(KOKORO_VOICES, seed)
+        return self.narrate(scenes, voice=self.voice_used, speed=speed)
 
     def narrate(self, scenes: List[dict], voice: str = "am_fenrir", speed: float = 1.1) -> Narration:
         sr = SAMPLE_RATE

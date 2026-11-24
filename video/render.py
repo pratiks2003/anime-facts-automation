@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 import soundfile as sf
 
 from .imagegen import CloudflareImageGenerator, ImageGenError, QuotaExceeded, build_prompt
+from .official_art import VisionChecker, character_art, show_art, verify_image
 from .media import MediaAsset, Openverse, build_blocklist, credits_text, find_image, find_music
 from .script import ScriptError, full_caption, knowledge_ids, load_script
 from .sfx import SR as SFX_SR
@@ -38,6 +39,9 @@ AUDIO_EXT = (".mp3", ".wav", ".ogg", ".m4a", ".flac")
 
 AI_DISCLOSURE = ("🎨 Artwork: AI-generated fan art. Characters and series belong to their creators; "
                  "this is an unofficial fan page.")
+
+
+OFFICIAL_ART_NOTE = "🖼️ Key art © its studio and publisher."
 
 
 def log(msg: str) -> None:
@@ -172,11 +176,14 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
     scene_assets: List[Optional[MediaAsset]] = []
     used: set = set()
     generator = CloudflareImageGenerator.from_env() if images else None
+    vision = VisionChecker.from_env() if images else None
     quota_hit = False
     for index, scene in enumerate(script["scenes"]):
         queries = scene.get("visual_queries") or []
         asset = None
-        if generator and scene.get("image_prompt") and not quota_hit:
+        if images and scene.get("image_source") == "official":
+            asset = official_asset(scene, script, index, cache, vision)
+        if asset is None and generator and scene.get("image_prompt") and not quota_hit:
             try:
                 started = time.time()
                 path, model = generator.generate(build_prompt(scene["image_prompt"], script["anime"]),
@@ -213,6 +220,32 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
     return scene_assets, local, music_asset
 
 
+def official_asset(scene: dict, script: dict, index: int, cache: Path, vision) -> Optional[MediaAsset]:
+    """Official key art / character portrait for a scene, only if it passes verify_image."""
+    subject = (scene.get("image_subject") or script["anime"]).strip()
+    try:
+        if scene.get("image_style") == "character":
+            path = character_art(subject, script["anime"], cache)
+            kind, background = "portrait", None
+            if path:
+                art = show_art(script["anime"], cache) if script["anime"] != "Anime" else {}
+                background = art.get("banner") or art.get("poster")
+        else:
+            art = show_art(subject, cache)
+            path, kind, background = art.get("poster"), "poster", art.get("banner")
+    except Exception as exc:
+        log(f"warning: official art lookup failed for {subject!r} ({exc})")
+        return None
+    if not path:
+        log(f"scene {index + 1}: no official art for {subject!r}")
+        return None
+    ok, reason = verify_image(Path(path), kind, subject, vision)
+    log(f"scene {index + 1}: official {kind} for {subject!r} -> {'OK' if ok else 'REJECTED'} ({reason})")
+    if not ok:
+        return None
+    return MediaAsset("official_image", str(path), subject, "", "Official key art", str(background or ""), "anilist", f"official-{index}")
+
+
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
            speed: Optional[float] = None, stills: bool = False,
            images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None) -> dict:
@@ -242,6 +275,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music)
     image_specs = [
         None if a is None else
+        {"path": a.path, "layout": "poster", "background": a.source_url or None} if a.kind == "official_image" else
         {"path": a.path, "layout": "full", "credit": "AI ART" if channel.get("show_ai_label") else ""}
         if a.kind == "ai_image" else
         {"path": a.path, "credit": f"Photo: {a.creator or 'unknown'} · {a.license}"}
@@ -283,6 +317,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "caption": "\n\n".join(x for x in (
             full_caption(script),
             AI_DISCLOSURE if any(a and a.kind == "ai_image" for a in scene_assets) else "",
+            OFFICIAL_ART_NOTE if any(a and a.kind == "official_image" for a in scene_assets) else "",
             credits_text([a for a in scene_assets if a and a.kind == "image"], music_asset)) if x),
         "knowledge_ids": ids,
         "sources": sources_note,  # kept for fact-checking; not shown on the video by default

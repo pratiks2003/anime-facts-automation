@@ -68,6 +68,10 @@ def validate_script(script: dict) -> List[str]:
             errors.append(f"{where}: visual_queries must be a list of non-empty strings")
         if scene.get("image_style", "scene") not in ("scene", "character"):
             errors.append(f"{where}: image_style must be 'scene' or 'character'")
+        if scene.get("image_source", "ai") not in ("ai", "official"):
+            errors.append(f"{where}: image_source must be 'ai' or 'official'")
+        if len(str(scene.get("image_subject", ""))) > 120:
+            errors.append(f"{where}: image_subject longer than 120 characters")
         prompt = scene.get("image_prompt", "")
         if not isinstance(prompt, str) or len(prompt) > 1500:
             errors.append(f"{where}: image_prompt must be a string under 1500 chars")

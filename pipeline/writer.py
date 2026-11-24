@@ -10,6 +10,7 @@ import json
 from typing import Dict, List, Optional
 
 from video.script import HEADLINE_MAX, validate_script
+from video.visuals import clean_text
 
 FACT_ROLES = {"fact", "twist", "rank"}
 
@@ -57,6 +58,11 @@ HARD RULES (violations are rejected):
 6. "image_prompt": a vivid anime illustration of that moment. "image_style": "character" if a named
    character is visible (write the full character name, the anime title and their signature outfit/features),
    otherwise "scene" (scenery, objects, silhouettes; no names needed).
+6b. "image_source": "official" to show the show's real official key-art poster or a character's official
+   portrait (set "image_subject" to the EXACT show title or character name from the FACTS), or "ai" for an
+   illustrated moment. Use "official" for every show scene in news/hype/preview formats, for a hook about a
+   whole series, and for a quiz answer reveal; use "ai" for action moments, emotions, what-ifs and theories.
+   Always also write "image_prompt" (used as fallback if no good official image exists).
 7. "caption": 2-4 short lines with emojis, ending in a question that invites comments. No hashtags in it.
 8. "hashtags": exactly 5, most effective mix: #anime, the show (e.g. #onepiece), a character tag, 2 niche/format tags.
 9. Avoid major spoilers unless the fact is already marked spoiler low/none.
@@ -64,7 +70,7 @@ Return ONLY JSON matching this shape:
 {"title": str, "mood": "hype"|"mystery"|"sad"|"default",
  "scenes": [{"role": "hook"|"fact"|"twist"|"rank"|"theory"|"what_if"|"outro", "headline": str, "emphasis": [str],
              "tag": str (optional), "narration": str, "knowledge_ids": [str], "image_style": "character"|"scene",
-             "image_prompt": str}],
+             "image_source": "official"|"ai", "image_subject": str, "image_prompt": str}],
  "caption": str, "hashtags": [str]}
 The first scene's role is "hook" and the last is "outro"."""
 
@@ -124,7 +130,11 @@ def normalise(raw: dict, script_id: str, anime: str, format_name: str) -> dict:
         if tag.lower() not in [t.lower() for t in tags] and len(tag) > 1:
             tags.append(tag)
     script["hashtags"] = tags[:5]
+    script["caption"] = clean_text(script.get("caption", ""))
     for scene in script.get("scenes") or []:
+        for key in ("headline", "narration", "tag"):
+            if key in scene:
+                scene[key] = clean_text(scene[key])
         headline = str(scene.get("headline", "")).strip()
         scene["headline"] = headline[:HEADLINE_MAX]
         words = {w.strip(".,!?'\"").upper() for w in headline.split()}
@@ -132,6 +142,9 @@ def normalise(raw: dict, script_id: str, anime: str, format_name: str) -> dict:
         scene["knowledge_ids"] = [str(k) for k in (scene.get("knowledge_ids") or [])]
         if scene.get("image_style") not in ("character", "scene"):
             scene["image_style"] = "scene"
+        if scene.get("image_source") not in ("ai", "official"):
+            scene["image_source"] = "ai"
+        scene["image_subject"] = str(scene.get("image_subject") or "")[:120]
         if "tag" in scene and not scene["tag"]:
             scene.pop("tag")
     return script

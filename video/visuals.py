@@ -63,6 +63,17 @@ def ease_out_back(x: float) -> float:
     return 1 + c3 * (x - 1) ** 3 + c1 * (x - 1) ** 2
 
 
+_GLYPH_FIXES = str.maketrans({
+    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-", "\u2015": "-", "\u2212": "-",
+    "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u00a0": " ", "\u202f": " ",
+})
+
+
+def clean_text(text: str) -> str:
+    """Replace characters the bundled fonts don't have (fancy dashes/quotes/spaces)."""
+    return str(text).translate(_GLYPH_FIXES)
+
+
 def mix(a: RGB, b: RGB, t: float) -> RGB:
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))  # type: ignore[return-value]
 
@@ -163,6 +174,31 @@ def compose_full(art: Image.Image) -> Image.Image:
     return canvas
 
 
+POSTER_TOP, POSTER_MAX_W, POSTER_MAX_H, POSTER_MAX_SCALE = 350, 720, 640, 1.7
+
+
+def prepare_poster(img: Image.Image) -> Image.Image:
+    """Official key art scaled near native size (never more than 1.7x) with rounded corners."""
+    scale = min(POSTER_MAX_W / img.width, POSTER_MAX_H / img.height, POSTER_MAX_SCALE)
+    poster = img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS).convert("RGBA")
+    mask = Image.new("L", poster.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, poster.width - 1, poster.height - 1], radius=28, fill=255)
+    poster.putalpha(mask)
+    return poster
+
+
+def poster_background(bg: Image.Image, poster: Image.Image, theme: Theme) -> Image.Image:
+    """Blurred banner/poster backdrop plus a soft shadow where the poster sits."""
+    base = cover(bg, (W // 6, H // 6)).filter(ImageFilter.GaussianBlur(4)).resize((W, H), Image.BILINEAR)
+    base = Image.blend(base, Image.new("RGB", (W, H), theme.bg_bottom), 0.55)
+    shadow = Image.new("L", (W, H), 0)
+    x0 = (W - poster.width) // 2
+    y0 = POSTER_TOP + (POSTER_MAX_H - poster.height) // 2
+    ImageDraw.Draw(shadow).rounded_rectangle([x0 + 10, y0 + 22, x0 + poster.width + 10, y0 + poster.height + 22], radius=30, fill=190)
+    base.paste((0, 0, 0), mask=shadow.filter(ImageFilter.GaussianBlur(22)))
+    return base
+
+
 def card_mask() -> Image.Image:
     mask = Image.new("L", (CARD_W, CARD_H), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, CARD_W - 1, CARD_H - 1], radius=34, fill=255)
@@ -202,8 +238,8 @@ def wrap(words: List[str], f: ImageFont.FreeTypeFont, max_width: int) -> List[Li
 
 def headline_image(text: str, emphasis: List[str], theme: Theme, max_width: int = 900,
                    sizes: Tuple[int, ...] = (170, 150, 132, 116, 100, 88), max_lines: int = 3) -> Image.Image:
-    words = text.upper().split()
-    keys = {e.upper().strip(".,!?") for e in emphasis}
+    words = clean_text(text).upper().split()
+    keys = {clean_text(e).upper().strip(".,!?") for e in emphasis}
     for size in sizes:
         f = font("Anton-Regular.ttf", size)
         lines = wrap(words, f, max_width)
@@ -228,6 +264,7 @@ def headline_image(text: str, emphasis: List[str], theme: Theme, max_width: int 
 
 
 def pill(draw: ImageDraw.ImageDraw, center_x: int, y: int, text: str, fill: RGB, color: RGB, size: int = 40) -> None:
+    text = clean_text(text)
     f = font("Poppins-Bold.ttf", size)
     tw = f.getlength(text)
     pad_x, h = 30, int(size * 1.7)
@@ -254,6 +291,7 @@ class FrameRenderer:
         self.mask = card_mask()
         self.shade = full_shade()
         self.fulls: List[Optional[Image.Image]] = []
+        self.posters: List[Optional[Image.Image]] = []
 
         base = base_background(self.theme)
         self.backgrounds, self.headlines, self.tags, self.cards, self.credits = [], [], [], [], []
@@ -264,6 +302,20 @@ class FrameRenderer:
             if scene.role not in ("hook", "outro"):
                 fact_no += 1
                 number = fact_no
+            if image and image.get("layout") == "poster":
+                art = Image.open(image["path"]).convert("RGB")
+                poster = prepare_poster(art)
+                bg = Image.open(image["background"]).convert("RGB") if image.get("background") else art
+                self.posters.append(poster)
+                self.fulls.append(None)
+                self.backgrounds.append(poster_background(bg, poster, self.theme))
+                self.cards.append(None)
+                self.credits.append("")
+                self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme,
+                                                     sizes=(124, 112, 100, 90, 80), max_lines=2))
+                self.tags.append(self.scene_tag(scene, spec, number, script, numbered_total))
+                continue
+            self.posters.append(None)
             if image and image.get("layout") == "full":
                 art = Image.open(image["path"]).convert("RGB")
                 self.fulls.append(compose_full(art))
@@ -289,7 +341,8 @@ class FrameRenderer:
                 self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme))
             self.tags.append(self.scene_tag(scene, spec, number, script, numbered_total))
         self.chunks = [caption_chunks(s.words) for s in self.scenes]
-        self.brand = f"{script['anime'].upper()}  •  ANIME SECRETS"
+        self.brand = ("ANIME NEWS  •  SENPAI SECRETS" if script["anime"] == "Anime"
+                      else f"{clean_text(script['anime']).upper()[:28]}  •  ANIME SECRETS")
 
     @staticmethod
     def scene_tag(scene: SceneTiming, spec: dict, number: Optional[int], script: dict, total: int) -> str:
@@ -326,8 +379,10 @@ class FrameRenderer:
         d.rounded_rectangle([140, bar_y, W - 140, bar_y + 8], radius=4, fill=mix(self.theme.bg_top, WHITE, 0.18))
         d.rounded_rectangle([140, bar_y, 140 + (W - 280) * min(t / self.duration, 1), bar_y + 8], radius=4, fill=self.theme.accent)
 
-        has_card = self.cards[i] is not None
-        if has_card:
+        if self.posters[i] is not None:
+            self.draw_poster(img, i, u, scene.end - scene.start)
+        has_card = self.cards[i] is not None or self.posters[i] is not None
+        if self.cards[i] is not None:
             self.draw_card(img, d, i, u, scene.end - scene.start)
 
         # scene tag
@@ -376,6 +431,17 @@ class FrameRenderer:
             img = Image.blend(img, flash, 0.55 * (1 - u / 0.1))
         return img
 
+    def draw_poster(self, img: Image.Image, i: int, u: float, length: float) -> None:
+        poster = self.posters[i]
+        progress = min(max(u / max(length, 0.1), 0.0), 1.0)
+        scale = 1.0 + 0.045 * progress  # gentle push-in
+        if scale != 1.0:
+            poster = poster.resize((int(poster.width * scale), int(poster.height * scale)), Image.BILINEAR)
+        slide = int(70 * (1 - ease_out_back(u / 0.4)))
+        x = (W - poster.width) // 2
+        y = POSTER_TOP + (POSTER_MAX_H - poster.height) // 2 + slide
+        img.paste(poster, (x, y), poster)
+
     def full_frame(self, i: int, u: float, length: float) -> Image.Image:
         """Full-screen artwork with slow zoom-in and readability shading."""
         big = self.fulls[i]
@@ -422,7 +488,7 @@ class FrameRenderer:
         if current is None:
             return
         f = font("Poppins-ExtraBold.ttf", 68)
-        texts = [w.text.upper() for w in current]
+        texts = [clean_text(w.text).upper() for w in current]
         space = f.getlength(" ") + 18  # extra room for the 9px outline on both words
         total = sum(f.getlength(x) for x in texts) + space * (len(texts) - 1)
         x = (W - total) / 2

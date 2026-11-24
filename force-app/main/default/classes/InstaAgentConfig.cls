@@ -21,7 +21,8 @@ public with sharing class InstaAgentConfig {
                     Morning_Slot_IST__c = '09:00',
                     Evening_Slot_IST__c = '19:00',
                     GitHub_Repository__c = 'pratiks2003/anime-facts-automation',
-                    Generate_Workflow__c = 'reel.yml'
+                    Generate_Workflow__c = 'reel.yml',
+                    Quality_Threshold__c = 8
                 );
             }
             cached = s;
@@ -40,6 +41,9 @@ public with sharing class InstaAgentConfig {
         }
         if (String.isNotBlank(changes.Evening_Slot_IST__c)) {
             current.Evening_Slot_IST__c = validTime(changes.Evening_Slot_IST__c);
+        }
+        if (current.Quality_Threshold__c == null) {
+            current.Quality_Threshold__c = 8;
         }
         upsert current;
         cached = current;

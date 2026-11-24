@@ -200,3 +200,22 @@ class RetryTests(unittest.TestCase):
         with self.assertRaises(InstagramAPIError):
             client(graph).publish_reel("cap", video_url="https://example.org/v.mp4", publish=True)
         self.assertEqual(len(graph.calls), 1)
+
+
+class MetricsTests(unittest.TestCase):
+    def test_basic_counts_when_insights_permission_missing(self):
+        graph = FakeGraph([
+            ("/M1", {"like_count": 4, "comments_count": 2, "permalink": "p", "thumbnail_url": "t"}),
+            ("/M1/insights", http_error(400, code=10, message="Application does not have permission")),
+        ])
+        m = client(graph).media_metrics("M1")
+        self.assertEqual((m["likes"], m["comments"], m["insights_available"]), (4, 2, False))
+
+    def test_insights_parsed_when_available(self):
+        graph = FakeGraph([
+            ("/M1", {"like_count": 4, "comments_count": 2}),
+            ("/M1/insights", {"data": [{"name": "views", "values": [{"value": 1200}]},
+                                       {"name": "ig_reels_avg_watch_time", "values": [{"value": 8400}]}]}),
+        ])
+        m = client(graph).media_metrics("M1")
+        self.assertEqual((m["views"], m["avg_watch_ms"], m["insights_available"]), (1200, 8400, True))

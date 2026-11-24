@@ -308,6 +308,33 @@ class InstagramClient:
                 self._sleep(20 * attempt)
         raise last  # pragma: no cover
 
+    INSIGHT_METRICS = {"views": "views", "reach": "reach", "shares": "shares", "saved": "saves",
+                       "total_interactions": "interactions", "ig_reels_avg_watch_time": "avg_watch_ms"}
+
+    def media_metrics(self, media_id: str) -> Dict[str, object]:
+        """Basic counts (always available) + Insights (needs instagram_manage_insights)."""
+        base = self._request("GET", media_id, {"fields": "like_count,comments_count,permalink,thumbnail_url,timestamp"})
+        out: Dict[str, object] = {"likes": base.get("like_count"), "comments": base.get("comments_count"),
+                                  "permalink": base.get("permalink"), "thumbnail_url": base.get("thumbnail_url"),
+                                  "insights_available": False}
+        try:
+            data = self._request("GET", f"{media_id}/insights", {"metric": ",".join(self.INSIGHT_METRICS)})
+            for row in data.get("data", []):
+                key = self.INSIGHT_METRICS.get(row.get("name"))
+                values = row.get("values") or [{}]
+                if key:
+                    out[key] = values[0].get("value")
+            out["insights_available"] = True
+        except InstagramAPIError as exc:
+            if exc.code != 10:  # 10 = permission missing; anything else is a real problem
+                raise
+        return out
+
+    def recent_comments(self, media_id: str, limit: int = 25) -> list:
+        """Comment text + like counts (no usernames stored) for the Community Manager."""
+        data = self._request("GET", f"{media_id}/comments", {"fields": "text,like_count,timestamp", "limit": str(limit)})
+        return [{"text": c.get("text", ""), "likes": c.get("like_count", 0), "at": c.get("timestamp")} for c in data.get("data", [])]
+
     def publish_reel(self, caption: str, video_url: Optional[str] = None, video_path: Optional[str] = None,
                      publish: bool = False, **container_kwargs) -> PublishResult:
         """Full flow. With publish=False (default) it stops once the container is FINISHED."""

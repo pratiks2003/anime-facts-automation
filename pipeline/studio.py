@@ -13,11 +13,11 @@ class StudioError(RuntimeError):
 
 
 def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[dict], context: str = "",
-                 topic: str = "") -> dict:
+                 topic: str = "", lessons: Optional[List[str]] = None) -> dict:
     """Return {"script", "quality", "production", "fact_check", "calls"} with a code-validated script."""
     payload = {
         "content_id": content_id, "format": format_name, "guide": FORMAT_GUIDE[format_name], "anime": anime,
-        "context": context, "topic": topic,
+        "context": context, "topic": topic, "lessons": lessons or [],
         "facts": [{k: f.get(k) for k in ("id", "anime", "title", "content", "characters", "spoiler_level")} for f in facts],
     }
     result = sf.apex_post("insta/studio/script", payload)

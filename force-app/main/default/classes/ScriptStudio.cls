@@ -43,7 +43,8 @@ public with sharing class ScriptStudio {
             'anime' => request.get('anime'),
             'context' => request.get('context'),
             'topic' => request.get('topic'),
-            'facts' => request.get('facts')
+            'facts' => request.get('facts'),
+            'lessons' => request.get('lessons')
         };
         Map<String, Object> guide = (Map<String, Object>) request.get('guide');
         if (guide != null) {

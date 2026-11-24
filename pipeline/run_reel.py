@@ -68,6 +68,28 @@ def recent_usage(sf) -> tuple:
     return ids, anime
 
 
+def soql_str(value: str) -> str:
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def learning_inputs(sf, format_name: str) -> tuple:
+    """(analyst hook lessons, best backlog idea for this format) from Salesforce."""
+    if isinstance(sf, NullSalesforce):
+        return [], None
+    lessons: List[str] = []
+    idea = None
+    try:
+        rows = sf.query("SELECT Hook_Lessons__c FROM Performance_Review__c ORDER BY CreatedDate DESC LIMIT 1")
+        if rows and rows[0].get("Hook_Lessons__c"):
+            lessons = [l.strip() for l in rows[0]["Hook_Lessons__c"].splitlines() if l.strip()][:5]
+        ideas = sf.query("SELECT Id, Name, Anime__c FROM Topic_Idea__c WHERE Status__c = 'New' AND "
+                         f"(Format__c = {soql_str(format_name)} OR Format__c = null) ORDER BY Votes__c DESC NULLS LAST, CreatedDate ASC LIMIT 1")
+        idea = ideas[0] if ideas else None
+    except Exception as exc:
+        log(f"warning: could not read learning inputs ({exc})")
+    return lessons, idea
+
+
 def ensure_anime(sf, name: str, anilist_id: Optional[int]) -> bool:
     """Upsert the Anime__c record (keyed by AniList id) so Reels/facts can reference it."""
     if isinstance(sf, NullSalesforce) or not anilist_id:
@@ -174,7 +196,14 @@ def generate(args, sf) -> int:
         cloudflare = None
     llm = ChainLLM([None if isinstance(sf, NullSalesforce) else AgentforceLLM(sf), cloudflare])
     recent_ids, recent_anime = recent_usage(sf)
-    plan = plan_reel(llm, args.format, anime_hint=args.anime or "", topic=args.topic or "",
+    lessons, idea = learning_inputs(sf, args.format)
+    anime_hint, topic = args.anime or "", args.topic or ""
+    if idea and not anime_hint and not topic and args.format not in ("This Week's Drops", "Why It's Trending", "Hype Check", "Season Preview", "Just Announced"):
+        anime_hint, topic = idea.get("Anime__c") or "", idea["Name"]
+        log(f"using backlog idea: {idea['Name']} ({anime_hint})")
+    else:
+        idea = None
+    plan = plan_reel(llm, args.format, anime_hint=anime_hint, topic=topic,
                      recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid)
     log(f"plan: {plan.format} about {plan.anime} with {len(plan.facts)} facts (ingested {plan.ingested})")
 
@@ -184,7 +213,7 @@ def generate(args, sf) -> int:
         try:
             from pipeline.studio import agent_script
 
-            result = agent_script(sf, cid, args.format, plan.anime, plan.facts, plan.context, args.topic or "")
+            result = agent_script(sf, cid, args.format, plan.anime, plan.facts, plan.context, topic, lessons)
             script, source, quality = result["script"], "Agentforce", result
             log(f"agents: score {result['quality'].get('overall')} in {result.get('calls')} calls; facts pass={result['fact_check'].get('pass')}")
         except Exception as exc:
@@ -223,6 +252,11 @@ def generate(args, sf) -> int:
     if store:
         urls = store.upload({f"{cid}.mp4": Path(manifest["video"]), f"{cid}.jpg": Path(manifest["cover"])})
         store.prune()
+    if idea:
+        try:
+            sf.request("PATCH", f"sobjects/Topic_Idea__c/{idea['Id']}", {"Status__c": "Used", "Used_By__r": {"External_Id__c": cid}})
+        except Exception as exc:
+            log(f"warning: could not mark idea used ({exc})")
     used = [f for f in plan.facts if f["id"] in set(manifest["knowledge_ids"])]
     linked = ensure_anime(sf, plan.anime, plan.anilist_id)
     sync_facts(sf, used, plan.anilist_id if linked else None)

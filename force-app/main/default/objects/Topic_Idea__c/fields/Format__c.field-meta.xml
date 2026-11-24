@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Format__c</fullName>
+    <label>Format</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Fact</fullName>
+                <default>false</default>
+                <label>Fact</label>
+            </value>
+            <value>
+                <fullName>Hidden Details</fullName>
+                <default>false</default>
+                <label>Hidden Details</label>
+            </value>
+            <value>
+                <fullName>Backstory</fullName>
+                <default>false</default>
+                <label>Backstory</label>
+            </value>
+            <value>
+                <fullName>Fan Theory</fullName>
+                <default>false</default>
+                <label>Fan Theory</label>
+            </value>
+            <value>
+                <fullName>What If</fullName>
+                <default>false</default>
+                <label>What If</label>
+            </value>
+            <value>
+                <fullName>Who Would Win</fullName>
+                <default>false</default>
+                <label>Who Would Win</label>
+            </value>
+            <value>
+                <fullName>Ranking</fullName>
+                <default>false</default>
+                <label>Ranking</label>
+            </value>
+            <value>
+                <fullName>Quiz</fullName>
+                <default>false</default>
+                <label>Quiz</label>
+            </value>
+            <value>
+                <fullName>Behind the Scenes</fullName>
+                <default>false</default>
+                <label>Behind the Scenes</label>
+            </value>
+            <value>
+                <fullName>This Week's Drops</fullName>
+                <default>false</default>
+                <label>This Week's Drops</label>
+            </value>
+            <value>
+                <fullName>Why It's Trending</fullName>
+                <default>false</default>
+                <label>Why It's Trending</label>
+            </value>
+            <value>
+                <fullName>Hype Check</fullName>
+                <default>false</default>
+                <label>Hype Check</label>
+            </value>
+            <value>
+                <fullName>Season Preview</fullName>
+                <default>false</default>
+                <label>Season Preview</label>
+            </value>
+            <value>
+                <fullName>Just Announced</fullName>
+                <default>false</default>
+                <label>Just Announced</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

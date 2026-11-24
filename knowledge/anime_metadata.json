@@ -67,6 +67,25 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "Naruto: Shippuden",
+      "aliases": [
+        "NARUTO: Shippuuden",
+        "Naruto Shippuden",
+        "Naruto Shippuuden",
+        "Наруто: Ураганные хроники",
+        "נארוטו שיפודן",
+        "ناروتو شيبودن",
+        "นารูโตะ ตำนานวายุสลาตัน",
+        "火影忍者 疾风传"
+      ],
+      "anilist_id": 1735,
+      "knowledge_file": "naruto_shippuden.jsonl",
+      "id_prefix": "NS",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

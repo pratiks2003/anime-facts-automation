@@ -53,6 +53,20 @@
         "thousand sunny",
         "oda"
       ]
+    },
+    {
+      "name": "Black Clover",
+      "aliases": [
+        "Чёрный клевер",
+        "תלתן שחור",
+        "แบล็กโคลเวอร์"
+      ],
+      "anilist_id": 97940,
+      "knowledge_file": "black_clover.jsonl",
+      "id_prefix": "BC",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

@@ -34,7 +34,7 @@ def spoken_time(ts: int) -> str:
     dt = datetime.fromtimestamp(ts, IST)
     hour = dt.strftime("%I").lstrip("0")
     minute = "" if dt.minute == 0 else f":{dt.minute:02d}"
-    return f"{dt.strftime('%A')} at {hour}{minute} {dt.strftime('%p')} India time"
+    return f"{dt.strftime('%A')} at {hour}{minute} {dt.strftime('%p')} IST"
 
 
 def _facts_by_show(facts: List[dict]) -> Dict[str, List[dict]]:

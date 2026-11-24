@@ -66,6 +66,7 @@ HARD RULES (violations are rejected):
 7. "caption": 2-4 short lines with emojis, ending in a question that invites comments. No hashtags in it.
 8. "hashtags": exactly 5, most effective mix: #anime, the show (e.g. #onepiece), a character tag, 2 niche/format tags.
 9. Avoid major spoilers unless the fact is already marked spoiler low/none.
+10. Times: only mention a time if it matters, and write it as "Friday 9 PM IST" (never "India time").
 Return ONLY JSON matching this shape:
 {"title": str, "mood": "hype"|"mystery"|"sad"|"default",
  "scenes": [{"role": "hook"|"fact"|"twist"|"rank"|"theory"|"what_if"|"outro", "headline": str, "emphasis": [str],

@@ -78,6 +78,19 @@ class ImageGenTests(unittest.TestCase):
             _, model = gen(fake).generate("x", Path(tmp))
         self.assertEqual(model, "@cf/black-forest-labs/flux-2-klein-4b")
 
+    def test_character_scenes_use_schnell_first(self):
+        fake = FakeCF([{"result": {"image": png_b64()}, "success": True}])
+        with tempfile.TemporaryDirectory() as tmp:
+            _, model = gen(fake).generate("x", Path(tmp), character=True)
+        self.assertEqual(model, "@cf/black-forest-labs/flux-1-schnell")
+
+    def test_flagged_scene_falls_back(self):
+        flagged = http_error(400, '{"errors":[{"message":"AiError: Your output has been flagged","code":3030}]}')
+        fake = FakeCF([flagged, flagged, {"result": {"image": png_b64()}, "success": True}])
+        with tempfile.TemporaryDirectory() as tmp:
+            _, model = gen(fake).generate("x", Path(tmp))
+        self.assertEqual(model, "@cf/black-forest-labs/flux-1-schnell")
+
     def test_quota_exceeded_stops_without_fallback(self):
         fake = FakeCF([http_error(429, '{"errors":[{"message":"you have used up your daily free allocation of 10,000 neurons"}]}')])
         with tempfile.TemporaryDirectory() as tmp, self.assertRaises(QuotaExceeded):

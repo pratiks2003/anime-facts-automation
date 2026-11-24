@@ -50,7 +50,7 @@ class ScriptTests(unittest.TestCase):
 
     def test_helpers(self):
         self.assertEqual(knowledge_ids(self.script), ["OP-002", "OP-004", "OP-003"])
-        self.assertTrue(full_caption(self.script).endswith("#strawhat"))
+        self.assertTrue(full_caption(self.script).endswith("#otaku"))
 
 
 class TimingTests(unittest.TestCase):

@@ -145,6 +145,24 @@ def full_shade() -> Image.Image:
     return mask.resize((W, H))
 
 
+def compose_full(art: Image.Image) -> Image.Image:
+    """Canvas for full-bleed art. Square art (FLUX.1 schnell) is shown whole across the
+    top and fades into a blurred extension of itself, instead of losing its sides."""
+    size = (int(W * FULL_OVERSCAN), int(H * FULL_OVERSCAN))
+    if not 0.85 <= art.width / art.height <= 1.15:
+        return cover(art, size)
+    canvas = cover(art, (size[0] // 6, size[1] // 6)).filter(ImageFilter.GaussianBlur(6)).resize(size, Image.BILINEAR)
+    canvas = Image.blend(canvas, Image.new("RGB", size, (0, 0, 0)), 0.35)
+    side = size[0]
+    sharp = art.resize((side, side), Image.LANCZOS)
+    fade = Image.new("L", (side, side), 255)
+    fd = ImageDraw.Draw(fade)
+    for i in range(220):  # feather the bottom edge into the blurred background
+        fd.line([(0, side - 220 + i), (side, side - 220 + i)], fill=int(255 * (1 - i / 220)))
+    canvas.paste(sharp, (0, int(size[1] * 0.11)), fade)
+    return canvas
+
+
 def card_mask() -> Image.Image:
     mask = Image.new("L", (CARD_W, CARD_H), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, CARD_W - 1, CARD_H - 1], radius=34, fill=255)
@@ -247,7 +265,7 @@ class FrameRenderer:
                 number = fact_no
             if image and image.get("layout") == "full":
                 art = Image.open(image["path"]).convert("RGB")
-                self.fulls.append(cover(art, (int(W * FULL_OVERSCAN), int(H * FULL_OVERSCAN))))
+                self.fulls.append(compose_full(art))
                 self.backgrounds.append(None)
                 self.cards.append(None)
                 self.credits.append(image.get("credit", ""))
@@ -342,7 +360,7 @@ class FrameRenderer:
 
         # outro: follow call-to-action + sources
         if scene.role == "outro":
-            follow_y, src_y = (1455, 1545) if full else (1395, 1490)
+            follow_y, src_y = (1478, 1565) if full else (1395, 1490)
             if self.handle and u > 0.4:
                 pill(d, W // 2, follow_y, f"FOLLOW {self.handle}", self.theme.accent2, WHITE, size=34)
             if self.sources_note:

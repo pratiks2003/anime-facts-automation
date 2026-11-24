@@ -179,7 +179,8 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
             try:
                 started = time.time()
                 path, model = generator.generate(build_prompt(scene["image_prompt"], script["anime"]),
-                                                 cache, seed=1000 + index)
+                                                 cache, seed=1000 + index,
+                                                 character=scene.get("image_style") == "character")
                 asset = MediaAsset("ai_image", str(path), scene["headline"], "", "AI-generated",
                                    "", model.rsplit("/", 1)[-1], f"ai-{index}")
                 log(f"AI art scene {index + 1}: {model.rsplit('/', 1)[-1]} ({time.time() - started:.1f}s)")

@@ -27,6 +27,11 @@ from typing import Callable, Dict, List, Optional, Tuple
 API = "https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{model}"
 DEFAULT_MODEL = "@cf/black-forest-labs/flux-2-klein-9b"
 FALLBACK_MODELS = ["@cf/black-forest-labs/flux-2-klein-4b", "@cf/black-forest-labs/flux-1-schnell"]
+# Per-scene art style (channel owner's choice, 2026-11-24): scenes featuring anime
+# characters use FLUX.1 schnell, which draws them on-model (FLUX.2's output filter
+# rejects recognisable characters). Scenery/object scenes use FLUX.2 Klein for
+# native 9:16 portrait output.
+CHARACTER_MODELS = ["@cf/black-forest-labs/flux-1-schnell", "@cf/black-forest-labs/flux-2-klein-4b"]
 MULTIPART_MODELS = {"flux-2-dev", "flux-2-klein-4b", "flux-2-klein-9b"}
 PORTRAIT = (768, 1344)  # 9:16-ish, multiples of 64
 
@@ -117,14 +122,18 @@ class CloudflareImageGenerator:
                 raise ImageGenError(f"{short}: network error {type(exc).__name__}") from None
         raise ImageGenError("unreachable")
 
-    def generate(self, prompt: str, cache_dir: Path, size: Tuple[int, int] = PORTRAIT, seed: int = 7) -> Tuple[Path, str]:
-        """Return (path to JPEG, model used). Cached by model+prompt+size+seed."""
+    def generate(self, prompt: str, cache_dir: Path, size: Tuple[int, int] = PORTRAIT, seed: int = 7,
+                 character: bool = False) -> Tuple[Path, str]:
+        """Return (path to JPEG, model used). Cached by model+prompt+size+seed.
+
+        character=True: the scene shows anime characters -> FLUX.1 schnell first."""
         from io import BytesIO
 
         from PIL import Image
 
         errors: List[str] = []
-        for model in [self.model] + [m for m in FALLBACK_MODELS if m != self.model]:
+        order = CHARACTER_MODELS if character else [self.model] + [m for m in FALLBACK_MODELS if m != self.model]
+        for model in order:
             key = hashlib.sha1(f"{model}|{prompt}|{size}|{seed}".encode()).hexdigest()[:16]
             path = cache_dir / f"ai_{key}.jpg"
             if path.exists():

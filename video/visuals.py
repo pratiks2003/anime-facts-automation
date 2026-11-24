@@ -258,6 +258,7 @@ class FrameRenderer:
         base = base_background(self.theme)
         self.backgrounds, self.headlines, self.tags, self.cards, self.credits = [], [], [], [], []
         fact_no = 0
+        numbered_total = sum(1 for sc in self.scenes if sc.role not in ("hook", "outro"))
         for scene, spec, image in zip(self.scenes, script["scenes"], images):
             number = None
             if scene.role not in ("hook", "outro"):
@@ -271,11 +272,7 @@ class FrameRenderer:
                 self.credits.append(image.get("credit", ""))
                 self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme,
                                                      sizes=(132, 118, 106, 94, 84), max_lines=2))
-                tag = ROLE_TAGS.get(scene.role) or (
-                    f"#{number}" if script["mode"] == "ranking" else f"FACT {number:02d}")
-                if script["mode"] == "what_if" and scene.role not in ("hook", "outro"):
-                    tag = ROLE_TAGS["what_if"]
-                self.tags.append(tag)
+                self.tags.append(self.scene_tag(scene, spec, number, script, numbered_total))
                 continue
             self.fulls.append(None)
             if image:
@@ -290,14 +287,20 @@ class FrameRenderer:
                 self.cards.append(None)
                 self.credits.append("")
                 self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme))
-            tag = ROLE_TAGS.get(scene.role) or (
-                f"#{number}" if script["mode"] == "ranking" else f"FACT {number:02d}"
-            )
-            if script["mode"] == "what_if" and scene.role not in ("hook", "outro"):
-                tag = ROLE_TAGS["what_if"]
-            self.tags.append(tag)
+            self.tags.append(self.scene_tag(scene, spec, number, script, numbered_total))
         self.chunks = [caption_chunks(s.words) for s in self.scenes]
         self.brand = f"{script['anime'].upper()}  •  ANIME SECRETS"
+
+    @staticmethod
+    def scene_tag(scene: SceneTiming, spec: dict, number: Optional[int], script: dict, total: int) -> str:
+        """Label pill: explicit script tag > role tag > countdown (#3..#1) > FACT nn."""
+        if spec.get("tag"):
+            return str(spec["tag"]).upper()[:26]
+        if scene.role in ROLE_TAGS:
+            return ROLE_TAGS[scene.role]
+        if script.get("mode") == "ranking":
+            return f"#{total - number + 1}"
+        return f"FACT {number:02d}"
 
     def scene_at(self, t: float) -> int:
         for i, s in enumerate(self.scenes):

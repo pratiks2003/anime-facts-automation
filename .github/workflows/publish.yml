@@ -1,0 +1,43 @@
+name: Publish Reel
+run-name: "Publish ${{ inputs.content_id }} · ${{ inputs.job_id }}"
+
+# Dispatched by Salesforce when a rendered Reel is approved manually in the admin site.
+on:
+  workflow_dispatch:
+    inputs:
+      content_id: { description: "Anime_Content__c.External_Id__c", required: true }
+      job_id: { description: "Video_Job__c.Correlation_Id__c", required: true }
+      dry_run: { description: "Do everything except posting", required: false, default: "true" }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reel-${{ inputs.content_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+      IG_USER_ID: ${{ vars.IG_USER_ID }}
+      IG_LOGIN: ${{ vars.IG_LOGIN }}
+      SF_DOMAIN: ${{ vars.SF_DOMAIN }}
+      SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
+      SF_CLIENT_SECRET: ${{ secrets.SF_CLIENT_SECRET }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Publish
+        env:
+          IN_CONTENT_ID: ${{ inputs.content_id }}
+          IN_JOB_ID: ${{ inputs.job_id }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+        run: python -m pipeline.run_reel publish --content-id "$IN_CONTENT_ID" --job-id "$IN_JOB_ID" --dry-run "$IN_DRY_RUN"

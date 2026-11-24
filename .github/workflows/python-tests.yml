@@ -2,9 +2,9 @@ name: Python tests
 
 on:
   push:
-    paths: ["rag/**", "trends/**", "knowledge/**", "video/**", "content/**", "integrations/**", "tests/**", "requirements*.txt", ".github/workflows/python-tests.yml"]
+    paths: ["rag/**", "trends/**", "knowledge/**", "video/**", "content/**", "integrations/**", "pipeline/**", "tests/**", "requirements*.txt", ".github/workflows/python-tests.yml"]
   pull_request:
-    paths: ["rag/**", "trends/**", "knowledge/**", "video/**", "content/**", "integrations/**", "tests/**", "requirements*.txt", ".github/workflows/python-tests.yml"]
+    paths: ["rag/**", "trends/**", "knowledge/**", "video/**", "content/**", "integrations/**", "pipeline/**", "tests/**", "requirements*.txt", ".github/workflows/python-tests.yml"]
   workflow_dispatch:
 
 permissions:

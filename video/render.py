@@ -48,11 +48,12 @@ def channel_config() -> dict:
     return json.loads(CHANNEL_FILE.read_text(encoding="utf-8")) if CHANNEL_FILE.exists() else {}
 
 
-def sources_for(ids: List[str]) -> tuple:
-    """(sources_note, unverified_ids, missing_ids) from the knowledge base."""
+def sources_for(ids: List[str], extra_records: Optional[List[dict]] = None) -> tuple:
+    """(sources_note, unverified_ids, missing_ids) from the knowledge base (+ live news facts)."""
     try:
         from rag.knowledge import load_knowledge
         records = {r["id"]: r for r in load_knowledge()}
+        records.update({r["id"]: r for r in (extra_records or [])})
     except Exception as exc:  # knowledge problems shouldn't block a design preview
         log(f"warning: could not load knowledge ({exc})")
         return "", [], ids
@@ -214,7 +215,7 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
 
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
            speed: Optional[float] = None, stills: bool = False,
-           images: bool = True, music: bool = True) -> dict:
+           images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None) -> dict:
     script = load_script(script_path)
     try:
         from integrations.instagram import load_env_file
@@ -228,7 +229,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     speed = speed or script.get("speed") or channel.get("speed", 1.1)
 
     ids = knowledge_ids(script)
-    sources_note, unverified, missing = sources_for(ids)
+    sources_note, unverified, missing = sources_for(ids, extra_records)
 
     t0 = time.time()
     log(f"narration: voice={voice} speed={speed}")

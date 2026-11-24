@@ -1,0 +1,197 @@
+import io
+import json
+import shutil
+import tempfile
+import unittest
+import urllib.error
+from pathlib import Path
+
+from integrations.salesforce import SalesforceClient
+from pipeline.ingest import KnowledgeStore, build_records, make_prefix, normalize, similar
+from pipeline.llm import LLMError, extract_json
+from pipeline.news import media_facts, next_season
+from pipeline.planner import usable_facts
+from pipeline.writer import check_script, normalise
+from rag.schema import validate_record
+
+FIXTURES = Path(__file__).parent / "fixtures" / "knowledge"
+SOURCE = ("Monkey D. Luffy is the captain of the Straw Hat Pirates. Oda stated that Luffy’s real-world "
+          "counterpart would be Brazilian.  He   cannot swim because of his Devil Fruit.")
+
+
+class IngestTests(unittest.TestCase):
+    def setUp(self):
+        self.entry = {"name": "One Piece", "id_prefix": "OP", "knowledge_file": "one_piece.jsonl"}
+
+    def test_only_facts_with_real_quotes_survive(self):
+        proposals = [
+            {"title": "Brazil", "content": "Oda says Luffy would be Brazilian.",
+             "evidence_quote": "Oda stated that Luffy's real-world counterpart would be Brazilian",  # curly vs straight quote
+             "characters": ["Monkey D. Luffy"], "category": "trivia", "spoiler_level": "none", "tags": ["luffy"]},
+            {"title": "Invented", "content": "Luffy is afraid of cats.",
+             "evidence_quote": "Luffy has been afraid of cats since childhood", "category": "trivia"},
+            {"title": "Too short", "content": "x", "evidence_quote": "Luffy"},
+        ]
+        records, rejected = build_records(proposals, self.entry, "https://en.wikipedia.org/wiki/Monkey_D._Luffy", SOURCE)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(rejected, 2)
+        rec = dict(records[0], id="OP-999")
+        self.assertEqual(validate_record(rec), [])
+        self.assertTrue(rec["verified"])
+        self.assertEqual(rec["license"], "CC BY-SA 4.0")
+
+    def test_whitespace_insensitive_match(self):
+        records, _ = build_records([{"title": "swim", "content": "He can't swim.",
+                                     "evidence_quote": "He cannot swim because of his Devil Fruit", "category": "ability"}],
+                                   self.entry, "https://x.org", SOURCE)
+        self.assertEqual(len(records), 1)
+
+    def test_store_dedupes_and_numbers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for f in FIXTURES.iterdir():
+                shutil.copy(f, tmp)
+            store = KnowledgeStore(Path(tmp))
+            entry = store.anime("one piece")
+            new = [dict(id="TMP-000", anime="One Piece", title="Rubber again", content="Luffy ate the Gum-Gum Fruit and his body became rubber.",
+                        characters=[], category="ability", canon_status="canon", spoiler_level="none",
+                        source_url="https://x.org", source_type="encyclopedia", verified=True, last_reviewed="2026-11-25", tags=["x"]),
+                   dict(id="TMP-000", anime="One Piece", title="Fresh", content="Something completely different about navigation charts.",
+                        characters=[], category="trivia", canon_status="canon", spoiler_level="none",
+                        source_url="https://x.org", source_type="encyclopedia", verified=True, last_reviewed="2026-11-25", tags=["x"])]
+            accepted = store.add(entry, new)
+            self.assertEqual([r["title"] for r in accepted], ["Fresh"])
+            self.assertEqual(accepted[0]["id"], "OP-104")
+            self.assertIn("OP-104", (Path(tmp) / "one_piece.jsonl").read_text())
+
+    def test_new_anime_metadata_and_prefix(self):
+        self.assertEqual(make_prefix("Jujutsu Kaisen", set()), "JK")
+        self.assertEqual(make_prefix("Jujutsu Kaisen", {"JK"}), "JKA")
+        self.assertEqual(make_prefix("Bleach", set()), "BLE")
+        with tempfile.TemporaryDirectory() as tmp:
+            for f in FIXTURES.iterdir():
+                shutil.copy(f, tmp)
+            store = KnowledgeStore(Path(tmp))
+            entry = store.ensure_anime("Frieren: Beyond Journey's End", 154587, ["Sousou no Frieren"])
+            self.assertEqual(entry["knowledge_file"], "frieren_beyond_journey_s_end.jsonl")
+            self.assertIs(store.ensure_anime("Sousou no Frieren"), entry)
+            self.assertIn("Frieren", (Path(tmp) / "anime_metadata.json").read_text())
+
+    def test_similarity_and_normalize(self):
+        self.assertTrue(similar("Luffy ate the Gum-Gum Fruit and became rubber", "Luffy became rubber after he ate the Gum Gum Fruit"))
+        self.assertFalse(similar("Zoro uses three swords", "Nami draws maps"))
+        self.assertEqual(normalize("A’B  “C”"), "a'b \"c\"")
+
+
+class WriterTests(unittest.TestCase):
+    def script(self, **overrides):
+        scenes = [
+            {"role": "hook", "headline": "Guess who", "emphasis": ["who"], "narration": "Three clues. " * 8, "image_prompt": "sea"},
+            {"role": "fact", "headline": "Clue one", "tag": "CLUE 1", "narration": "He can't swim at all. " * 4, "knowledge_ids": ["OP-101"], "image_prompt": "hat"},
+            {"role": "twist", "headline": "The answer", "narration": "It is Luffy, the rubber captain. " * 3, "knowledge_ids": ["OP-102"], "image_prompt": "luffy", "image_style": "character"},
+            {"role": "outro", "headline": "Your turn", "narration": "Did you get it? Comment below and follow.", "image_prompt": "ship"},
+        ]
+        raw = {"title": "Quiz", "mood": "hype", "scenes": scenes, "caption": "Can you guess? 👇",
+               "hashtags": ["anime", "#onepiece", "#luffy", "#animequiz", "#otaku", "#extra"]}
+        raw.update(overrides)
+        return normalise(raw, "R-1", "One Piece", "Quiz")
+
+    def test_normalise_fills_fields_and_caps_hashtags(self):
+        s = self.script()
+        self.assertEqual(s["mode"], "fact")
+        self.assertEqual(s["hashtags"], ["#anime", "#onepiece", "#luffy", "#animequiz", "#otaku"])
+        self.assertEqual(s["scenes"][1]["emphasis"], [])
+        self.assertEqual(s["scenes"][0]["image_style"], "scene")
+
+    def test_valid_script_passes(self):
+        self.assertEqual(check_script(self.script(), {"OP-101", "OP-102"}), [])
+
+    def test_uncited_and_unknown_ids_rejected(self):
+        s = self.script()
+        s["scenes"][1]["knowledge_ids"] = []
+        s["scenes"][2]["knowledge_ids"] = ["OP-999"]
+        errors = check_script(s, {"OP-101", "OP-102"})
+        self.assertTrue(any("must cite" in e for e in errors))
+        self.assertTrue(any("unknown knowledge_ids" in e for e in errors))
+
+    def test_extract_json(self):
+        self.assertEqual(extract_json('Sure!\n```json\n{"a": 1}\n```'), {"a": 1})
+        with self.assertRaises(LLMError):
+            extract_json("no json here")
+
+
+class PlannerAndNewsTests(unittest.TestCase):
+    def test_usable_facts_filters(self):
+        store = KnowledgeStore(FIXTURES)
+        facts = usable_facts(store, "Naruto", recent_ids={"NAR-105"}, format_name="Backstory", topic="")
+        ids = {f["id"] for f in facts}
+        self.assertNotIn("NAR-103", ids)  # unverified
+        self.assertNotIn("NAR-104", ids)  # theory
+        self.assertNotIn("NAR-102", ids)  # spoiler high
+        self.assertNotIn("NAR-105", ids)  # used recently
+        self.assertEqual(ids, {"NAR-101"})
+
+    def test_media_facts_are_valid_records(self):
+        media = {"id": 1, "title": {"english": "Test Show", "romaji": "Tesuto"}, "siteUrl": "https://anilist.co/anime/1",
+                 "popularity": 123456, "averageScore": 82, "status": "RELEASING", "genres": ["Action"],
+                 "studios": {"nodes": [{"name": "MAPPA"}]}, "nextAiringEpisode": {"episode": 5, "airingAt": 1764000000},
+                 "description": "A <i>hero</i> rises. (Source: Publisher)", "characters": {"nodes": [{"name": {"full": "Hero"}}]}}
+        facts = media_facts(media, 1)
+        self.assertTrue(all(validate_record(f) == [] for f in facts))
+        texts = " ".join(f["content"] for f in facts)
+        self.assertIn("MAPPA", texts)
+        self.assertIn("Episode 5 of Test Show airs", texts)
+        self.assertNotIn("<i>", texts)
+        self.assertNotIn("Source:", texts)
+
+    def test_next_season(self):
+        from datetime import datetime
+        self.assertEqual(next_season(datetime(2026, 11, 25)), ("WINTER", 2027))
+        self.assertEqual(next_season(datetime(2026, 2, 1)), ("SPRING", 2026))
+        self.assertEqual(next_season(datetime(2026, 8, 1)), ("FALL", 2026))
+
+
+class Resp(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+class SalesforceClientTests(unittest.TestCase):
+    def test_auth_then_upsert_by_external_id(self):
+        calls = []
+
+        def opener(req, timeout):
+            calls.append(req)
+            if req.full_url.endswith("/services/oauth2/token"):
+                return Resp(json.dumps({"access_token": "T", "instance_url": "https://org.my.salesforce.com"}).encode())
+            return Resp(b"")
+
+        sf = SalesforceClient("org.my.salesforce.com", "id", "secret", opener=opener, sleep=lambda s: None)
+        sf.reel_update("R-20261125-AM", Status__c="Rendered")
+        self.assertIn(b"grant_type=client_credentials", calls[0].data)
+        req = calls[1]
+        self.assertEqual(req.get_method(), "PATCH")
+        self.assertTrue(req.full_url.endswith("/sobjects/Anime_Content__c/External_Id__c/R-20261125-AM"))
+        self.assertEqual(req.get_header("Authorization"), "Bearer T")
+        self.assertEqual(json.loads(req.data), {"Status__c": "Rendered"})
+
+    def test_reauthenticates_on_401(self):
+        state = {"auth": 0, "patch": 0}
+
+        def opener(req, timeout):
+            if req.full_url.endswith("/token"):
+                state["auth"] += 1
+                return Resp(json.dumps({"access_token": f"T{state['auth']}", "instance_url": "https://o"}).encode())
+            state["patch"] += 1
+            if state["patch"] == 1:
+                raise urllib.error.HTTPError(req.full_url, 401, "expired", {}, io.BytesIO(b"[]"))
+            return Resp(b"")
+
+        SalesforceClient("o", "i", "s", opener=opener, sleep=lambda s: None).job_update("J-1", Status__c="Running")
+        self.assertEqual(state, {"auth": 2, "patch": 2})
+
+
+if __name__ == "__main__":
+    unittest.main()

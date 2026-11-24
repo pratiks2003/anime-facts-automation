@@ -32,6 +32,7 @@ CATEGORIES = (
     "production",
     "trivia",
     "theory",
+    "news",  # time-sensitive AniList data (air dates, scores); not stored in knowledge files
 )
 
 ID_PATTERN = re.compile(r"^[A-Z]{2,5}-\d{3,}$")

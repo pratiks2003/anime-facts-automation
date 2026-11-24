@@ -1,0 +1,98 @@
+name: Generate Reel
+run-name: "Reel ${{ inputs.content_id }} · ${{ inputs.format }} · ${{ inputs.job_id }}"
+
+# Dispatched by Salesforce (ReelDispatchQueueable) for each slot, or manually from the admin site.
+on:
+  workflow_dispatch:
+    inputs:
+      content_id: { description: "Anime_Content__c.External_Id__c", required: true }
+      job_id: { description: "Video_Job__c.Correlation_Id__c", required: true }
+      format: { description: "Reel format", required: true, default: "Fact" }
+      slot: { description: "Morning / Evening / Manual", required: false, default: "Manual" }
+      anime: { description: "Optional anime to focus on", required: false, default: "" }
+      topic: { description: "Optional topic idea", required: false, default: "" }
+      auto_approve: { description: "Publish without manual approval", required: false, default: "true" }
+      dry_run: { description: "Render but never post", required: false, default: "true" }
+
+permissions:
+  contents: write # upload preview assets to the 'reels' release, commit new knowledge
+
+concurrency:
+  group: reel-${{ inputs.content_id }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+      IG_USER_ID: ${{ vars.IG_USER_ID }}
+      IG_LOGIN: ${{ vars.IG_LOGIN }}
+      SF_DOMAIN: ${{ vars.SF_DOMAIN }}
+      SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
+      SF_CLIENT_SECRET: ${{ secrets.SF_CLIENT_SECRET }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Cache Kokoro model
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: models
+          key: kokoro-v1.0-${{ hashFiles('video/fetch_models.py') }}
+
+      - name: Fetch model (checksum verified)
+        run: python -m video.fetch_models
+
+      - name: Generate, render and publish
+        env:
+          IN_CONTENT_ID: ${{ inputs.content_id }}
+          IN_JOB_ID: ${{ inputs.job_id }}
+          IN_FORMAT: ${{ inputs.format }}
+          IN_ANIME: ${{ inputs.anime }}
+          IN_TOPIC: ${{ inputs.topic }}
+          IN_AUTO_APPROVE: ${{ inputs.auto_approve }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+        run: >
+          python -m pipeline.run_reel generate
+          --content-id "$IN_CONTENT_ID" --job-id "$IN_JOB_ID" --format "$IN_FORMAT"
+          --anime "$IN_ANIME" --topic "$IN_TOPIC"
+          --auto-approve "$IN_AUTO_APPROVE" --dry-run "$IN_DRY_RUN"
+
+      - name: Commit new verified knowledge
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain knowledge/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add knowledge/
+            git commit -m "Add auto-verified knowledge (${{ inputs.content_id }})"
+            for i in 1 2 3; do git pull --rebase -q && git push -q && break || sleep 5; done
+          fi
+
+      - name: Upload render (for debugging)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reel-${{ inputs.content_id }}-${{ github.run_id }}
+          path: |
+            output/*.script.json
+            output/*/manifest.json
+            output/*/cover.jpg
+            output/*/video.mp4
+          retention-days: 7
+          if-no-files-found: ignore

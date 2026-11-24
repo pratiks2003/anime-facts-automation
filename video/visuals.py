@@ -413,12 +413,16 @@ class FrameRenderer:
         img.paste(head, (W // 2 - head.width // 2 + dx, cy - head.height // 2 + dy), head)
 
         # karaoke captions
+        caption_y = 1365 if (has_card or full) else 1200
         if captions:
-            self.draw_caption(d, i, t, y=1365 if (has_card or full) else 1200)
+            self.draw_caption(d, i, t, y=caption_y)
 
         # outro: follow call-to-action + sources
         if scene.role == "outro":
-            follow_y, src_y = (1478, 1565) if full else (1395, 1490)
+            # always a clear gap below the subtitle line (captions are ~90px tall incl. outline),
+            # and still above Instagram's bottom UI
+            follow_y = caption_y + 125
+            src_y = follow_y + 95
             if self.handle and u > 0.4:
                 pill(d, W // 2, follow_y, f"FOLLOW {self.handle}", self.theme.accent2, WHITE, size=34)
             if self.sources_note:

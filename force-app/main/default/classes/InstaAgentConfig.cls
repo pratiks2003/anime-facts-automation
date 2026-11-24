@@ -22,7 +22,8 @@ public with sharing class InstaAgentConfig {
                     Evening_Slot_IST__c = '19:00',
                     GitHub_Repository__c = 'pratiks2003/anime-facts-automation',
                     Generate_Workflow__c = 'reel.yml',
-                    Quality_Threshold__c = 8
+                    Quality_Threshold__c = 8,
+                    Auto_Reply_Comments__c = true
                 );
             }
             cached = s;
@@ -37,6 +38,7 @@ public with sharing class InstaAgentConfig {
         current.Auto_Approve__c = changes.Auto_Approve__c;
         current.Dry_Run__c = changes.Dry_Run__c;
         current.Trial_Reels_Enabled__c = changes.Trial_Reels_Enabled__c == true;
+        current.Auto_Reply_Comments__c = changes.Auto_Reply_Comments__c != false;
         if (String.isNotBlank(changes.Morning_Slot_IST__c)) {
             current.Morning_Slot_IST__c = validTime(changes.Morning_Slot_IST__c);
         }

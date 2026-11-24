@@ -101,6 +101,8 @@ private class AdminPanelControllerTest {
             Assert.areEqual(1, ((List<Object>) data.get('ideas')).size());
             Assert.areEqual(1, ((List<Object>) data.get('review')).size());
             AdminPanelController.setIdeaStatus(idea.Id, 'New');
+            insert new Comment_Reply__c(Comment_Id__c = 'c-9', Comment_Text__c = 'nice', Reply_Text__c = 'thanks!', Status__c = 'Posted');
+            Assert.areEqual(1, AdminPanelController.listComments(10).size());
             Assert.areEqual('New', [SELECT Status__c FROM Topic_Idea__c].Status__c);
             try {
                 AdminPanelController.setIdeaStatus(idea.Id, 'Used');

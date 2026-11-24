@@ -335,10 +335,25 @@ class InstagramClient:
                 raise
         return out
 
-    def recent_comments(self, media_id: str, limit: int = 25) -> list:
-        """Comment text + like counts (no usernames stored) for the Community Manager."""
-        data = self._request("GET", f"{media_id}/comments", {"fields": "text,like_count,timestamp", "limit": str(limit)})
-        return [{"text": c.get("text", ""), "likes": c.get("like_count", 0), "at": c.get("timestamp")} for c in data.get("data", [])]
+    def recent_comments(self, media_id: str, limit: int = 50, own_username: Optional[str] = None) -> list:
+        """Top-level comments (id, text, likes) for the Community Manager. Usernames are only used to skip our
+        own comments and are not returned or stored."""
+        data = self._request("GET", f"{media_id}/comments", {"fields": "id,text,like_count,timestamp,username", "limit": str(limit)})
+        out = []
+        for c in data.get("data", []):
+            if own_username and (c.get("username") or "").lower() == own_username.lower():
+                continue
+            out.append({"id": c.get("id"), "text": c.get("text", ""), "likes": c.get("like_count", 0), "at": c.get("timestamp")})
+        return out
+
+    def reply_to_comment(self, comment_id: str, message: str) -> str:
+        """POST /{comment-id}/replies -> id of the new reply."""
+        if not message.strip():
+            raise ValueError("empty reply")
+        data = self._request("POST", f"{comment_id}/replies", {"message": message[:2200]})
+        if "id" not in data:
+            raise InstagramAPIError(f"reply returned no id: {data}")
+        return str(data["id"])
 
     def publish_reel(self, caption: str, video_url: Optional[str] = None, video_path: Optional[str] = None,
                      publish: bool = False, **container_kwargs) -> PublishResult:

@@ -231,3 +231,20 @@ class TrialTests(unittest.TestCase):
     def test_bad_trial_strategy_rejected(self):
         with self.assertRaises(ValueError):
             client(FakeGraph([])).create_reel_container("https://x/v.mp4", trial_strategy="YOLO")
+
+
+class CommentTests(unittest.TestCase):
+    def test_own_comments_skipped_and_usernames_not_returned(self):
+        graph = FakeGraph([("/M1/comments", {"data": [
+            {"id": "c1", "text": "Do Zoro next!", "like_count": 3, "username": "fan_1"},
+            {"id": "c2", "text": "thanks all", "like_count": 0, "username": "senpai.secrets.official"}]})])
+        out = client(graph).recent_comments("M1", own_username="senpai.secrets.official")
+        self.assertEqual([c["id"] for c in out], ["c1"])
+        self.assertNotIn("username", out[0])
+
+    def test_reply_posts_message(self):
+        graph = FakeGraph([("/c1/replies", {"id": "r1"})])
+        self.assertEqual(client(graph).reply_to_comment("c1", "Zoro Reel loading 👀"), "r1")
+        self.assertEqual(graph.calls[0][2]["message"], "Zoro Reel loading 👀")
+        with self.assertRaises(ValueError):
+            client(FakeGraph([])).reply_to_comment("c1", "   ")

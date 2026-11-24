@@ -6,6 +6,7 @@ const TABS = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'reels', label: 'Reels' },
     { id: 'published', label: 'Published' },
+    { id: 'comments', label: 'Comments' },
     { id: 'ideas', label: 'Ideas & Insights' },
     { id: 'settings', label: 'Settings' }
 ];
@@ -66,6 +67,9 @@ export default class InstaAdminApp extends LightningElement {
     }
     get isPublished() {
         return this.activeTab === 'published';
+    }
+    get isComments() {
+        return this.activeTab === 'comments';
     }
     get isIdeas() {
         return this.activeTab === 'ideas';

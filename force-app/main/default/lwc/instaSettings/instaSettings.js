@@ -19,6 +19,11 @@ const TOGGLES = [
         help: 'Publish as soon as a Reel renders and passes checks. Off = wait for your approval here.'
     },
     {
+        key: 'autoReply',
+        label: 'Auto-reply comments',
+        help: 'Senpai replies to every comment in a fun way (anime jokes for trolls). Spam and hateful comments are never answered.'
+    },
+    {
         key: 'trialReels',
         label: 'Trial Reels',
         help: 'Reels scoring 7-8 go to non-followers first and reach followers only if they perform (needs Instagram eligibility).'

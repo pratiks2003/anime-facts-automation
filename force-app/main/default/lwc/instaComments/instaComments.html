@@ -1,0 +1,27 @@
+<template>
+    <template lwc:if={error}><div class="error">{error}</div></template>
+    <section class="panel">
+        <h2 class="panel-title">Comments &amp; Senpai's replies</h2>
+        <p class="muted small">Checked every 2 hours. Spam and hateful comments are logged as Skipped and never answered.</p>
+        <template lwc:if={loading}><div class="empty">Loading…</div></template>
+        <template lwc:elseif={hasRows}>
+            <ul class="list">
+                <template for:each={rows} for:item="c">
+                    <li key={c.Id} class="row">
+                        <div class="main">
+                            <div class="comment">💬 {c.Comment_Text__c}</div>
+                            <template lwc:if={c.Reply_Text__c}><div class="reply">↳ {c.Reply_Text__c}</div></template>
+                            <div class="muted small">
+                                {c.Category__c} · {c.reel} · {c.when}
+                                <template lwc:if={c.link}> · <a href={c.link} target="_blank" rel="noopener">Reel ↗</a></template>
+                            </div>
+                            <template lwc:if={c.Error_Message__c}><div class="err small">{c.Error_Message__c}</div></template>
+                        </div>
+                        <span class={c.badge}>{c.Status__c}</span>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template lwc:else><div class="empty">No comments yet. Replies appear here as fans start talking.</div></template>
+    </section>
+</template>

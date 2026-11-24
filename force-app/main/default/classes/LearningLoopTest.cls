@@ -35,19 +35,38 @@ private class LearningLoopTest {
     }
 
     @IsTest
-    static void communityManagerStoresDraftsAndIdeas() {
+    static void communityManagerRepliesToAllAndSkipsUnsafe() {
         insert new Social_Post__c(Instagram_Media_Id__c = 'M-2', Status__c = 'Published');
+        InstaAgentTestUtil.settings(true, false);
+        InstaAgent_Settings__c s = InstaAgent_Settings__c.getOrgDefaults();
+        s.Auto_Reply_Comments__c = true;
+        update s;
+        InstaAgentConfig.cached = null;
         PromptRunner.mock = new Map<String, List<String>>{
-            'Insta_Community_Manager' => new List<String>{ '{"replies":[{"comment":"Do Zoro next!","reply":"Zoro Reel loading 👀 which fact should we lead with?"}],"topic_ideas":[{"anime":"One Piece","format":"Hidden Details","idea":"Zoro details you missed"}]}' }
+            'Insta_Community_Manager' => new List<String>{ '{"replies":['
+                + '{"comment_id":"c1","category":"request","reply":"Zoro Reel loading 👀"},'
+                + '{"comment_id":"c2","category":"insult","reply":"Ouch! Senpai survived the filler arcs 😤"},'
+                + '{"comment_id":"c3","category":"spam","reply":""},'
+                + '{"comment_id":"zzz","category":"other","reply":"hallucinated id"}],'
+                + '"topic_ideas":[{"anime":"One Piece","format":"Hidden Details","idea":"Zoro details you missed"}]}' }
         };
+        String body = '{"media_id":"M-2","reel":{"format":"Quiz"},"comments":[{"id":"c1","text":"Do Zoro next!"},{"id":"c2","text":"this is trash"},{"id":"c3","text":"follow me for crypto"}]}';
         RestContext.response = new RestResponse();
         RestContext.request = new RestRequest();
-        RestContext.request.requestBody = Blob.valueOf('{"media_id":"M-2","reel":{"format":"Quiz"},"comments":[{"text":"Do Zoro next!","likes":3}]}');
+        RestContext.request.requestBody = Blob.valueOf(body);
         CommunityResource.run();
         Assert.areEqual(200, RestContext.response.statusCode);
-        Social_Post__c p = [SELECT Reply_Drafts__c, Comments_Reviewed_At__c FROM Social_Post__c];
-        Assert.isTrue(p.Reply_Drafts__c.contains('Zoro Reel loading'));
+        Map<String, Object> out = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
+        Assert.areEqual(2, ((List<Object>) out.get('replies')).size(), 'request + insult joke; spam skipped');
+        Assert.areEqual(3, [SELECT COUNT() FROM Comment_Reply__c]);
+        Assert.areEqual('Skipped', [SELECT Status__c FROM Comment_Reply__c WHERE Comment_Id__c = 'c3'].Status__c);
         Assert.areEqual('Comments', [SELECT Source__c FROM Topic_Idea__c].Source__c);
+
+        // second run: nothing new to answer, no agent call needed
+        RestContext.response = new RestResponse();
+        CommunityResource.run();
+        out = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
+        Assert.areEqual(0, ((List<Object>) out.get('replies')).size());
 
         RestContext.response = new RestResponse();
         RestContext.request.requestBody = Blob.valueOf('{"media_id":"M-2","comments":[]}');

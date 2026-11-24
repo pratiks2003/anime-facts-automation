@@ -53,8 +53,7 @@ def sync(days: int = 30) -> dict:
                            "Saves__c": m.get("saves"), "Avg_Watch_Time_Ms__c": m.get("avg_watch_ms")})
         sf.upsert("Social_Post__c", "Instagram_Media_Id__c", media_id, {k: v for k, v in fields.items() if v is not None})
         stats["updated"] += 1
-        if (m.get("comments") or 0) > (row.get("Comments__c") or 0) or ((m.get("comments") or 0) and not row.get("Comments_Reviewed_At__c")):
-            review_comments(sf, ig, media_id, row, stats)
+        # comment replies are handled every 2 hours by pipeline.comments (comments.yml)
     return stats
 
 

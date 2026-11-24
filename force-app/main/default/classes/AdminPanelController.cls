@@ -53,7 +53,8 @@ public with sharing class AdminPanelController {
                     Dry_Run__c = (Boolean) values.get('dryRun'),
                     Morning_Slot_IST__c = (String) values.get('morningSlot'),
                     Evening_Slot_IST__c = (String) values.get('eveningSlot'),
-                    Trial_Reels_Enabled__c = values.get('trialReels') == true
+                    Trial_Reels_Enabled__c = values.get('trialReels') == true,
+                    Auto_Reply_Comments__c = values.get('autoReply') != false
                 )
             );
             if ((Boolean) values.get('automationEnabled')) {
@@ -173,6 +174,19 @@ public with sharing class AdminPanelController {
     }
 
     @AuraEnabled
+    public static List<Comment_Reply__c> listComments(Integer limitSize) {
+        Integer n = limitSize == null ? 50 : Math.min(limitSize, 200);
+        return [
+            SELECT Id, Name, Comment_Text__c, Reply_Text__c, Category__c, Status__c, Posted_At__c, Error_Message__c, CreatedDate,
+                Social_Post__r.Permalink__c, Social_Post__r.Content__r.Name
+            FROM Comment_Reply__c
+            WITH USER_MODE
+            ORDER BY CreatedDate DESC
+            LIMIT :n
+        ];
+    }
+
+    @AuraEnabled
     public static void rateMusic(Id reelId, String rating) {
         try {
             if (rating != 'Good' && rating != 'Bad') {
@@ -265,7 +279,8 @@ public with sharing class AdminPanelController {
             'morningSlot' => s.Morning_Slot_IST__c,
             'eveningSlot' => s.Evening_Slot_IST__c,
             'repository' => s.GitHub_Repository__c,
-            'trialReels' => s.Trial_Reels_Enabled__c
+            'trialReels' => s.Trial_Reels_Enabled__c,
+            'autoReply' => s.Auto_Reply_Comments__c
         };
     }
 

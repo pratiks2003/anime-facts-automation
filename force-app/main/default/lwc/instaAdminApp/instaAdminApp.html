@@ -40,6 +40,9 @@
                     <template lwc:if={isPublished}>
                         <c-insta-posts></c-insta-posts>
                     </template>
+                    <template lwc:if={isComments}>
+                        <c-insta-comments></c-insta-comments>
+                    </template>
                     <template lwc:if={isIdeas}>
                         <c-insta-ideas></c-insta-ideas>
                     </template>

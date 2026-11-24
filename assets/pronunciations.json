@@ -1,0 +1,16 @@
+{
+  "_comment": "Phonetic respellings applied to narration audio only (captions keep the real spelling). Add names the voice mispronounces.",
+  "respell": {
+    "Uzumaki": "Oozoo-mahkee",
+    "Uchiha": "Oochee-hah",
+    "Hokage": "Hoe-kah-gay",
+    "Itachi": "Ee-tah-chee",
+    "Sasuke": "Sahs-keh",
+    "Kakashi": "Kah-kah-shee",
+    "Kurama": "Koo-rah-mah",
+    "Eiichiro": "Ay-ee-chee-roh",
+    "Oda": "Oh-dah",
+    "Roronoa": "Roro-noah",
+    "Shonen": "Show-nen"
+  }
+}

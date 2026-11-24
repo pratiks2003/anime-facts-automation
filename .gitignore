@@ -56,3 +56,6 @@ output/
 
 # Refreshed Instagram token output
 .ig_token.new
+
+# Large/binary local files
+models/

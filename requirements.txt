@@ -1,3 +1,12 @@
-# Runtime dependencies for the Python pipeline (Phase 1: RAG + trends).
-# Everything else uses the standard library.
+# Python pipeline dependencies (all free/open source).
+# System requirement for rendering: FFmpeg (brew install ffmpeg / apt-get install ffmpeg).
+
+# RAG
 rank-bm25==0.2.2
+numpy==2.5.5
+
+# Video: narration (Kokoro TTS via ONNX, MIT; model Apache-2.0), graphics, audio IO
+kokoro-onnx==0.6.1
+onnxruntime==1.32.0
+pillow==13.0.0
+soundfile==0.14.0

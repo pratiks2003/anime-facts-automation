@@ -1,0 +1,66 @@
+name: Render sample Reel
+
+# Manual run: renders a script in the cloud and uploads the MP4 as an artifact.
+# Does NOT publish anything to Instagram.
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: Script JSON path
+        default: content/samples/one_piece_luffy.json
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Cache Kokoro model
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: models
+          key: kokoro-v1.0-${{ hashFiles('video/fetch_models.py') }}
+
+      - name: Fetch model (checksum verified)
+        run: python -m video.fetch_models
+
+      - name: Render
+        env:
+          SCRIPT: ${{ inputs.script }}
+        run: python -m video.render "$SCRIPT" --out output
+
+      - name: Upload video
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reel-${{ github.run_id }}
+          path: |
+            output/*/video.mp4
+            output/*/cover.jpg
+            output/*/manifest.json
+            output/*/captions.srt
+          retention-days: 7
+          if-no-files-found: warn

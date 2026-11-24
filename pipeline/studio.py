@@ -23,7 +23,11 @@ def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[
     result = sf.apex_post("insta/studio/script", payload)
     if not result or "script" not in result:
         raise StudioError(f"studio returned no script: {str(result)[:300]}")
-    script = normalise(result["script"], content_id, anime, format_name)
+    raw = result["script"]
+    for _ in range(3):  # tolerate {"script": {...}} wrapping from the model
+        if isinstance(raw, dict) and "scenes" not in raw and isinstance(raw.get("script"), dict):
+            raw = {**{k: v for k, v in raw.items() if k != "script"}, **raw["script"]}
+    script = normalise(raw, content_id, anime, format_name)
     production = result.get("production") or {}
     if production.get("voice"):
         script["voice"] = production["voice"]

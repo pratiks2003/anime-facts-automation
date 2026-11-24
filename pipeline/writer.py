@@ -132,7 +132,10 @@ def normalise(raw: dict, script_id: str, anime: str, format_name: str) -> dict:
             tags.append(tag)
     script["hashtags"] = tags[:5]
     script["caption"] = clean_text(script.get("caption", ""))
+    previous_visual = None
     for scene in script.get("scenes") or []:
+        if scene.get("role") in ("hook", "outro"):
+            scene.pop("tag", None)  # label pills are for body scenes only
         for key in ("headline", "narration", "tag"):
             if key in scene:
                 scene[key] = clean_text(scene[key])
@@ -146,6 +149,10 @@ def normalise(raw: dict, script_id: str, anime: str, format_name: str) -> dict:
         if scene.get("image_source") not in ("ai", "official"):
             scene["image_source"] = "ai"
         scene["image_subject"] = str(scene.get("image_subject") or "")[:120]
+        visual = (scene["image_source"], scene["image_subject"].casefold())
+        if scene["image_source"] == "official" and visual == previous_visual and scene.get("image_prompt"):
+            scene["image_source"] = "ai"  # never show the same official image twice in a row
+        previous_visual = (scene["image_source"], scene["image_subject"].casefold())
         if "tag" in scene and not scene["tag"]:
             scene.pop("tag")
     return script

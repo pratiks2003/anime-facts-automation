@@ -71,6 +71,16 @@ private class ScriptStudioTest {
     }
 
     @IsTest
+    static void unwrapsNestedScripts() {
+        Map<String, Object> wrapped = (Map<String, Object>) JSON.deserializeUntyped('{"caption":"outer","script":{"title":"T","scenes":[]}}');
+        Map<String, Object> unwrapped = ScriptStudio.unwrap(wrapped);
+        Assert.isTrue(unwrapped.containsKey('scenes'));
+        Assert.areEqual('outer', unwrapped.get('caption'));
+        Map<String, Object> plain = (Map<String, Object>) JSON.deserializeUntyped('{"title":"T","scenes":[]}');
+        Assert.areEqual(plain, ScriptStudio.unwrap(plain));
+    }
+
+    @IsTest
     static void agentFailureSurfacesAs500() {
         PromptRunner.mock = new Map<String, List<String>>{ ScriptStudio.WRITER => new List<String>{ 'not json at all' } };
         RestContext.response = new RestResponse();

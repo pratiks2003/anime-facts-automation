@@ -306,3 +306,17 @@ class PlannerFallbackTests(unittest.TestCase):
             self.assertIn("verified facts", str(exc))  # fixtures may be too small for 3 facts; must not crash otherwise
         finally:
             planner.choose_anime, planner.top_up = original_choose, original_top_up
+
+
+class VisualVarietyTests(unittest.TestCase):
+    def test_repeated_official_visual_switches_to_ai_and_hook_tags_dropped(self):
+        raw = {"title": "t", "scenes": [
+            {"role": "hook", "headline": "h", "tag": "rewatch it", "narration": "n", "image_source": "official", "image_subject": "Yami", "image_prompt": "p"},
+            {"role": "fact", "headline": "a", "narration": "n", "image_source": "official", "image_subject": "Yami", "image_prompt": "p"},
+            {"role": "fact", "headline": "b", "narration": "n", "image_source": "official", "image_subject": "Black Clover", "image_prompt": "p"},
+            {"role": "outro", "headline": "o", "tag": "x", "narration": "n", "image_source": "official", "image_subject": "Black Clover", "image_prompt": "p"}],
+            "caption": "c", "hashtags": []}
+        s = normalise(raw, "R", "Black Clover", "Hidden Details")
+        self.assertEqual([sc["image_source"] for sc in s["scenes"]], ["official", "ai", "official", "ai"])
+        self.assertNotIn("tag", s["scenes"][0])
+        self.assertNotIn("tag", s["scenes"][3])

@@ -191,7 +191,8 @@ def generate(args, sf) -> int:
             log(f"Agentforce studio unavailable ({type(exc).__name__}: {str(exc)[:200]})")
     if script is None:
         try:
-            script, source = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context), "Cloudflare LLM"
+            script = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context)
+            source = "Cloudflare LLM"  # single-pass writer via the LLM chain (Agentforce task or Cloudflare)
         except Exception as exc:
             from pipeline.templates import template_script
             from pipeline.writer import check_script

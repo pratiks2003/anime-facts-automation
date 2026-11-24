@@ -9,6 +9,7 @@ public with sharing class ScriptStudio {
     public static final String FACT_CHECKER = 'Insta_Fact_Checker';
     public static final String CAPTION = 'Insta_Caption_Writer';
     public static final Integer MAX_REWRITES = 2;
+    public static final Decimal REVISE_BELOW = 8.5;
 
     public class Result {
         public Map<String, Object> script;
@@ -48,17 +49,22 @@ public with sharing class ScriptStudio {
         if (guide != null) {
             writerReq.putAll(guide);
         }
-        r.script = PromptRunner.runJson(WRITER, writerReq);
+        r.script = unwrap(PromptRunner.runJson(WRITER, writerReq));
 
-        // Creative Director: score + brief; rewrite while it asks to (bounded).
+        // Creative Director: score + brief; rewrite while the score is under the bar (bounded).
         Map<String, Object> verdict;
         for (Integer i = 0; i <= MAX_REWRITES; i++) {
-            verdict = direct(request, r.script, null);
+            verdict = direct(request, r.script, i == 0 ? null : forcedNotes(verdict));
             Object revised = verdict.get('revised_script');
-            if ((String) verdict.get('verdict') != 'revise' || !(revised instanceof Map<String, Object>) || i == MAX_REWRITES) {
+            Boolean belowBar = scoreOf(verdict) < REVISE_BELOW;
+            if (revised instanceof Map<String, Object> && i < MAX_REWRITES) {
+                r.script = unwrap((Map<String, Object>) revised);
+                continue; // re-score the rewrite
+            }
+            if (!belowBar || i == MAX_REWRITES) {
                 break;
             }
-            r.script = (Map<String, Object>) revised;
+            // Director approved its own sub-par script: loop again with its notes as required fixes.
         }
         applyVerdict(r, verdict);
 
@@ -67,7 +73,7 @@ public with sharing class ScriptStudio {
         if (!(Boolean) check.get('pass')) {
             Map<String, Object> fix = direct(request, r.script, (List<Object>) check.get('issues'));
             if (fix.get('revised_script') instanceof Map<String, Object>) {
-                r.script = (Map<String, Object>) fix.get('revised_script');
+                r.script = unwrap((Map<String, Object>) fix.get('revised_script'));
                 applyVerdict(r, fix);
                 check = factCheck(request, r.script);
             }
@@ -88,6 +94,39 @@ public with sharing class ScriptStudio {
         }
         r.calls = PromptRunner.calls - startCalls;
         return r;
+    }
+
+    /** Models sometimes wrap the script as {"script": {...}}; return the object that has "scenes". */
+    @TestVisible
+    private static Map<String, Object> unwrap(Map<String, Object> candidate) {
+        Map<String, Object> current = candidate;
+        for (Integer depth = 0; depth < 3 && current != null && !current.containsKey('scenes'); depth++) {
+            Object nested = current.get('script') != null ? current.get('script') : current.get('revised_script');
+            if (!(nested instanceof Map<String, Object>)) {
+                break;
+            }
+            Map<String, Object> next = (Map<String, Object>) nested;
+            for (String key : new List<String>{ 'title', 'mood', 'caption', 'hashtags' }) {
+                if (!next.containsKey(key) && current.containsKey(key)) {
+                    next.put(key, current.get(key));
+                }
+            }
+            current = next;
+        }
+        return current;
+    }
+
+    private static Decimal scoreOf(Map<String, Object> verdict) {
+        Object overall = verdict == null ? null : verdict.get('overall');
+        return overall == null ? 0 : Decimal.valueOf(String.valueOf(overall));
+    }
+
+    private static List<Object> forcedNotes(Map<String, Object> verdict) {
+        List<Object> notes = new List<Object>{ 'Score ' + scoreOf(verdict) + ' is below the 8.5 bar: return verdict "revise" with a full revised_script fixing these notes.' };
+        if (verdict != null && verdict.get('notes') instanceof List<Object>) {
+            notes.addAll((List<Object>) verdict.get('notes'));
+        }
+        return notes;
     }
 
     private static Map<String, Object> direct(Map<String, Object> request, Map<String, Object> script, List<Object> issues) {

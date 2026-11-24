@@ -41,6 +41,7 @@ class Plan:
     context: str = ""
     extra_records: List[dict] = field(default_factory=list)  # live news facts (not in knowledge files)
     ingested: Dict[str, int] = field(default_factory=dict)
+    media: List[dict] = field(default_factory=list)  # AniList media for news formats
 
 
 def _daily_seed(*parts: str) -> int:
@@ -136,7 +137,8 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
         if not news["facts"]:
             raise RuntimeError(f"AniList returned nothing for {format_name}")
         main = news["shows"][0] if format_name in ("Why It's Trending", "Hype Check") else "Anime"
-        return Plan(format_name, main, None, news["facts"], news["headline_context"], extra_records=news["facts"])
+        return Plan(format_name, main, None, news["facts"], news["headline_context"], extra_records=news["facts"],
+                    media=news["media"])
 
     store = store or KnowledgeStore()
     anime = choose_anime(store, recent_anime or [], anime_hint, slot_seed or format_name, opener)
@@ -144,7 +146,11 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
     facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
     ingested: Dict[str, int] = {}
     if len(facts) < MIN_FACTS:
-        ingested = top_up(llm, store, anime, entry, opener)
+        try:
+            ingested = top_up(llm, store, anime, entry, opener)
+        except Exception as exc:  # LLM quota / Wikipedia down: write from what we already have
+            ingested = {"error": 1}
+            print(f"[planner] knowledge top-up skipped: {type(exc).__name__}: {str(exc)[:160]}")
         facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
     if len(facts) < 3:
         raise RuntimeError(f"only {len(facts)} verified facts available for {entry['name']}")

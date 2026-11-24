@@ -132,7 +132,17 @@ def generate(args, sf) -> int:
     log(f"plan: {plan.format} about {plan.anime} with {len(plan.facts)} facts (ingested {plan.ingested})")
 
     stage("Writing script")
-    script = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context)
+    try:
+        script = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context)
+    except Exception as exc:  # LLM unavailable or kept failing validation: deterministic template
+        from pipeline.templates import template_script
+        from pipeline.writer import check_script
+
+        log(f"LLM writer unavailable ({type(exc).__name__}: {str(exc)[:160]}); using template writer")
+        script = template_script(cid, args.format, plan.anime, plan.facts, plan.media, plan.context)
+        problems = check_script(script, {f["id"] for f in plan.facts})
+        if problems:
+            raise RuntimeError("template script invalid: " + "; ".join(problems))
     OUTPUT.mkdir(exist_ok=True)
     script_path = OUTPUT / f"{cid}.script.json"
     script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")

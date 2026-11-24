@@ -10,6 +10,7 @@ public with sharing class ScriptStudio {
     public static final String CAPTION = 'Insta_Caption_Writer';
     public static final Integer MAX_REWRITES = 2;
     public static final Decimal REVISE_BELOW = 8.5;
+    public static final Integer MAX_REMAKES = 2;
 
     public class Result {
         public Map<String, Object> script;
@@ -68,6 +69,27 @@ public with sharing class ScriptStudio {
             // Director approved its own sub-par script: loop again with its notes as required fixes.
         }
         applyVerdict(r, verdict);
+
+        // Remakes: patches can't fix structure (hook, build-up, payoff order). If still under the bar,
+        // the Writer starts over from the Director's notes; the best-scoring version wins.
+        Map<String, Object> bestScript = r.script;
+        Map<String, Object> bestVerdict = verdict;
+        for (Integer i = 0; i < MAX_REMAKES && scoreOf(bestVerdict) < REVISE_BELOW; i++) {
+            Map<String, Object> remakeReq = writerReq.clone();
+            remakeReq.put('director_notes', bestVerdict.get('notes'));
+            remakeReq.put('previous_script', bestScript);
+            Map<String, Object> candidate = unwrap(PromptRunner.runJson(WRITER, remakeReq));
+            Map<String, Object> candidateVerdict = direct(request, candidate, null);
+            if (candidateVerdict.get('revised_script') instanceof Map<String, Object> && scoreOf(candidateVerdict) < REVISE_BELOW) {
+                candidate = unwrap((Map<String, Object>) candidateVerdict.get('revised_script'));
+            }
+            if (scoreOf(candidateVerdict) > scoreOf(bestVerdict)) {
+                bestScript = candidate;
+                bestVerdict = candidateVerdict;
+            }
+        }
+        r.script = bestScript;
+        applyVerdict(r, bestVerdict);
 
         // Fact Checker, with one targeted Director fix pass.
         Map<String, Object> check = factCheck(request, r.script);

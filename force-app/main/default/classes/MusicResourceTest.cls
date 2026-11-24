@@ -21,4 +21,16 @@ private class MusicResourceTest {
         call('{"brief":{},"candidates":[]}');
         Assert.areEqual(400, RestContext.response.statusCode);
     }
+
+    @IsTest
+    static void dislikedTracksAreNeverOffered() {
+        insert new Anime_Content__c(Name = 'R', External_Id__c = 'R-M', Format__c = 'Quiz', Music_Choice__c = 'Trance Etude 2 by Zeropage - reason', Music_Rating__c = 'Bad');
+        PromptRunner.mock = new Map<String, List<String>>{ 'Insta_Music_Supervisor' => new List<String>{ '{"pick":null,"reason":"nothing fits"}' } };
+        call('{"brief":{},"candidates":[{"id":"t1","title":"Trance Etude 2"}]}');
+        Assert.isTrue(RestContext.response.responseBody.toString().contains('previously rated bad'));
+        call('{"brief":{},"candidates":[{"id":"t1","title":"Trance Etude 2"},{"id":"t2","title":"Taiko Storm"}]}');
+        Assert.areEqual(200, RestContext.response.statusCode);
+        Assert.isTrue(RestContext.response.responseBody.toString().contains('"pick":null'));
+        Assert.areEqual(1, MusicResource.taste().get('disliked').size());
+    }
 }

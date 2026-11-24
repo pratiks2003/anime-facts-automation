@@ -90,4 +90,20 @@ private class ScriptStudioTest {
         Assert.areEqual(500, RestContext.response.statusCode);
         Assert.isTrue(RestContext.response.responseBody.toString().contains('no JSON object'));
     }
+
+    @IsTest
+    static void remakeKeepsTheBestVersion() {
+        String low = '{"overall":6.5,"verdict":"approve","scores":{},"notes":["weak hook"],' + BRIEF + ',"revised_script":null}';
+        PromptRunner.mock = new Map<String, List<String>>{
+            ScriptStudio.WRITER => new List<String>{ SCRIPT_V1, SCRIPT_V2, SCRIPT_V3 },
+            ScriptStudio.DIRECTOR => new List<String>{ low, low, low,
+                '{"overall":8.8,"verdict":"approve","scores":{},"notes":["great"],' + BRIEF + ',"revised_script":null}',
+                '{"overall":7.0,"verdict":"approve","scores":{},"notes":["meh"],' + BRIEF + ',"revised_script":null}' },
+            ScriptStudio.FACT_CHECKER => new List<String>{ '{"pass":true,"issues":[]}' },
+            ScriptStudio.CAPTION => new List<String>{ '{"caption":"c","hashtags":["#a","#b","#c","#d","#e"]}' }
+        };
+        ScriptStudio.Result r = ScriptStudio.run(request());
+        Assert.areEqual(8.8, r.overall, 'the remake that scored 8.8 wins');
+        Assert.areEqual('v2', (String) ((Map<String, Object>) ((List<Object>) r.script.get('scenes'))[0]).get('narration'));
+    }
 }

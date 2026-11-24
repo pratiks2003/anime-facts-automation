@@ -34,6 +34,26 @@ GENERIC_BLOCK = {
     "fanart", "fan art", "figure", "figurine", "funko", "lego", "crunchyroll", "toei", "shueisha",
     "shonen jump", "shounen", "otaku", "comic con", "comiccon",
 }
+# What each format should sound like (used for search and given to the Music Supervisor).
+FORMAT_MUSIC = {
+    "Who Would Win": ("epic orchestral battle, taiko drums, cinematic rock", ["epic orchestral battle", "taiko drums", "cinematic action"]),
+    "Ranking": ("epic orchestral, building tension", ["epic orchestral", "cinematic build"]),
+    "Backstory": ("emotional piano and strings", ["emotional piano", "sad strings", "melancholic cinematic"]),
+    "Fan Theory": ("suspense, mystery, tension", ["mystery suspense", "dark ambient tension"]),
+    "Hidden Details": ("mystery, curious, light suspense", ["mystery suspense", "curious investigation"]),
+    "Quiz": ("playful suspense, ticking tension", ["quiz tension", "playful suspense"]),
+    "What If": ("playful, quirky, adventurous", ["playful adventure", "quirky orchestral"]),
+    "Behind the Scenes": ("warm cinematic documentary", ["inspiring cinematic", "documentary background"]),
+    "Fact": ("upbeat cinematic, adventurous", ["upbeat cinematic", "adventure orchestral"]),
+    "This Week's Drops": ("upbeat electronic, j-pop style instrumental", ["upbeat electronic", "energetic pop instrumental"]),
+    "Why It's Trending": ("upbeat electronic, energetic", ["upbeat electronic", "energetic background"]),
+    "Hype Check": ("energetic rock, hype", ["energetic rock", "hype sport"]),
+    "Season Preview": ("epic trailer, rising energy", ["epic trailer", "cinematic rising"]),
+    "Just Announced": ("breaking news energy, upbeat", ["upbeat electronic", "news intro energetic"]),
+}
+BANNED_MUSIC = ("trance", "club", "house", "dubstep", "techno", "remix", "vocal", "vocals", "lyrics", "rap", "christmas",
+                "xmas", "holiday", "karaoke", "edm")
+
 MOOD_QUERIES = {
     "hype": ["epic cinematic", "epic orchestral", "action trailer"],
     "mystery": ["dark ambient", "mystery cinematic"],
@@ -167,15 +187,21 @@ def find_image(client: Openverse, queries: List[str], cache_dir: Path, blocklist
 
 
 def find_music(client: Openverse, mood: str, seed: str, cache_dir: Path, min_seconds: int = 45,
-               keywords: str = "", picker=None) -> Optional[MediaAsset]:
-    """picker(candidates) -> openverse id or None (the Music Supervisor agent); else a stable hash pick."""
+               keywords: str = "", picker=None, format_name: str = "") -> Optional[MediaAsset]:
+    """picker(candidates) -> openverse id, or None meaning "nothing fits" (Music Supervisor agent).
+    Without a picker (or if it errors) a stable hash pick is used."""
     candidates = []
-    queries = ([k.strip() for k in keywords.split(",") if k.strip()][:2] if keywords else []) + MOOD_QUERIES.get(mood, MOOD_QUERIES["default"])
+    direction_queries = FORMAT_MUSIC.get(format_name, ("", []))[1]
+    queries = direction_queries + ([k.strip() for k in keywords.split(",") if k.strip()][:2] if keywords else []) \
+        + MOOD_QUERIES.get(mood, MOOD_QUERIES["default"])
     for query in queries:
         for r in client.search("audio", query, category="music"):
             if (r.get("duration") or 0) < min_seconds * 1000:
                 continue
             if r.get("filetype") not in (None, "mp3", "mp32", "ogg", "wav"):
+                continue
+            text = f"{r.get('title', '')} {' '.join(t.get('name', '') for t in (r.get('tags') or []))}".lower()
+            if any(b in text.split() or b in text for b in BANNED_MUSIC):
                 continue
             candidates.append(r)
         if len(candidates) >= 8:
@@ -193,10 +219,13 @@ def find_music(client: Openverse, mood: str, seed: str, cache_dir: Path, min_sec
     if picker is not None:
         try:
             chosen = picker([{"id": r["id"], "title": r.get("title"), "tags": [t.get("name") for t in (r.get("tags") or [])][:8],
-                              "duration_seconds": int((r.get("duration") or 0) / 1000)} for r in candidates])
+                              "genres": r.get("genres") or [], "duration_seconds": int((r.get("duration") or 0) / 1000)}
+                             for r in candidates])
         except Exception:
-            chosen = None
-        if chosen:
+            chosen = "__error__"  # agent unavailable: fall back to the stable pick
+        if chosen is None:
+            return None  # the supervisor judged that nothing fits: no music beats the wrong music
+        if chosen != "__error__":
             order = [r for r in candidates if r["id"] == chosen] + [r for r in order if r["id"] != chosen]
     for r in order:
         path = cache_dir / f"music_{r['id']}.mp3"

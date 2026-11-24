@@ -75,6 +75,13 @@
                             <template lwc:if={selected.Script_Source__c}><span class="muted">Script: {selected.Script_Source__c}</span></template>
                         </div>
                         <template lwc:if={selected.brief}><p class="muted small">🎬 {selected.brief}</p></template>
+                        <template lwc:if={selected.musicTitle}>
+                            <div class="music">
+                                <span class="small">🎵 {selected.musicTitle}</span>
+                                <button class={selected.musicGood} data-id={selected.Id} data-rating="Good" onclick={handleMusic}>👍 Good fit</button>
+                                <button class={selected.musicBad} data-id={selected.Id} data-rating="Bad" onclick={handleMusic}>👎 Never again</button>
+                            </div>
+                        </template>
                         <template lwc:if={selected.Director_Notes__c}>
                             <h4>Director notes</h4>
                             <pre class="caption-full">{selected.Director_Notes__c}</pre>

@@ -4,6 +4,7 @@
   "speed": 1.1,
   "show_ai_label": false,
   "show_sources_on_video": false,
-  "voice_provider": "aura",
-  "random_voice": true
+  "voice_provider": "kokoro",
+  "random_voice": false,
+  "fixed_voice": "am_fenrir"
 }

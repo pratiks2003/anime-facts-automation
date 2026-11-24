@@ -129,3 +129,19 @@ class MusicSupervisorTests(unittest.TestCase):
             self.assertEqual(seen["n"], 4)  # de-duplicated candidates
             boom = find_music(FakeOpenverse(results, files), "hype", "seed", Path(tmp), picker=lambda c: 1 / 0)
             self.assertIsNotNone(boom)
+
+
+class MusicTrainingTests(unittest.TestCase):
+    def test_none_means_no_music_and_banned_genres_filtered(self):
+        tracks = [result(1, "Trance Etude 2", duration=120000, filetype="mp3"),
+                  result(2, "Taiko Storm", duration=120000, filetype="mp3", tags=["epic", "drums"])]
+        results = {q: tracks for q in ("epic orchestral battle", "taiko drums", "cinematic action", "epic cinematic", "epic orchestral", "action trailer")}
+        files = {"https://img/1.jpg": b"x" * 200_000, "https://img/2.jpg": b"x" * 200_000}
+        offered = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            none = find_music(FakeOpenverse(results, files), "hype", "s", Path(tmp), format_name="Who Would Win",
+                              picker=lambda c: (offered.setdefault("titles", [x["title"] for x in c]), None)[1])
+            self.assertIsNone(none)
+            self.assertEqual(offered["titles"], ["Taiko Storm"])  # trance never offered
+            picked = find_music(FakeOpenverse(results, files), "hype", "s", Path(tmp), format_name="Who Would Win", picker=lambda c: "id2")
+            self.assertEqual(picked.title, "Taiko Storm")

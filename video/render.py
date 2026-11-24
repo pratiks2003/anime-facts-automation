@@ -215,7 +215,8 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool, music_pic
     if music and not local:
         try:
             music_asset = find_music(client, script.get("mood", "default"), script["id"], cache,
-                                     keywords=script.get("music_keywords", ""), picker=music_picker)
+                                     keywords=script.get("music_keywords", ""), picker=music_picker,
+                                     format_name=script.get("format", ""))
         except Exception as exc:
             log(f"warning: music search failed ({exc})")
     return scene_assets, local, music_asset
@@ -260,7 +261,8 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     channel = channel_config()
     out = Path(out_root) / script["id"]
     out.mkdir(parents=True, exist_ok=True)
-    voice = voice or script.get("voice") or channel.get("voice", "am_fenrir")
+    # a fixed channel voice (owner's choice) beats the Director's suggestion
+    voice = voice or channel.get("fixed_voice") or script.get("voice") or channel.get("voice", "am_fenrir")
     speed = speed or script.get("speed") or channel.get("speed", 1.1)
 
     ids = knowledge_ids(script)
@@ -270,7 +272,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     from .tts import AuraVoice
 
     narrator = Narrator(aura=AuraVoice.from_env() if channel.get("voice_provider", "aura") == "aura" else None)
-    if channel.get("random_voice", True) and not script.get("voice_locked"):
+    if channel.get("random_voice", True) and not channel.get("fixed_voice") and not script.get("voice_locked"):
         narration = narrator.narrate_random(script["scenes"], seed=script["id"], speed=speed)
         voice = f"{narrator.backend}:{narrator.voice_used}"
     else:

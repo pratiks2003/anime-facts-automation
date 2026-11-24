@@ -113,3 +113,6 @@
 .held { position: absolute; bottom: 10px; left: 10px; background: rgba(255, 181, 71, 0.95); color: #1b1203; font-weight: 800; font-size: 12px; padding: 3px 10px; border-radius: 999px; }
 .hold { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(255, 181, 71, 0.12); border: 1px solid rgba(255, 181, 71, 0.4); color: #ffd9a0; }
 .meta { display: flex; gap: 12px; align-items: center; margin: 8px 0; }
+
+.music { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.on { outline: 2px solid currentColor; }

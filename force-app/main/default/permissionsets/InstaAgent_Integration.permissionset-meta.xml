@@ -458,6 +458,11 @@
         <field>Social_Post__c.Is_Trial__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Anime_Content__c.Music_Rating__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>InstaAgent Integration</label>
     <objectPermissions>

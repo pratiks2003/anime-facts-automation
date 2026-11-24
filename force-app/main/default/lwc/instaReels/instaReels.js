@@ -3,6 +3,7 @@ import listReels from '@salesforce/apex/AdminPanelController.listReels';
 import approveReel from '@salesforce/apex/AdminPanelController.approveReel';
 import rejectReel from '@salesforce/apex/AdminPanelController.rejectReel';
 import retryReel from '@salesforce/apex/AdminPanelController.retryReel';
+import rateMusic from '@salesforce/apex/AdminPanelController.rateMusic';
 import { formatIst, statusClass, errorMessage } from 'c/instaUtils';
 
 const FILTERS = ['All', 'Rendered', 'Generating', 'Published', 'Failed', 'Queued'];
@@ -53,7 +54,10 @@ export default class InstaReels extends LightningElement {
                 hasScore: r.Quality_Score__c !== undefined && r.Quality_Score__c !== null,
                 scoreClass: r.Quality_Score__c >= 8.5 ? 'score score_good' : r.Quality_Score__c >= 7 ? 'score score_ok' : 'score score_bad',
                 held: r.Status__c === 'Rendered' && r.Approval_Status__c === 'Pending',
-                brief: this.briefText(r.Production_Brief__c)
+                brief: this.briefText(r.Production_Brief__c),
+                musicTitle: r.Music_Choice__c ? r.Music_Choice__c.split(' - ')[0] : '',
+                musicGood: r.Music_Rating__c === 'Good' ? 'btn btn_good on' : 'btn',
+                musicBad: r.Music_Rating__c === 'Bad' ? 'btn btn_danger on' : 'btn'
             };
         });
     }
@@ -119,6 +123,16 @@ export default class InstaReels extends LightningElement {
 
     handleReject(event) {
         this.act(event, rejectReel);
+    }
+
+    async handleMusic(event) {
+        const { id, rating } = event.currentTarget.dataset;
+        try {
+            await rateMusic({ reelId: id, rating });
+            await this.load();
+        } catch (e) {
+            this.error = errorMessage(e);
+        }
     }
 
     handleRetry(event) {

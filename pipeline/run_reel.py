@@ -192,11 +192,16 @@ def music_picker_for(sf, script: dict, duration_hint: float = 40.0):
     state = {}
 
     def pick(candidates):
-        brief = {"music_mood": script.get("mood"), "music_keywords": script.get("music_keywords", ""),
+        from video.media import FORMAT_MUSIC
+
+        brief = {"music_direction": FORMAT_MUSIC.get(script.get("format", ""), ("cinematic instrumental", []))[0],
+                 "music_mood": script.get("mood"), "music_keywords": script.get("music_keywords", ""),
                  "music_energy": script.get("music_energy", ""), "format": script.get("format"), "video_seconds": duration_hint}
-        result = sf.apex_post("insta/studio/music", {"brief": brief, "candidates": candidates}) or {}
+        result = sf.apex_post("insta/studio/music", {"brief": brief, "candidates": candidates})
+        if not isinstance(result, dict) or "error" in result:
+            raise RuntimeError(f"music supervisor unavailable: {result}")
         state["reason"] = result.get("reason")
-        return result.get("pick")
+        return result.get("pick")  # None = nothing fits
 
     pick.state = state
     return pick

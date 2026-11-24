@@ -1,18 +1,23 @@
-"""Instagram Reels publishing via the Instagram API with Instagram Login.
+"""Instagram Reels publishing (Meta Graph API v27.0, docs checked 2026-11-24).
 
-Flow (per Meta docs, checked 2026-11, API v27.0, host graph.instagram.com):
-  1. POST /{ig_user_id}/media  media_type=REELS, video_url=<public URL>  -> container id
-  2. GET  /{container_id}?fields=status_code   until FINISHED (Meta: poll ~1/min)
-  3. POST /{ig_user_id}/media_publish  creation_id=<container id>  -> media id
+Two login setups are supported (env IG_LOGIN):
+  unified    (default) Instagram API with Unified Login. Business Integration System User
+             token ("EAA..."), host graph.facebook.com, IG account found via
+             /me/assigned_instagram_accounts. Supports resumable (direct file) upload.
+  instagram  Instagram API with Instagram Login. Instagram User token ("IGAA..."),
+             host graph.instagram.com, account via /me. Video must be at a public URL.
+
+Flow:
+  1. POST /{ig_id}/media  media_type=REELS + (video_url | upload_type=resumable)  -> container id
+  1b. (resumable) POST rupload.facebook.com/ig-api-upload/{ver}/{container}  file bytes
+  2. GET  /{container}?fields=status_code   until FINISHED (Meta: poll ~1/min)
+  3. POST /{ig_id}/media_publish  creation_id=<container>  -> media id
   4. GET  /{media_id}?fields=permalink
-Resumable (direct file) upload is only documented for Facebook Login apps, so the
-video must be reachable at a public HTTPS URL that Meta downloads.
 
-CLI (token read from env IG_ACCESS_TOKEN or a local .env file; never printed):
+CLI (token from env IG_ACCESS_TOKEN or local .env; never printed):
   python -m integrations.instagram check
-  python -m integrations.instagram container --video-url URL --caption "..."   # dry run, no publish
-  python -m integrations.instagram publish  --video-url URL --caption "..." --confirm
-  python -m integrations.instagram refresh-token
+  python -m integrations.instagram container --video-file output/x.mp4 --caption "..."   # dry run
+  python -m integrations.instagram publish   --video-file output/x.mp4 --caption "..." --confirm
 """
 
 from __future__ import annotations
@@ -29,13 +34,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
-GRAPH_HOST = "https://graph.instagram.com"
+HOSTS = {"unified": "https://graph.facebook.com", "instagram": "https://graph.instagram.com"}
+RUPLOAD_HOST = "https://rupload.facebook.com/ig-api-upload"
 DEFAULT_API_VERSION = "v27.0"
 USER_AGENT = "anime-facts-automation/0.1"
 CAPTION_MAX = 2200
+MAX_VIDEO_BYTES = 300 * 1024 * 1024
 
 TRANSIENT_ERROR_CODES = {1, 2, 4, 17, 341}  # Meta: temporary / throttling errors
-TOKEN_ERROR_CODES = {190}
 
 
 class InstagramAPIError(RuntimeError):
@@ -73,16 +79,22 @@ class InstagramClient:
         self,
         access_token: str,
         user_id: Optional[str] = None,
+        login: str = "unified",
         api_version: str = DEFAULT_API_VERSION,
         opener: Callable = urllib.request.urlopen,
         sleep: Callable[[float], None] = time.sleep,
-        timeout: float = 60.0,
+        timeout: float = 120.0,
         max_attempts: int = 3,
     ):
         if not access_token:
             raise ValueError("access_token is required")
+        if login not in HOSTS:
+            raise ValueError(f"login must be one of {list(HOSTS)}")
         self._token = access_token
         self._user_id = user_id or None
+        self._username: Optional[str] = None
+        self.login = login
+        self.host = HOSTS[login]
         self.api_version = api_version
         self._opener = opener
         self._sleep = sleep
@@ -91,10 +103,26 @@ class InstagramClient:
 
     # ---------- low-level ----------
 
+    def _send(self, request: urllib.request.Request, what: str) -> dict:
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with self._opener(request, timeout=self.timeout) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except urllib.error.HTTPError as exc:
+                error = self._parse_error(exc)
+            except (urllib.error.URLError, TimeoutError) as exc:
+                # Never include the URL or headers: they contain the access token.
+                error = InstagramAPIError(f"network error calling {what}: {type(exc).__name__}", status=599)
+            if error.transient and attempt < self.max_attempts:
+                self._sleep(min(2.0 ** attempt * 5, 60.0))
+                continue
+            raise error
+        raise AssertionError("unreachable")
+
     def _request(self, method: str, path: str, params: Optional[Dict[str, str]] = None, versioned: bool = True) -> dict:
         params = {k: v for k, v in (params or {}).items() if v is not None}
         params["access_token"] = self._token
-        base = f"{GRAPH_HOST}/{self.api_version}" if versioned else GRAPH_HOST
+        base = f"{self.host}/{self.api_version}" if versioned else self.host
         url = f"{base}/{path.lstrip('/')}"
         encoded = urllib.parse.urlencode(params)
         if method == "GET":
@@ -103,27 +131,13 @@ class InstagramClient:
             request = urllib.request.Request(url, data=encoded.encode(), method=method)
             request.add_header("Content-Type", "application/x-www-form-urlencoded")
         request.add_header("User-Agent", USER_AGENT)
-
-        for attempt in range(1, self.max_attempts + 1):
-            try:
-                with self._opener(request, timeout=self.timeout) as response:
-                    return json.loads(response.read().decode("utf-8"))
-            except urllib.error.HTTPError as exc:
-                error = self._parse_error(exc)
-            except (urllib.error.URLError, TimeoutError) as exc:
-                # Never include the URL: it contains the access token.
-                error = InstagramAPIError(f"network error calling {method} /{path}: {type(exc).__name__}", status=599)
-            if error.transient and attempt < self.max_attempts:
-                self._sleep(min(2.0 ** attempt * 5, 60.0))
-                continue
-            raise error
-        raise AssertionError("unreachable")
+        return self._send(request, f"{method} /{path.split('?')[0]}")
 
     @staticmethod
     def _parse_error(exc: urllib.error.HTTPError) -> InstagramAPIError:
         try:
             body = json.loads(exc.read().decode("utf-8"))
-            err = body.get("error", {})
+            err = body.get("error", body.get("debug_info", {}))
             return InstagramAPIError(
                 err.get("message", "Instagram API error"),
                 status=exc.code,
@@ -136,13 +150,28 @@ class InstagramClient:
 
     # ---------- account ----------
 
-    def me(self) -> dict:
-        return self._request("GET", "me", {"fields": "user_id,username,account_type"})
+    def account(self) -> dict:
+        """Return {"user_id", "username"} of the Instagram professional account."""
+        if self.login == "instagram":
+            data = self._request("GET", "me", {"fields": "user_id,username"})
+            return {"user_id": str(data["user_id"]), "username": data.get("username")}
+
+        data = self._request("GET", "me/assigned_instagram_accounts", {"fields": "id,username"}).get("data", [])
+        if not data:
+            raise InstagramAPIError("token has no Instagram accounts assigned; reconnect the account")
+        if self._user_id:
+            match = [a for a in data if str(a["id"]) == str(self._user_id)]
+            if not match:
+                raise InstagramAPIError("IG_USER_ID is not among the accounts this token can access")
+            data = match
+        elif len(data) > 1:
+            raise InstagramAPIError("token can access several Instagram accounts; set IG_USER_ID to choose one")
+        return {"user_id": str(data[0]["id"]), "username": data[0].get("username")}
 
     @property
     def user_id(self) -> str:
         if not self._user_id:
-            self._user_id = str(self.me()["user_id"])
+            self._user_id = self.account()["user_id"]
         return self._user_id
 
     def publishing_limit(self) -> dict:
@@ -151,32 +180,77 @@ class InstagramClient:
         return rows[0]
 
     def refresh_token(self) -> dict:
-        """Returns {"access_token", "token_type", "expires_in"}. Token must be >= 24h old."""
-        return self._request(
-            "GET", "refresh_access_token", {"grant_type": "ig_refresh_token"}, versioned=False
-        )
+        """Instagram Login only. Returns {"access_token", "token_type", "expires_in"}; token must be >= 24h old."""
+        if self.login != "instagram":
+            raise ValueError(
+                "Unified Login tokens are not refreshed this way; their expiry is set by the login "
+                "configuration (see the configuration preview in the App Dashboard)"
+            )
+        return self._request("GET", "refresh_access_token", {"grant_type": "ig_refresh_token"}, versioned=False)
 
     # ---------- publishing ----------
 
-    def create_reel_container(self, video_url: str, caption: str = "", share_to_feed: bool = True,
-                              cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None) -> str:
-        if not video_url.startswith("https://"):
-            raise ValueError("video_url must be a public https:// URL")
+    @staticmethod
+    def _check_caption(caption: str) -> None:
         if len(caption) > CAPTION_MAX:
             raise ValueError(f"caption is {len(caption)} chars; Instagram max is {CAPTION_MAX}")
         if caption.count("#") > 30:
             raise ValueError("caption has more than 30 hashtags")
-        data = self._request("POST", f"{self.user_id}/media", {
+
+    def _container_params(self, caption: str, share_to_feed: bool, cover_url: Optional[str],
+                          thumb_offset_ms: Optional[int]) -> Dict[str, Optional[str]]:
+        self._check_caption(caption)
+        return {
             "media_type": "REELS",
-            "video_url": video_url,
             "caption": caption,
             "share_to_feed": "true" if share_to_feed else "false",
             "cover_url": cover_url,
             "thumb_offset": str(thumb_offset_ms) if thumb_offset_ms is not None else None,
-        })
+        }
+
+    def create_reel_container(self, video_url: str, caption: str = "", share_to_feed: bool = True,
+                              cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None) -> str:
+        """Container from a public video URL (Meta downloads it)."""
+        if not video_url.startswith("https://"):
+            raise ValueError("video_url must be a public https:// URL")
+        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms)
+        params["video_url"] = video_url
+        data = self._request("POST", f"{self.user_id}/media", params)
         if "id" not in data:
             raise InstagramAPIError(f"container creation returned no id: {data}")
         return str(data["id"])
+
+    def upload_reel_file(self, video_path: str, caption: str = "", share_to_feed: bool = True,
+                         cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None) -> str:
+        """Container via resumable upload of a local file (Unified / Facebook Login only)."""
+        if self.login == "instagram":
+            raise ValueError("resumable upload is not available with Instagram Login; use a public video_url")
+        path = Path(video_path)
+        if not path.is_file():
+            raise ValueError(f"video file not found: {path}")
+        size = path.stat().st_size
+        if not 0 < size <= MAX_VIDEO_BYTES:
+            raise ValueError(f"video is {size} bytes; must be between 1 byte and 300 MB")
+
+        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms)
+        params["upload_type"] = "resumable"
+        data = self._request("POST", f"{self.user_id}/media", params)
+        if "id" not in data:
+            raise InstagramAPIError(f"resumable container creation returned no id: {data}")
+        container_id = str(data["id"])
+        upload_uri = data.get("uri") or f"{RUPLOAD_HOST}/{self.api_version}/{container_id}"
+        if not upload_uri.startswith("https://rupload.facebook.com/"):
+            raise InstagramAPIError("unexpected upload URI host returned by Meta")
+
+        request = urllib.request.Request(upload_uri, data=path.read_bytes(), method="POST")
+        request.add_header("Authorization", f"OAuth {self._token}")
+        request.add_header("offset", "0")
+        request.add_header("file_size", str(size))
+        request.add_header("User-Agent", USER_AGENT)
+        result = self._send(request, "POST rupload")
+        if not result.get("success"):
+            raise InstagramAPIError(f"video upload was not accepted: {result}")
+        return container_id
 
     def container_status(self, container_id: str) -> dict:
         return self._request("GET", container_id, {"fields": "status_code,status"})
@@ -205,9 +279,15 @@ class InstagramClient:
     def permalink(self, media_id: str) -> Optional[str]:
         return self._request("GET", media_id, {"fields": "permalink"}).get("permalink")
 
-    def publish_reel(self, video_url: str, caption: str, publish: bool = False, **container_kwargs) -> PublishResult:
-        """Full flow. With publish=False (default) it stops after the container is FINISHED."""
-        container_id = self.create_reel_container(video_url, caption, **container_kwargs)
+    def publish_reel(self, caption: str, video_url: Optional[str] = None, video_path: Optional[str] = None,
+                     publish: bool = False, **container_kwargs) -> PublishResult:
+        """Full flow. With publish=False (default) it stops once the container is FINISHED."""
+        if bool(video_url) == bool(video_path):
+            raise ValueError("pass exactly one of video_url or video_path")
+        if video_path:
+            container_id = self.upload_reel_file(video_path, caption, **container_kwargs)
+        else:
+            container_id = self.create_reel_container(video_url, caption, **container_kwargs)
         status = self.wait_for_container(container_id)
         if not publish or status == "PUBLISHED":
             return PublishResult(container_id, status, published=status == "PUBLISHED")
@@ -240,6 +320,7 @@ def client_from_env() -> InstagramClient:
     return InstagramClient(
         token,
         user_id=os.environ.get("IG_USER_ID") or None,
+        login=os.environ.get("IG_LOGIN") or "unified",
         api_version=os.environ.get("IG_API_VERSION") or DEFAULT_API_VERSION,
     )
 
@@ -250,30 +331,31 @@ def main(argv=None) -> int:
     sub.add_parser("check", help="verify token, show account and publishing quota")
     for name in ("container", "publish"):
         p = sub.add_parser(name)
-        p.add_argument("--video-url", required=True)
+        source = p.add_mutually_exclusive_group(required=True)
+        source.add_argument("--video-file", help="local MP4, uploaded directly (Unified Login)")
+        source.add_argument("--video-url", help="public https URL Meta downloads")
         p.add_argument("--caption", default="")
         p.add_argument("--no-feed", action="store_true", help="Reels tab only, not main feed")
         if name == "publish":
             p.add_argument("--confirm", action="store_true", help="required: actually publish")
-    r = sub.add_parser("refresh-token", help="refresh long-lived token; writes new token to a file, never stdout")
-    r.add_argument("--out", default=".ig_token.new", help="file to write the refreshed token to")
+    r = sub.add_parser("refresh-token", help="Instagram Login only; writes new token to a file, never stdout")
+    r.add_argument("--out", default=".ig_token.new")
     args = parser.parse_args(argv)
 
     client = client_from_env()
     try:
         if args.command == "check":
-            me = client.me()
-            limit = client.publishing_limit()
-            print(json.dumps({"username": me.get("username"), "user_id": me.get("user_id"),
-                              "account_type": me.get("account_type"), "publishing_limit": limit}, indent=2))
-        elif args.command == "container":
-            result = client.publish_reel(args.video_url, args.caption, publish=False, share_to_feed=not args.no_feed)
-            print(json.dumps(result.to_dict(), indent=2))
-        elif args.command == "publish":
-            if not args.confirm:
+            account = client.account()
+            client._user_id = account["user_id"]
+            print(json.dumps({"login": client.login, **account, "publishing_limit": client.publishing_limit()}, indent=2))
+        elif args.command in ("container", "publish"):
+            if args.command == "publish" and not args.confirm:
                 print("refusing to publish without --confirm", file=sys.stderr)
                 return 2
-            result = client.publish_reel(args.video_url, args.caption, publish=True, share_to_feed=not args.no_feed)
+            result = client.publish_reel(
+                args.caption, video_url=args.video_url, video_path=args.video_file,
+                publish=args.command == "publish", share_to_feed=not args.no_feed,
+            )
             print(json.dumps(result.to_dict(), indent=2))
         elif args.command == "refresh-token":
             data = client.refresh_token()

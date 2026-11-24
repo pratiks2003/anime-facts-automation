@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 
 import soundfile as sf
 
+from .media import MediaAsset, Openverse, build_blocklist, credits_text, find_image, find_music
 from .script import ScriptError, full_caption, knowledge_ids, load_script
 from .sfx import SR as SFX_SR
 from .sfx import build_sfx_track
@@ -141,8 +142,58 @@ def encode(renderer: FrameRenderer, audio: Path, out: Path) -> None:
         raise RuntimeError(f"ffmpeg encode failed:\n{err[-2000:]}")
 
 
+def blocklist_terms():
+    """(phrases, character names) that must never be image search topics."""
+    phrases: List[str] = []
+    names: List[str] = []
+    try:
+        from rag.knowledge import load_knowledge, load_metadata
+        for entry in load_metadata():
+            phrases += [entry["name"], *entry.get("aliases", []), *entry.get("image_block_terms", [])]
+        for record in load_knowledge():
+            phrases.append(record["anime"])
+            names += record["characters"]
+    except Exception as exc:
+        log(f"warning: could not build full blocklist ({exc})")
+    return phrases, names
+
+
+def gather_media(script: dict, cache: Path, images: bool, music: bool):
+    """Per-scene images and a music track from Openverse (local assets/music wins for music)."""
+    client = Openverse()
+    phrases, names = blocklist_terms()
+    blocklist = build_blocklist(phrases + [script["anime"]], names)
+    scene_assets: List[Optional[MediaAsset]] = []
+    used: set = set()
+    for scene in script["scenes"]:
+        queries = scene.get("visual_queries") or []
+        asset = None
+        if images and queries:
+            try:
+                asset = find_image(client, queries, cache, blocklist, used)
+            except ValueError:
+                raise
+            except Exception as exc:  # network trouble: fall back to the typographic layout
+                log(f"warning: image search failed for {queries} ({exc})")
+            if asset:
+                used.add(asset.openverse_id)
+            else:
+                log(f"no suitable image for {queries}; using typographic layout")
+        scene_assets.append(asset)
+
+    local = pick_music(script)
+    music_asset: Optional[MediaAsset] = None
+    if music and not local:
+        try:
+            music_asset = find_music(client, script.get("mood", "default"), script["id"], cache)
+        except Exception as exc:
+            log(f"warning: music search failed ({exc})")
+    return scene_assets, local, music_asset
+
+
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
-           speed: Optional[float] = None, stills: bool = False) -> dict:
+           speed: Optional[float] = None, stills: bool = False,
+           images: bool = True, music: bool = True) -> dict:
     script = load_script(script_path)
     channel = channel_config()
     out = Path(out_root) / script["id"]
@@ -161,7 +212,14 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     (out / "timeline.json").write_text(json.dumps(narration.timeline_dict(), indent=2), encoding="utf-8")
     (out / "captions.srt").write_text(to_srt(narration.scenes), encoding="utf-8")
 
-    renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=sources_note)
+    scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music)
+    image_specs = [
+        {"path": a.path, "credit": f"Photo: {a.creator or 'unknown'} · {a.license}"} if a else None
+        for a in scene_assets
+    ]
+    log(f"images: {sum(1 for a in scene_assets if a)}/{len(scene_assets)} scenes")
+    renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=sources_note,
+                             images=image_specs)
     thumb_t = min(narration.scenes[0].start + 0.9, narration.scenes[0].end - 0.1)
     renderer.frame(thumb_t, captions=False).save(out / "cover.jpg", quality=92)
 
@@ -174,8 +232,8 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     sf.write(out / "voice.wav", narration.audio, narration.sample_rate)
     sf.write(out / "sfx.wav", build_sfx_track(duration, [s.start for s in narration.scenes],
                                               [s.role for s in narration.scenes]), SFX_SR)
-    music = pick_music(script)
-    log(f"mixing audio (music: {music.name if music else 'none'})")
+    music = local_music or (Path(music_asset.path) if music_asset else None)
+    log(f"mixing audio (music: {music_asset.credit() if music_asset else (music.name if music else 'none')})")
     mix_audio(out / "voice.wav", out / "sfx.wav", music, duration, out / "mix.wav")
 
     t1 = time.time()
@@ -191,12 +249,14 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "video": str(out / "video.mp4"),
         "cover": str(out / "cover.jpg"),
         "thumb_offset_ms": int(thumb_t * 1000),
-        "caption": full_caption(script),
+        "caption": "\n\n".join(x for x in (full_caption(script),
+                                             credits_text([a for a in scene_assets if a], music_asset)) if x),
         "knowledge_ids": ids,
         "unverified_knowledge_ids": unverified,
         "missing_knowledge_ids": missing,
         "publishable": not errors and not unverified and not missing and bool(ids),
-        "music": music.name if music else None,
+        "music": music_asset.to_dict() if music_asset else (music.name if music else None),
+        "images": [a.to_dict() if a else None for a in scene_assets],
         "voice": voice,
         "validation": {"errors": errors, "warnings": warnings, "summary": summary},
         "render_seconds": round(time.time() - t0, 1),
@@ -212,10 +272,13 @@ def main(argv=None) -> int:
     parser.add_argument("--voice")
     parser.add_argument("--speed", type=float)
     parser.add_argument("--stills", action="store_true", help="only render preview stills")
+    parser.add_argument("--no-images", action="store_true", help="typographic layout only")
+    parser.add_argument("--no-music", action="store_true")
     args = parser.parse_args(argv)
     try:
-        manifest = render(args.script, args.out, args.voice, args.speed, args.stills)
-    except (ScriptError, FileNotFoundError, RuntimeError) as exc:
+        manifest = render(args.script, args.out, args.voice, args.speed, args.stills,
+                          images=not args.no_images, music=not args.no_music)
+    except (ScriptError, FileNotFoundError, RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(manifest, indent=2, ensure_ascii=False))

@@ -63,6 +63,9 @@ def validate_script(script: dict) -> List[str]:
         if not narration.strip():
             errors.append(f"{where}: narration is empty")
         words += len(narration.split())
+        queries = scene.get("visual_queries", [])
+        if not isinstance(queries, list) or not all(isinstance(q, str) and q.strip() for q in queries):
+            errors.append(f"{where}: visual_queries must be a list of non-empty strings")
         if scene.get("role") == "theory" and script["mode"] != "theory":
             errors.append(f"{where}: theory scenes are only allowed in mode 'theory'")
 

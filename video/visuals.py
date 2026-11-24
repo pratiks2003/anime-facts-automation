@@ -107,6 +107,31 @@ def scene_background(base: Image.Image, theme: Theme, scene: SceneTiming, number
     return img
 
 
+CARD_X, CARD_Y, CARD_W, CARD_H = 60, 372, 960, 600
+CARD_OVERSCAN = 1.12  # extra size for the slow Ken Burns zoom
+
+
+def cover(img: Image.Image, size: Tuple[int, int]) -> Image.Image:
+    """Scale and centre-crop to fill `size` (like CSS object-fit: cover)."""
+    tw, th = size
+    scale = max(tw / img.width, th / img.height)
+    resized = img.resize((max(tw, int(img.width * scale + 0.5)), max(th, int(img.height * scale + 0.5))), Image.LANCZOS)
+    left, top = (resized.width - tw) // 2, (resized.height - th) // 2
+    return resized.crop((left, top, left + tw, top + th))
+
+
+def image_background(photo: Image.Image, theme: Theme) -> Image.Image:
+    bg = cover(photo, (W // 4, H // 4)).filter(ImageFilter.GaussianBlur(10)).resize((W, H), Image.BILINEAR)
+    tint = Image.new("RGB", (W, H), theme.bg_bottom)
+    return Image.blend(bg, tint, 0.62)
+
+
+def card_mask() -> Image.Image:
+    mask = Image.new("L", (CARD_W, CARD_H), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, CARD_W - 1, CARD_H - 1], radius=34, fill=255)
+    return mask
+
+
 class Embers:
     """Rising particles, deterministic per video."""
 
@@ -138,13 +163,14 @@ def wrap(words: List[str], f: ImageFont.FreeTypeFont, max_width: int) -> List[Li
     return lines
 
 
-def headline_image(text: str, emphasis: List[str], theme: Theme, max_width: int = 900) -> Image.Image:
+def headline_image(text: str, emphasis: List[str], theme: Theme, max_width: int = 900,
+                   sizes: Tuple[int, ...] = (170, 150, 132, 116, 100, 88), max_lines: int = 3) -> Image.Image:
     words = text.upper().split()
     keys = {e.upper().strip(".,!?") for e in emphasis}
-    for size in (170, 150, 132, 116, 100, 88):
+    for size in sizes:
         f = font("Anton-Regular.ttf", size)
         lines = wrap(words, f, max_width)
-        if len(lines) <= 3:
+        if len(lines) <= max_lines:
             break
     line_h = int(size * 1.08)
     img = Image.new("RGBA", (max_width + 60, line_h * len(lines) + 60), (0, 0, 0, 0))
@@ -176,7 +202,9 @@ def pill(draw: ImageDraw.ImageDraw, center_x: int, y: int, text: str, fill: RGB,
 # ---------------------------------------------------------------- renderer
 
 class FrameRenderer:
-    def __init__(self, script: dict, narration: Narration, handle: str = "", sources_note: str = ""):
+    def __init__(self, script: dict, narration: Narration, handle: str = "", sources_note: str = "",
+                 images: Optional[List[Optional[dict]]] = None):
+        """images: per scene None or {"path": ..., "credit": "Photo: X · CC BY 2.0"}."""
         self.script = script
         self.narration = narration
         self.theme = theme_for(script["anime"])
@@ -185,17 +213,29 @@ class FrameRenderer:
         self.duration = narration.duration
         self.scenes = narration.scenes
         self.embers = Embers(self.theme)
+        images = images or [None] * len(self.scenes)
+        self.mask = card_mask()
 
         base = base_background(self.theme)
-        self.backgrounds, self.headlines, self.tags = [], [], []
+        self.backgrounds, self.headlines, self.tags, self.cards, self.credits = [], [], [], [], []
         fact_no = 0
-        for scene, spec in zip(self.scenes, script["scenes"]):
+        for scene, spec, image in zip(self.scenes, script["scenes"], images):
             number = None
             if scene.role not in ("hook", "outro"):
                 fact_no += 1
                 number = fact_no
-            self.backgrounds.append(scene_background(base, self.theme, scene, number))
-            self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme))
+            if image:
+                photo = Image.open(image["path"]).convert("RGB")
+                self.backgrounds.append(image_background(photo, self.theme))
+                self.cards.append(cover(photo, (int(CARD_W * CARD_OVERSCAN), int(CARD_H * CARD_OVERSCAN))))
+                self.credits.append(image.get("credit", ""))
+                self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme,
+                                                     sizes=(124, 112, 100, 90, 80), max_lines=2))
+            else:
+                self.backgrounds.append(scene_background(base, self.theme, scene, number))
+                self.cards.append(None)
+                self.credits.append("")
+                self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme))
             tag = ROLE_TAGS.get(scene.role) or (
                 f"#{number}" if script["mode"] == "ranking" else f"FACT {number:02d}"
             )
@@ -225,12 +265,17 @@ class FrameRenderer:
         d.rounded_rectangle([140, bar_y, W - 140, bar_y + 8], radius=4, fill=mix(self.theme.bg_top, WHITE, 0.18))
         d.rounded_rectangle([140, bar_y, 140 + (W - 280) * min(t / self.duration, 1), bar_y + 8], radius=4, fill=self.theme.accent)
 
+        has_card = self.cards[i] is not None
+        if has_card:
+            self.draw_card(img, d, i, u, scene.end - scene.start)
+
         # scene tag
         tag = self.tags[i]
         warn = scene.role in ("theory", "what_if") or tag.startswith(("FAN THEORY", "WHAT IF"))
         tag_alpha_in = min(max(u / 0.2, 0), 1)
+        tag_y = CARD_Y + CARD_H - 34 if has_card else 470
         if tag_alpha_in > 0:
-            pill(d, W // 2, int(470 - 30 * (1 - tag_alpha_in)), tag,
+            pill(d, W // 2, int(tag_y - 30 * (1 - tag_alpha_in)), tag,
                  THEORY_COLOR if warn else self.theme.accent, DARK, size=38)
 
         # headline: pop-in with overshoot, shake on hook impact
@@ -248,12 +293,12 @@ class FrameRenderer:
         if scene.role == "hook" and u < 0.5:
             amp = 14 * (1 - u / 0.5)
             dx, dy = int(amp * math.sin(u * 90)), int(amp * math.cos(u * 70))
-        cy = 800
+        cy = 1175 if has_card else 800
         img.paste(head, (W // 2 - head.width // 2 + dx, cy - head.height // 2 + dy), head)
 
         # karaoke captions
         if captions:
-            self.draw_caption(d, i, t)
+            self.draw_caption(d, i, t, y=1365 if has_card else 1200)
 
         # outro: follow call-to-action + sources
         if scene.role == "outro":
@@ -269,7 +314,29 @@ class FrameRenderer:
             img = Image.blend(img, flash, 0.55 * (1 - u / 0.1))
         return img
 
-    def draw_caption(self, d: ImageDraw.ImageDraw, i: int, t: float) -> None:
+    def draw_card(self, img: Image.Image, d: ImageDraw.ImageDraw, i: int, u: float, length: float) -> None:
+        """Photo card with slow Ken Burns zoom, slide-in, accent border and credit."""
+        big = self.cards[i]
+        progress = min(max(u / max(length, 0.1), 0.0), 1.0)
+        span = 1.0 + (CARD_OVERSCAN - 1.0) * (1.0 - progress)  # zoom in over the scene
+        cw, ch = int(CARD_W * span), int(CARD_H * span)
+        left = (big.width - cw) // 2 + int((big.width - cw) * 0.3 * (progress - 0.5))
+        top = (big.height - ch) // 2
+        frame = big.crop((left, top, left + cw, top + ch)).resize((CARD_W, CARD_H), Image.BILINEAR)
+        slide = int(60 * (1 - ease_out_back(u / 0.35)))
+        y = CARD_Y + slide
+        img.paste(frame, (CARD_X, y), self.mask)
+        d.rounded_rectangle([CARD_X, y, CARD_X + CARD_W - 1, y + CARD_H - 1], radius=34,
+                            outline=self.theme.accent, width=5)
+        credit = self.credits[i]
+        if credit:
+            f = font("Poppins-SemiBold.ttf", 20)
+            tw = f.getlength(credit)
+            x0, y0 = CARD_X + 24, y + 22
+            d.rounded_rectangle([x0 - 12, y0 - 8, x0 + tw + 12, y0 + 28], radius=10, fill=(0, 0, 0))
+            d.text((x0, y0), credit, font=f, fill=(225, 225, 225))
+
+    def draw_caption(self, d: ImageDraw.ImageDraw, i: int, t: float, y: int = 1200) -> None:
         chunks = self.chunks[i]
         current = None
         for chunk in chunks:
@@ -282,7 +349,6 @@ class FrameRenderer:
         space = f.getlength(" ") + 18  # extra room for the 9px outline on both words
         total = sum(f.getlength(x) for x in texts) + space * (len(texts) - 1)
         x = (W - total) / 2
-        y = 1200
         spoken = [w for w in current if w.start <= t]
         active_word = spoken[-1] if spoken else None  # exactly one highlighted word
         for word, text in zip(current, texts):

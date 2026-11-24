@@ -8,37 +8,75 @@
     {
       "role": "hook",
       "headline": "Luffy can't do this",
-      "emphasis": ["can't"],
-      "narration": "Luffy can stretch like rubber and take hits that would flatten anyone else. But there is one simple thing he can never do."
+      "emphasis": [
+        "can't"
+      ],
+      "narration": "Luffy can stretch like rubber and take hits that would flatten anyone else. But there is one simple thing he can never do.",
+      "visual_queries": [
+        "stormy ocean waves",
+        "ocean waves night"
+      ]
     },
     {
       "role": "fact",
       "headline": "He can't swim",
-      "emphasis": ["swim"],
-      "knowledge_ids": ["OP-002"],
-      "narration": "He can't swim. When Luffy ate the Gum-Gum Fruit, his body turned into rubber. The price? Like every Devil Fruit user, he can no longer swim."
+      "emphasis": [
+        "swim"
+      ],
+      "knowledge_ids": [
+        "OP-002"
+      ],
+      "narration": "He can't swim. When Luffy ate the Gum-Gum Fruit, his body turned into rubber. The price? Like every Devil Fruit user, he can no longer swim.",
+      "visual_queries": [
+        "deep ocean underwater",
+        "ocean waves"
+      ]
     },
     {
       "role": "fact",
       "headline": "A hat with a promise",
-      "emphasis": ["promise"],
-      "knowledge_ids": ["OP-004"],
-      "narration": "His famous straw hat isn't just style. The pirate Shanks entrusted it to him as a child, and asked him to return it one day as a great pirate."
+      "emphasis": [
+        "promise"
+      ],
+      "knowledge_ids": [
+        "OP-004"
+      ],
+      "narration": "His famous straw hat isn't just style. The pirate Shanks entrusted it to him as a child, and asked him to return it one day as a great pirate.",
+      "visual_queries": [
+        "straw hat",
+        "straw hat beach"
+      ]
     },
     {
       "role": "fact",
       "headline": "King of the Pirates",
-      "emphasis": ["King"],
-      "knowledge_ids": ["OP-003"],
-      "narration": "And his dream has never changed: find the legendary treasure called the One Piece, and become King of the Pirates."
+      "emphasis": [
+        "King"
+      ],
+      "knowledge_ids": [
+        "OP-003"
+      ],
+      "narration": "And his dream has never changed: find the legendary treasure called the One Piece, and become King of the Pirates.",
+      "visual_queries": [
+        "treasure chest gold coins",
+        "pirate ship sails"
+      ]
     },
     {
       "role": "outro",
       "headline": "Which dream is hardest?",
-      "emphasis": ["hardest?"],
+      "emphasis": [
+        "hardest?"
+      ],
       "narration": "Which Straw Hat dream do you think is the hardest to achieve? Tell me in the comments, and follow for more anime secrets."
     }
   ],
   "caption": "Luffy can stretch, punch and survive almost anything... except this. 🌊 Which Straw Hat dream is the hardest? 👇",
-  "hashtags": ["#onepiece", "#luffy", "#anime", "#animefacts", "#strawhat"]
+  "hashtags": [
+    "#onepiece",
+    "#luffy",
+    "#anime",
+    "#animefacts",
+    "#strawhat"
+  ]
 }

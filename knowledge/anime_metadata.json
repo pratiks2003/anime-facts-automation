@@ -2,21 +2,57 @@
   "anime": [
     {
       "name": "Naruto",
-      "aliases": ["NARUTO", "Naruto Shippuden", "Naruto Shippuuden"],
+      "aliases": [
+        "NARUTO",
+        "Naruto Shippuden",
+        "Naruto Shippuuden"
+      ],
       "anilist_id": 20,
       "knowledge_file": "naruto.jsonl",
       "id_prefix": "NAR",
-      "genres": ["Action", "Adventure", "Comedy", "Drama", "Fantasy"],
-      "active": true
+      "genres": [
+        "Action",
+        "Adventure",
+        "Comedy",
+        "Drama",
+        "Fantasy"
+      ],
+      "active": true,
+      "image_block_terms": [
+        "konoha",
+        "hokage",
+        "akatsuki",
+        "sharingan",
+        "rasengan",
+        "kishimoto",
+        "jinchuriki"
+      ]
     },
     {
       "name": "One Piece",
-      "aliases": ["ONE PIECE", "OP"],
+      "aliases": [
+        "ONE PIECE",
+        "OP"
+      ],
       "anilist_id": 21,
       "knowledge_file": "one_piece.jsonl",
       "id_prefix": "OP",
-      "genres": ["Action", "Adventure", "Comedy", "Drama", "Fantasy"],
-      "active": true
+      "genres": [
+        "Action",
+        "Adventure",
+        "Comedy",
+        "Drama",
+        "Fantasy"
+      ],
+      "active": true,
+      "image_block_terms": [
+        "straw hat pirates",
+        "devil fruit",
+        "gum-gum",
+        "going merry",
+        "thousand sunny",
+        "oda"
+      ]
     }
   ]
 }

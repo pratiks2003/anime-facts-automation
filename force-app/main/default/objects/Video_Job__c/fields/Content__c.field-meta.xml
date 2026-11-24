@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Content__c</fullName>
+    <label>Reel</label>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <referenceTo>Anime_Content__c</referenceTo>
+    <relationshipLabel>Video Jobs</relationshipLabel>
+    <relationshipName>Video_Jobs</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

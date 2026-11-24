@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Two_Reels_Per_Day__c</fullName>
+    <description>When on, an Evening slot is added to the Morning slot.</description>
+    <label>Two Reels Per Day</label>
+    <defaultValue>false</defaultValue>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

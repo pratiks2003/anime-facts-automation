@@ -241,12 +241,14 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music)
     image_specs = [
         None if a is None else
-        {"path": a.path, "layout": "full", "credit": "AI ART"} if a.kind == "ai_image" else
+        {"path": a.path, "layout": "full", "credit": "AI ART" if channel.get("show_ai_label") else ""}
+        if a.kind == "ai_image" else
         {"path": a.path, "credit": f"Photo: {a.creator or 'unknown'} · {a.license}"}
         for a in scene_assets
     ]
     log(f"images: {sum(1 for a in scene_assets if a)}/{len(scene_assets)} scenes")
-    renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=sources_note,
+    on_screen_sources = sources_note if channel.get("show_sources_on_video") else ""
+    renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=on_screen_sources,
                              images=image_specs)
     thumb_t = min(narration.scenes[0].start + 0.9, narration.scenes[0].end - 0.1)
     renderer.frame(thumb_t, captions=False).save(out / "cover.jpg", quality=92)
@@ -282,6 +284,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
             AI_DISCLOSURE if any(a and a.kind == "ai_image" for a in scene_assets) else "",
             credits_text([a for a in scene_assets if a and a.kind == "image"], music_asset)) if x),
         "knowledge_ids": ids,
+        "sources": sources_note,  # kept for fact-checking; not shown on the video by default
         "unverified_knowledge_ids": unverified,
         "missing_knowledge_ids": missing,
         "publishable": not errors and not unverified and not missing and bool(ids),

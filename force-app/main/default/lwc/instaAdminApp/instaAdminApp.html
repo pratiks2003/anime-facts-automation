@@ -1,0 +1,50 @@
+<template>
+    <div class="app">
+        <header class="header">
+            <div class="brand">
+                <div class="logo">先輩</div>
+                <div>
+                    <div class="brand-name">Senpai Secrets</div>
+                    <div class="brand-sub">InstaAgent control room</div>
+                </div>
+            </div>
+            <div class="chips">
+                <span class={automationChip}>{automationLabel}</span>
+                <span class="chip">{cadenceLabel}</span>
+                <template lwc:if={showAutoApprove}><span class="chip">Auto-approve</span></template>
+                <template lwc:if={showDryRun}><span class="chip chip_warn">Dry run · not posting</span></template>
+            </div>
+        </header>
+
+        <nav class="tabs" role="tablist">
+            <template for:each={tabs} for:item="tab">
+                <button key={tab.id} class={tab.className} data-tab={tab.id} onclick={handleTab} role="tab">{tab.label}</button>
+            </template>
+        </nav>
+
+        <main class="content">
+            <template lwc:if={error}>
+                <div class="error">Couldn't load data: {error}</div>
+            </template>
+            <template lwc:if={loading}>
+                <div class="loading">Loading…</div>
+            </template>
+            <template lwc:else>
+                <template lwc:if={overview}>
+                    <template lwc:if={isDashboard}>
+                        <c-insta-dashboard overview={overview} onchanged={handleChanged}></c-insta-dashboard>
+                    </template>
+                    <template lwc:if={isReels}>
+                        <c-insta-reels onchanged={handleChanged}></c-insta-reels>
+                    </template>
+                    <template lwc:if={isPublished}>
+                        <c-insta-posts></c-insta-posts>
+                    </template>
+                    <template lwc:if={isSettings}>
+                        <c-insta-settings settings={settings} onchanged={handleChanged}></c-insta-settings>
+                    </template>
+                </template>
+            </template>
+        </main>
+    </div>
+</template>

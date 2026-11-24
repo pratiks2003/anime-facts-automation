@@ -1,0 +1,34 @@
+<template>
+    <template lwc:if={error}><div class="error">{error}</div></template>
+    <template lwc:if={loading}><div class="empty">Loading published Reels…</div></template>
+    <template lwc:elseif={hasItems}>
+        <div class="posts">
+            <template for:each={items} for:item="p">
+                <article key={p.Id} class="post">
+                    <template lwc:if={p.embedUrl}>
+                        <iframe class="embed" src={p.embedUrl} title={p.title} loading="lazy"></iframe>
+                    </template>
+                    <div class="post-body">
+                        <div class="post-title">{p.title}</div>
+                        <div class="muted small">{p.format} · {p.when}</div>
+                        <div class="metrics">
+                            <template for:each={p.metrics} for:item="m">
+                                <div key={m.key} class="metric">
+                                    <div class="metric-value">{m.value}</div>
+                                    <div class="metric-label">{m.label}</div>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="footer muted small">
+                            <span>{p.updated}</span>
+                            <template lwc:if={p.Permalink__c}>
+                                <a href={p.Permalink__c} target="_blank" rel="noopener">Open on Instagram ↗</a>
+                            </template>
+                        </div>
+                    </div>
+                </article>
+            </template>
+        </div>
+    </template>
+    <template lwc:else><div class="empty">Nothing published yet. Your first automated Reel will appear here.</div></template>
+</template>

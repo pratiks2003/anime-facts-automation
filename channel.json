@@ -1,5 +1,7 @@
 {
   "handle": "@senpai.secrets.official",
   "voice": "am_fenrir",
-  "speed": 1.1
+  "speed": 1.1,
+  "show_ai_label": false,
+  "show_sources_on_video": false
 }

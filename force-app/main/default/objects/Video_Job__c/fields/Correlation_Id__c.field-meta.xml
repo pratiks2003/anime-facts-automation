@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Correlation_Id__c</fullName>
+    <description>Sent to GitHub as a workflow input and run-name; used to match callbacks.</description>
+    <externalId>true</externalId>
+    <label>Correlation ID</label>
+    <length>64</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>true</unique>
+    <caseSensitive>false</caseSensitive>
+</CustomField>

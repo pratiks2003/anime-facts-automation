@@ -1,0 +1,57 @@
+<template>
+    <div class="layout">
+        <section class="panel">
+            <h2 class="panel-title">Automation</h2>
+            <template for:each={toggles} for:item="t">
+                <div key={t.key} class="toggle-row">
+                    <div>
+                        <div class="toggle-label">{t.label}</div>
+                        <div class="muted small">{t.help}</div>
+                    </div>
+                    <button
+                        class={t.className}
+                        data-key={t.key}
+                        onclick={handleToggle}
+                        role="switch"
+                        aria-checked={t.checked}
+                        aria-label={t.label}
+                    >
+                        <span class="knob"></span>
+                        <span class="state">{t.state}</span>
+                    </button>
+                </div>
+            </template>
+        </section>
+
+        <section class="panel">
+            <h2 class="panel-title">Posting times (IST)</h2>
+            <label class="label" for="morning">Morning slot · evergreen formats</label>
+            <input id="morning" class="field" type="time" data-key="morningSlot" value={values.morningSlot} onchange={handleTime} />
+            <label class="label" for="evening">Evening slot · news &amp; hype (2 Reels/day only)</label>
+            <input
+                id="evening"
+                class="field"
+                type="time"
+                data-key="eveningSlot"
+                value={values.eveningSlot}
+                onchange={handleTime}
+                disabled={eveningDisabled}
+            />
+            <p class="muted small note">Reels are generated about 20 minutes before each slot and posted right after.</p>
+            <p class="muted small note">Repository: {values.repository}</p>
+        </section>
+    </div>
+
+    <template lwc:if={goingLive}>
+        <div class="live">Live mode: Reels will be posted to Instagram automatically.</div>
+    </template>
+    <template lwc:if={error}><div class="error">{error}</div></template>
+
+    <div class="save-bar">
+        <template lwc:if={message}><span class="ok">{message}</span></template>
+        <button class="btn btn_primary" onclick={handleSave} disabled={saveDisabled}>
+            <template lwc:if={saving}>Saving…</template>
+            <template lwc:else>Save settings</template>
+        </button>
+    </div>
+</template>

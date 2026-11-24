@@ -1,0 +1,73 @@
+<template>
+    <section class="kpis">
+        <template for:each={kpis} for:item="k">
+            <div key={k.key} class={k.tone}>
+                <div class="kpi-value">{k.value}</div>
+                <div class="kpi-label">{k.label}</div>
+            </div>
+        </template>
+    </section>
+
+    <div class="grid">
+        <section class="panel">
+            <h2 class="panel-title">Up next</h2>
+            <ul class="list">
+                <template for:each={upcoming} for:item="u">
+                    <li key={u.key} class="row">
+                        <div>
+                            <div class="row-title">{u.format}</div>
+                            <div class="muted small">{u.slot} slot · {u.when}</div>
+                        </div>
+                        <span class="muted small">{u.relative}</span>
+                    </li>
+                </template>
+            </ul>
+            <p class="muted small footnote">{schedulerText}</p>
+        </section>
+
+        <section class="panel">
+            <h2 class="panel-title">Make a Reel now</h2>
+            <label class="label" for="format">Format</label>
+            <select id="format" class="field wide" onchange={handleFormat}>
+                <template for:each={formatOptions} for:item="f">
+                    <option key={f.value} value={f.value} selected={f.selected}>{f.label}</option>
+                </template>
+            </select>
+            <label class="label" for="topic">Topic idea (optional)</label>
+            <input id="topic" class="field wide" placeholder="e.g. Zoro's three swords" value={newTopic} oninput={handleTopic} />
+            <button class="btn btn_primary create" onclick={handleCreate} disabled={creating}>
+                <template lwc:if={creating}>Queuing…</template>
+                <template lwc:else>Generate Reel</template>
+            </button>
+            <template lwc:if={message}><p class="ok small">{message}</p></template>
+            <template lwc:if={error}><div class="error">{error}</div></template>
+        </section>
+    </div>
+
+    <section class="panel jobs">
+        <h2 class="panel-title">Recent GitHub runs</h2>
+        <template lwc:if={hasJobs}>
+            <ul class="list">
+                <template for:each={jobs} for:item="j">
+                    <li key={j.Id} class="row">
+                        <div class="job-main">
+                            <div class="row-title">{j.reel}</div>
+                            <div class="muted small">
+                                {j.Job_Type__c} · {j.when}
+                                <template lwc:if={j.Stage__c}> · {j.Stage__c}</template>
+                            </div>
+                            <template lwc:if={j.Error_Message__c}><div class="job-error small">{j.Error_Message__c}</div></template>
+                        </div>
+                        <div class="job-side">
+                            <span class={j.badge}>{j.Status__c}</span>
+                            <template lwc:if={j.hasRun}>
+                                <a href={j.Run_URL__c} target="_blank" rel="noopener" class="small">View run ↗</a>
+                            </template>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+        <template lwc:else><div class="empty">No runs yet.</div></template>
+    </section>
+</template>

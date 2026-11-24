@@ -1,0 +1,77 @@
+<template>
+    <div class="toolbar">
+        <template for:each={filters} for:item="f">
+            <button key={f.value} class={f.className} data-value={f.value} onclick={handleFilter}>{f.value}</button>
+        </template>
+    </div>
+
+    <template lwc:if={error}><div class="error spaced">{error}</div></template>
+
+    <template lwc:if={loading}><div class="empty">Loading Reels…</div></template>
+    <template lwc:elseif={hasCards}>
+        <div class="cards">
+            <template for:each={cards} for:item="r">
+                <article key={r.Id} class="card" data-id={r.Id} onclick={handleOpen}>
+                    <div class="thumb">
+                        <template lwc:if={r.hasCover}>
+                            <img src={r.Cover_URL__c} alt={r.Name} loading="lazy" />
+                        </template>
+                        <template lwc:else>
+                            <div class="thumb-empty">{r.Format__c}</div>
+                        </template>
+                        <span class={r.badge}>{r.Status__c}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">{r.Name}</div>
+                        <div class="muted small">{r.Format__c} · {r.when}</div>
+                        <div class="caption small">{r.captionPreview}</div>
+                        <div class="actions" onclick={stop}>
+                            <template lwc:if={r.canReview}>
+                                <button class="btn btn_good" data-id={r.Id} onclick={handleApprove} disabled={r.busy}>Approve</button>
+                                <button class="btn btn_danger" data-id={r.Id} onclick={handleReject} disabled={r.busy}>Reject</button>
+                            </template>
+                            <template lwc:if={r.canRetry}>
+                                <button class="btn" data-id={r.Id} onclick={handleRetry} disabled={r.busy}>Retry</button>
+                            </template>
+                            <template lwc:if={r.permalink}>
+                                <a class="btn" href={r.permalink} target="_blank" rel="noopener">Instagram ↗</a>
+                            </template>
+                        </div>
+                    </div>
+                </article>
+            </template>
+        </div>
+    </template>
+    <template lwc:else><div class="empty">No Reels here yet.</div></template>
+
+    <template lwc:if={selected}>
+        <div class="overlay" onclick={handleClose}>
+            <div class="modal" onclick={stop} role="dialog" aria-label={selected.Name}>
+                <button class="close" onclick={handleClose} aria-label="Close">×</button>
+                <div class="modal-grid">
+                    <div class="player">
+                        <template lwc:if={selected.Video_URL__c}>
+                            <video src={selected.Video_URL__c} poster={selected.Cover_URL__c} controls playsinline></video>
+                        </template>
+                        <template lwc:elseif={selected.hasCover}>
+                            <img src={selected.Cover_URL__c} alt={selected.Name} />
+                        </template>
+                        <template lwc:else><div class="thumb-empty tall">No preview yet</div></template>
+                    </div>
+                    <div class="details">
+                        <span class={selected.badge}>{selected.Status__c}</span>
+                        <h3>{selected.Name}</h3>
+                        <p class="muted small">
+                            {selected.Format__c} · {selected.when}
+                            <template lwc:if={selected.Dry_Run__c}> · dry run</template>
+                        </p>
+                        <template lwc:if={selected.Hook__c}><p class="hook">“{selected.Hook__c}”</p></template>
+                        <template lwc:if={selected.Error_Message__c}><div class="error">{selected.Error_Message__c}</div></template>
+                        <h4>Caption</h4>
+                        <pre class="caption-full">{selected.Caption__c}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</template>

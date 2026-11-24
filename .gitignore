@@ -59,3 +59,7 @@ output/
 
 # Large/binary local files
 models/
+
+# Org-specific site files (contain the org sender email / usernames) - kept local only
+force-app/main/default/networks/
+force-app/main/default/sites/

@@ -53,3 +53,6 @@ $RECYCLE.BIN/
 output/
 .env.*
 !.env.example
+
+# Refreshed Instagram token output
+.ig_token.new

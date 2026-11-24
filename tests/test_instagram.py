@@ -219,3 +219,15 @@ class MetricsTests(unittest.TestCase):
         ])
         m = client(graph).media_metrics("M1")
         self.assertEqual((m["views"], m["avg_watch_ms"], m["insights_available"]), (1200, 8400, True))
+
+
+class TrialTests(unittest.TestCase):
+    def test_trial_params_sent(self):
+        graph = FakeGraph([("/1789/media", {"id": "C1"}), ("/C1", {"status_code": "FINISHED"}),
+                           ("/1789/media_publish", {"id": "M1"}), ("/M1", {"permalink": "p"})])
+        client(graph).publish_reel("cap", video_url="https://example.org/v.mp4", publish=True, trial_strategy="SS_PERFORMANCE")
+        self.assertEqual(json.loads(graph.calls[0][2]["trial_params"]), {"graduation_strategy": "SS_PERFORMANCE"})
+
+    def test_bad_trial_strategy_rejected(self):
+        with self.assertRaises(ValueError):
+            client(FakeGraph([])).create_reel_container("https://x/v.mp4", trial_strategy="YOLO")

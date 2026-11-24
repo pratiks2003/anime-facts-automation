@@ -167,7 +167,8 @@ def find_image(client: Openverse, queries: List[str], cache_dir: Path, blocklist
 
 
 def find_music(client: Openverse, mood: str, seed: str, cache_dir: Path, min_seconds: int = 45,
-               keywords: str = "") -> Optional[MediaAsset]:
+               keywords: str = "", picker=None) -> Optional[MediaAsset]:
+    """picker(candidates) -> openverse id or None (the Music Supervisor agent); else a stable hash pick."""
     candidates = []
     queries = ([k.strip() for k in keywords.split(",") if k.strip()][:2] if keywords else []) + MOOD_QUERIES.get(mood, MOOD_QUERIES["default"])
     for query in queries:
@@ -181,8 +182,23 @@ def find_music(client: Openverse, mood: str, seed: str, cache_dir: Path, min_sec
             break
     if not candidates:
         return None
+    seen, unique = set(), []
+    for r in candidates:
+        if r["id"] not in seen:
+            seen.add(r["id"])
+            unique.append(r)
+    candidates = unique[:12]
     start = int(hashlib.sha1(seed.encode()).hexdigest(), 16) % len(candidates)
-    for r in candidates[start:] + candidates[:start]:
+    order = candidates[start:] + candidates[:start]
+    if picker is not None:
+        try:
+            chosen = picker([{"id": r["id"], "title": r.get("title"), "tags": [t.get("name") for t in (r.get("tags") or [])][:8],
+                              "duration_seconds": int((r.get("duration") or 0) / 1000)} for r in candidates])
+        except Exception:
+            chosen = None
+        if chosen:
+            order = [r for r in candidates if r["id"] == chosen] + [r for r in order if r["id"] != chosen]
+    for r in order:
         path = cache_dir / f"music_{r['id']}.mp3"
         if not path.exists():
             try:

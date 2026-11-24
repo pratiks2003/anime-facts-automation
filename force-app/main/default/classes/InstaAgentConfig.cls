@@ -36,6 +36,7 @@ public with sharing class InstaAgentConfig {
         current.Two_Reels_Per_Day__c = changes.Two_Reels_Per_Day__c;
         current.Auto_Approve__c = changes.Auto_Approve__c;
         current.Dry_Run__c = changes.Dry_Run__c;
+        current.Trial_Reels_Enabled__c = changes.Trial_Reels_Enabled__c == true;
         if (String.isNotBlank(changes.Morning_Slot_IST__c)) {
             current.Morning_Slot_IST__c = validTime(changes.Morning_Slot_IST__c);
         }

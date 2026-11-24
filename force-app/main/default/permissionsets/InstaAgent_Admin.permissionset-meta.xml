@@ -467,6 +467,21 @@
         <field>Social_Post__c.Reply_Drafts__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Anime_Content__c.Publish_As_Trial__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Anime_Content__c.Music_Choice__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Social_Post__c.Is_Trial__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>InstaAgent Admin</label>
     <objectPermissions>

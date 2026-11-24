@@ -168,7 +168,7 @@ def blocklist_terms():
     return phrases, names
 
 
-def gather_media(script: dict, cache: Path, images: bool, music: bool):
+def gather_media(script: dict, cache: Path, images: bool, music: bool, music_picker=None):
     """Per-scene images and a music track from Openverse (local assets/music wins for music)."""
     client = Openverse()
     phrases, names = blocklist_terms()
@@ -215,7 +215,7 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
     if music and not local:
         try:
             music_asset = find_music(client, script.get("mood", "default"), script["id"], cache,
-                                     keywords=script.get("music_keywords", ""))
+                                     keywords=script.get("music_keywords", ""), picker=music_picker)
         except Exception as exc:
             log(f"warning: music search failed ({exc})")
     return scene_assets, local, music_asset
@@ -249,7 +249,8 @@ def official_asset(scene: dict, script: dict, index: int, cache: Path, vision) -
 
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
            speed: Optional[float] = None, stills: bool = False,
-           images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None) -> dict:
+           images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None,
+           music_picker=None) -> dict:
     script = load_script(script_path)
     try:
         from integrations.instagram import load_env_file
@@ -279,7 +280,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     (out / "timeline.json").write_text(json.dumps(narration.timeline_dict(), indent=2), encoding="utf-8")
     (out / "captions.srt").write_text(to_srt(narration.scenes), encoding="utf-8")
 
-    scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music)
+    scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music, music_picker)
     image_specs = [
         None if a is None else
         {"path": a.path, "layout": "poster", "background": a.source_url or None} if a.kind == "official_image" else

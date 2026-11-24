@@ -19,6 +19,11 @@ const TOGGLES = [
         help: 'Publish as soon as a Reel renders and passes checks. Off = wait for your approval here.'
     },
     {
+        key: 'trialReels',
+        label: 'Trial Reels',
+        help: 'Reels scoring 7-8 go to non-followers first and reach followers only if they perform (needs Instagram eligibility).'
+    },
+    {
         key: 'dryRun',
         label: 'Dry run',
         help: 'Render everything but never post to Instagram. Turn off to go live.'

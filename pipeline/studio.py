@@ -39,6 +39,8 @@ def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[
         pass
     if production.get("music_mood") in ("hype", "mystery", "sad", "default"):
         script["mood"] = production["music_mood"]
+    if production.get("music_energy") in ("high", "medium", "low"):
+        script["music_energy"] = production["music_energy"]
     if production.get("music_keywords"):
         script["music_keywords"] = str(production["music_keywords"])[:80]
     errors = check_script(script, {f["id"] for f in facts})

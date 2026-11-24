@@ -2,6 +2,26 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>64.0</apiVersion>
     <assignments>
+        <name>Publish_As_Trial</name>
+        <label>Publish As Trial</label>
+        <locationX>314</locationX>
+        <locationY>431</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Publish_As_Trial__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>$Record.Hold_Reason__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>TrialReason</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
         <name>Hold_For_Review</name>
         <label>Hold For Review</label>
         <locationX>50</locationX>
@@ -28,6 +48,21 @@
         <locationY>323</locationY>
         <defaultConnectorLabel>Passes quality bar</defaultConnectorLabel>
         <rules>
+            <name>Trial_Candidate</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>TrialCandidate</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Publish_As_Trial</targetReference>
+            </connector>
+            <label>Trial candidate</label>
+        </rules>
+        <rules>
             <name>Below_Quality_Bar</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
@@ -48,6 +83,16 @@
         <name>HoldReason</name>
         <dataType>String</dataType>
         <expression>IF(NOT(ISBLANK({!$Record.QA_Issues__c})), &quot;QA issues: &quot; &amp; LEFT({!$Record.QA_Issues__c}, 200), &quot;Quality score &quot; &amp; TEXT({!$Record.Quality_Score__c}) &amp; &quot; is below the bar of &quot; &amp; TEXT({!$Setup.InstaAgent_Settings__c.Quality_Threshold__c}))</expression>
+    </formulas>
+    <formulas>
+        <name>TrialCandidate</name>
+        <dataType>Boolean</dataType>
+        <expression>AND({!NeedsHold}, {!$Setup.InstaAgent_Settings__c.Trial_Reels_Enabled__c}, NOT({!$Record.Publish_As_Trial__c}), ISBLANK({!$Record.QA_Issues__c}), NOT(ISBLANK({!$Record.Quality_Score__c})), {!$Record.Quality_Score__c} &gt;= BLANKVALUE({!$Setup.InstaAgent_Settings__c.Trial_Score_Floor__c}, 7))</expression>
+    </formulas>
+    <formulas>
+        <name>TrialReason</name>
+        <dataType>String</dataType>
+        <expression>&quot;Trial Reel: score &quot; &amp; TEXT({!$Record.Quality_Score__c}) &amp; &quot; is below the bar, so it goes to non-followers first&quot;</expression>
     </formulas>
     <formulas>
         <name>NeedsHold</name>

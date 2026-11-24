@@ -124,22 +124,30 @@ def sync_facts(sf, facts: List[dict], anilist_id: Optional[int]) -> None:
             log(f"warning: fact sync failed for {f['id']} ({exc})")
 
 
-def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_url: Optional[str] = None) -> tuple:
+class TrialNotAvailable(RuntimeError):
+    pass
+
+
+def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_url: Optional[str] = None,
+                         trial: bool = False) -> tuple:
     """Prefer handing Meta the public preview URL (reliable); fall back to direct upload,
     whose endpoint intermittently answers 'Request processing failed'."""
     from integrations.instagram import ContainerError, InstagramAPIError, client_from_env
 
     ig = client_from_env()
+    extra = {"trial_strategy": "SS_PERFORMANCE"} if trial else {}
     result = None
     if video_url:
         try:
-            result = ig.publish_reel(caption, video_url=video_url, publish=True, thumb_offset_ms=thumb_offset_ms)
+            result = ig.publish_reel(caption, video_url=video_url, publish=True, thumb_offset_ms=thumb_offset_ms, **extra)
         except (InstagramAPIError, ContainerError) as exc:
+            if trial and isinstance(exc, InstagramAPIError) and exc.code == 10:
+                raise TrialNotAvailable(str(exc)) from None  # account not eligible for Trial Reels yet
             if "publish:" in str(exc):
                 raise  # the container was fine; don't risk a duplicate post via the fallback
             log(f"video_url publish failed ({exc}); trying direct upload")
     if result is None:
-        result = ig.publish_reel(caption, video_path=str(video), publish=True, thumb_offset_ms=thumb_offset_ms)
+        result = ig.publish_reel(caption, video_path=str(video), publish=True, thumb_offset_ms=thumb_offset_ms, **extra)
     if not result.published or not result.media_id:
         raise RuntimeError("Instagram did not confirm publication")
     return result.media_id, result.permalink
@@ -164,15 +172,34 @@ def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
     return issues
 
 
-def gate_holds(sf, content_id: str) -> bool:
-    """Read back the Reel after the Reel Quality Gate flow ran on our update."""
+def gate_decision(sf, content_id: str) -> tuple:
+    """(hold, trial) read back after the Reel Quality Gate flow ran on our update."""
     if isinstance(sf, NullSalesforce):
-        return False
-    rows = sf.query(f"SELECT Approval_Status__c, Hold_Reason__c FROM Anime_Content__c WHERE External_Id__c = '{content_id}' LIMIT 1")
-    if rows and rows[0].get("Approval_Status__c") != "Auto-Approved":
+        return False, False
+    rows = sf.query("SELECT Approval_Status__c, Hold_Reason__c, Publish_As_Trial__c FROM Anime_Content__c "
+                    f"WHERE External_Id__c = {soql_str(content_id)} LIMIT 1")
+    if not rows:
+        return False, False
+    if rows[0].get("Hold_Reason__c"):
         log(f"quality gate: {rows[0].get('Hold_Reason__c')}")
-        return True
-    return False
+    return rows[0].get("Approval_Status__c") != "Auto-Approved", bool(rows[0].get("Publish_As_Trial__c"))
+
+
+def music_picker_for(sf, script: dict, duration_hint: float = 40.0):
+    """Music Supervisor agent (Salesforce) choosing among licensed candidates."""
+    if isinstance(sf, NullSalesforce):
+        return None
+    state = {}
+
+    def pick(candidates):
+        brief = {"music_mood": script.get("mood"), "music_keywords": script.get("music_keywords", ""),
+                 "music_energy": script.get("music_energy", ""), "format": script.get("format"), "video_seconds": duration_hint}
+        result = sf.apex_post("insta/studio/music", {"brief": brief, "candidates": candidates}) or {}
+        state["reason"] = result.get("reason")
+        return result.get("pick")
+
+    pick.state = state
+    return pick
 
 
 def generate(args, sf) -> int:
@@ -237,7 +264,14 @@ def generate(args, sf) -> int:
     script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")
 
     stage("Rendering")
-    manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records)
+    picker = music_picker_for(sf, script)
+    manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker)
+    music = manifest.get("music")
+    music_choice = None
+    if isinstance(music, dict):
+        reason = (picker.state.get("reason") if picker else None) or "stable pick"
+        music_choice = f"{music.get('title')} by {music.get('creator')} - {reason}"[:255]
+        log(f"music: {music_choice}")
     errors = manifest["validation"]["errors"]
     if errors:
         raise RuntimeError("video failed validation: " + "; ".join(errors))
@@ -269,7 +303,7 @@ def generate(args, sf) -> int:
         "Knowledge_Ids__c": ",".join(manifest["knowledge_ids"])[:255], "Sources__c": (manifest.get("sources") or "")[:2000],
         "Cover_URL__c": urls.get(f"{cid}.jpg"), "Video_URL__c": urls.get(f"{cid}.mp4"),
         "Duration_Seconds__c": manifest["validation"]["summary"].get("duration"), "Status__c": "Rendered",
-        "Error_Message__c": None, "Script_Source__c": source, "QA_Issues__c": "\n".join(qa_issues)[:2000] or None,
+        "Error_Message__c": None, "Script_Source__c": source, "Music_Choice__c": music_choice, "QA_Issues__c": "\n".join(qa_issues)[:2000] or None,
     }
     if linked:
         fields["Anime__r"] = {"AniList_Id__c": plan.anilist_id}
@@ -292,15 +326,23 @@ def generate(args, sf) -> int:
         return 0
 
     sf.reel_update(cid, **fields)
-    if gate_holds(sf, cid):
+    hold, trial = gate_decision(sf, cid)
+    if hold:
         sf.job_update(job, Status__c="Succeeded", Stage__c="Held for review by the quality gate", Completed_At__c=now_iso())
         log("held for review by the Salesforce quality gate")
         return 0
-    stage("Publishing to Instagram")
+    stage("Publishing to Instagram" + (" as a Trial Reel" if trial else ""))
     sf.reel_update(cid, Status__c="Publishing")
-    media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
-                                               urls.get(f"{cid}.mp4"))
-    sf.record_post(cid, media_id, permalink)
+    try:
+        media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
+                                                   urls.get(f"{cid}.mp4"), trial=trial)
+    except TrialNotAvailable as exc:
+        reason = "Trial Reels are not available for this account yet (Instagram eligibility); held for your review."
+        sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Publish_As_Trial__c=False, Hold_Reason__c=reason)
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Held: trial not available", Completed_At__c=now_iso())
+        log(f"{reason} ({exc})")
+        return 0
+    sf.record_post(cid, media_id, permalink, trial=trial)
     sf.reel_update(cid, Status__c="Published")
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     log(f"published: {permalink}")

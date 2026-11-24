@@ -198,9 +198,12 @@ class InstagramClient:
             raise ValueError("caption has more than 30 hashtags")
 
     def _container_params(self, caption: str, share_to_feed: bool, cover_url: Optional[str],
-                          thumb_offset_ms: Optional[int]) -> Dict[str, Optional[str]]:
+                          thumb_offset_ms: Optional[int], trial_strategy: Optional[str] = None) -> Dict[str, Optional[str]]:
         self._check_caption(caption)
+        if trial_strategy not in (None, "MANUAL", "SS_PERFORMANCE"):
+            raise ValueError("trial_strategy must be MANUAL or SS_PERFORMANCE")
         return {
+            "trial_params": json.dumps({"graduation_strategy": trial_strategy}) if trial_strategy else None,
             "media_type": "REELS",
             "caption": caption,
             "share_to_feed": "true" if share_to_feed else "false",
@@ -209,11 +212,12 @@ class InstagramClient:
         }
 
     def create_reel_container(self, video_url: str, caption: str = "", share_to_feed: bool = True,
-                              cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None) -> str:
+                              cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None,
+                              trial_strategy: Optional[str] = None) -> str:
         """Container from a public video URL (Meta downloads it)."""
         if not video_url.startswith("https://"):
             raise ValueError("video_url must be a public https:// URL")
-        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms)
+        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms, trial_strategy)
         params["video_url"] = video_url
         data = self._request("POST", f"{self.user_id}/media", params)
         if "id" not in data:
@@ -221,7 +225,8 @@ class InstagramClient:
         return str(data["id"])
 
     def upload_reel_file(self, video_path: str, caption: str = "", share_to_feed: bool = True,
-                         cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None) -> str:
+                         cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None,
+                         trial_strategy: Optional[str] = None) -> str:
         """Container via resumable upload of a local file (Unified / Facebook Login only)."""
         if self.login == "instagram":
             raise ValueError("resumable upload is not available with Instagram Login; use a public video_url")
@@ -232,7 +237,7 @@ class InstagramClient:
         if not 0 < size <= MAX_VIDEO_BYTES:
             raise ValueError(f"video is {size} bytes; must be between 1 byte and 300 MB")
 
-        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms)
+        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms, trial_strategy)
         params["upload_type"] = "resumable"
         try:
             data = self._request("POST", f"{self.user_id}/media", params)

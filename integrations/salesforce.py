@@ -132,8 +132,9 @@ class SalesforceClient:
         """Anime_Content__c by External_Id__c."""
         self.upsert("Anime_Content__c", "External_Id__c", content_id, fields)
 
-    def record_post(self, content_id: str, media_id: str, permalink: Optional[str]) -> None:
+    def record_post(self, content_id: str, media_id: str, permalink: Optional[str], trial: bool = False) -> None:
         self.upsert("Social_Post__c", "Instagram_Media_Id__c", media_id, {
+            "Is_Trial__c": trial,
             "Content__r": {"External_Id__c": content_id},
             "Platform__c": "Instagram",
             "Permalink__c": permalink,

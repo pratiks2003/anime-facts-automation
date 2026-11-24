@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Trial_Reels_Enabled__c</fullName>
+    <description>Post below-bar (but above the trial floor) Reels as Instagram Trial Reels instead of holding them</description>
+    <label>Trial Reels Enabled</label>
+    <defaultValue>false</defaultValue>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

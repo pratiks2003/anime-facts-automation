@@ -114,3 +114,18 @@ class CreditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MusicSupervisorTests(unittest.TestCase):
+    def test_picker_choice_wins_and_bad_picker_falls_back(self):
+        tracks = [result(i, f"Track {i}", duration=120000, filetype="mp3") for i in range(1, 5)]
+        results = {q: tracks for q in ("epic cinematic", "epic orchestral", "action trailer")}
+        files = {f"https://img/{i}.jpg": b"x" * 200_000 for i in range(1, 5)}
+        seen = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            chosen = find_music(FakeOpenverse(results, files), "hype", "seed", Path(tmp),
+                                picker=lambda c: (seen.setdefault("n", len(c)), "id3")[1])
+            self.assertEqual(chosen.openverse_id, "id3")
+            self.assertEqual(seen["n"], 4)  # de-duplicated candidates
+            boom = find_music(FakeOpenverse(results, files), "hype", "seed", Path(tmp), picker=lambda c: 1 / 0)
+            self.assertIsNotNone(boom)

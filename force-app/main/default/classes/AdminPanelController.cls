@@ -52,7 +52,8 @@ public with sharing class AdminPanelController {
                     Auto_Approve__c = (Boolean) values.get('autoApprove'),
                     Dry_Run__c = (Boolean) values.get('dryRun'),
                     Morning_Slot_IST__c = (String) values.get('morningSlot'),
-                    Evening_Slot_IST__c = (String) values.get('eveningSlot')
+                    Evening_Slot_IST__c = (String) values.get('eveningSlot'),
+                    Trial_Reels_Enabled__c = values.get('trialReels') == true
                 )
             );
             if ((Boolean) values.get('automationEnabled')) {
@@ -251,7 +252,8 @@ public with sharing class AdminPanelController {
             'dryRun' => s.Dry_Run__c,
             'morningSlot' => s.Morning_Slot_IST__c,
             'eveningSlot' => s.Evening_Slot_IST__c,
-            'repository' => s.GitHub_Repository__c
+            'repository' => s.GitHub_Repository__c,
+            'trialReels' => s.Trial_Reels_Enabled__c
         };
     }
 

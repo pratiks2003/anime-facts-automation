@@ -141,6 +141,8 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
                     media=news["media"])
 
     store = store or KnowledgeStore()
+    if not anime_hint and topic and store.anime(topic):
+        anime_hint, topic = store.anime(topic)["name"], ""  # the "topic" is really an anime name
     anime = choose_anime(store, recent_anime or [], anime_hint, slot_seed or format_name, opener)
     entry = store.ensure_anime(anime["name"], anime.get("anilist_id"), anime.get("aliases"))
     facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
@@ -152,6 +154,15 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
             ingested = {"error": 1}
             print(f"[planner] knowledge top-up skipped: {type(exc).__name__}: {str(exc)[:160]}")
         facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
+    if len(facts) < 3 and not anime_hint:
+        # Couldn't learn enough about the trending pick: fall back to the best-covered show we know.
+        known = sorted(store.metadata, key=lambda e: -len(usable_facts(store, e["name"], recent_ids, format_name, "")))
+        for alt in known:
+            alt_facts = usable_facts(store, alt["name"], recent_ids, format_name, topic)
+            if len(alt_facts) >= 3:
+                print(f"[planner] {entry['name']} has too few verified facts; switching to {alt['name']}")
+                entry, facts = alt, alt_facts
+                break
     if len(facts) < 3:
         raise RuntimeError(f"only {len(facts)} verified facts available for {entry['name']}")
     return Plan(format_name, entry["name"], entry.get("anilist_id"), facts, ingested=ingested)

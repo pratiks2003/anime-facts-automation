@@ -96,3 +96,42 @@ class LLM:
             except LLMError as exc:
                 errors.append(str(exc))
         raise LLMError("all text models failed: " + " | ".join(errors))
+
+
+class AgentforceLLM:
+    """Runs a JSON task on Salesforce Einstein (Prompt Builder template Insta_JSON_Task)."""
+
+    def __init__(self, sf):
+        self._sf = sf
+        self.neurons_used = 0.0
+
+    def json(self, system: str, user: str, max_tokens: int = 3000, temperature: float = 0.8) -> dict:
+        try:
+            result = self._sf.apex_post("insta/studio/task", {"system": system, "task": user})
+        except Exception as exc:
+            raise LLMError(f"agentforce: {exc}") from None
+        if not isinstance(result, dict) or "error" in result:
+            raise LLMError(f"agentforce: {str(result)[:300]}")
+        return result
+
+
+class ChainLLM:
+    """Try providers in order (Agentforce first, Cloudflare as backup)."""
+
+    def __init__(self, providers: List[object]):
+        self.providers = [p for p in providers if p is not None]
+        if not self.providers:
+            raise ValueError("no LLM providers configured")
+
+    @property
+    def neurons_used(self) -> float:
+        return sum(getattr(p, "neurons_used", 0.0) for p in self.providers)
+
+    def json(self, system: str, user: str, max_tokens: int = 3000, temperature: float = 0.8) -> dict:
+        errors = []
+        for provider in self.providers:
+            try:
+                return provider.json(system, user, max_tokens=max_tokens, temperature=temperature)
+            except LLMError as exc:
+                errors.append(str(exc)[:200])
+        raise LLMError("all providers failed: " + " | ".join(errors))

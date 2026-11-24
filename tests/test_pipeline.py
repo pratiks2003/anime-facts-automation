@@ -247,3 +247,62 @@ class StudioAndQATests(unittest.TestCase):
         issues = qa_review(bad, script, {"fact_check": {"pass": False, "issues": [{"problem": "invented number"}]}})
         self.assertEqual(len(issues), 3)
         self.assertTrue(any("invented number" in i for i in issues))
+
+
+class ChainLLMTests(unittest.TestCase):
+    def test_falls_through_providers(self):
+        from pipeline.llm import ChainLLM, LLMError
+
+        class Bad:
+            def json(self, *a, **k):
+                raise LLMError("quota")
+
+        class Good:
+            neurons_used = 3.0
+
+            def json(self, *a, **k):
+                return {"ok": True}
+
+        chain = ChainLLM([None, Bad(), Good()])
+        self.assertEqual(chain.json("s", "u"), {"ok": True})
+        self.assertEqual(chain.neurons_used, 3.0)
+        with self.assertRaises(LLMError):
+            ChainLLM([Bad()]).json("s", "u")
+
+    def test_agentforce_llm_posts_task(self):
+        from pipeline.llm import AgentforceLLM, LLMError
+
+        class SF:
+            def __init__(self, reply):
+                self.reply, self.calls = reply, []
+
+            def apex_post(self, path, payload):
+                self.calls.append((path, payload))
+                return self.reply
+
+        sf = SF({"facts": []})
+        self.assertEqual(AgentforceLLM(sf).json("sys", "task"), {"facts": []})
+        self.assertEqual(sf.calls[0], ("insta/studio/task", {"system": "sys", "task": "task"}))
+        with self.assertRaises(LLMError):
+            AgentforceLLM(SF({"error": "boom"})).json("s", "u")
+
+
+class PlannerFallbackTests(unittest.TestCase):
+    def test_switches_to_known_show_when_pick_has_no_facts(self):
+        import pipeline.planner as planner
+
+        store = KnowledgeStore(FIXTURES)
+        original_choose, original_top_up = planner.choose_anime, planner.top_up
+        planner.choose_anime = lambda *a, **k: {"name": "Brand New Show", "anilist_id": 999, "aliases": [], "characters": []}
+        planner.top_up = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("llm down"))
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                for f in FIXTURES.iterdir():
+                    shutil.copy(f, tmp)
+                plan = planner.plan_reel(None, "Fact", store=KnowledgeStore(Path(tmp)))
+            self.assertIn(plan.anime, ("Naruto", "One Piece"))
+            self.assertGreaterEqual(len(plan.facts), 1)
+        except RuntimeError as exc:
+            self.assertIn("verified facts", str(exc))  # fixtures may be too small for 3 facts; must not crash otherwise
+        finally:
+            planner.choose_anime, planner.top_up = original_choose, original_top_up

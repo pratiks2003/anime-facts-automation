@@ -166,7 +166,13 @@ def generate(args, sf) -> int:
                   GitHub_Run_Id__c=os.environ.get("GITHUB_RUN_ID"), Stage__c="Planning")
     sf.reel_update(cid, Status__c="Generating")
 
-    llm = LLM.from_env()
+    from pipeline.llm import AgentforceLLM, ChainLLM
+
+    try:
+        cloudflare = LLM.from_env()
+    except ValueError:
+        cloudflare = None
+    llm = ChainLLM([None if isinstance(sf, NullSalesforce) else AgentforceLLM(sf), cloudflare])
     recent_ids, recent_anime = recent_usage(sf)
     plan = plan_reel(llm, args.format, anime_hint=args.anime or "", topic=args.topic or "",
                      recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid)

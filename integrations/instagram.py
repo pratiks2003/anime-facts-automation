@@ -32,7 +32,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
 HOSTS = {"unified": "https://graph.facebook.com", "instagram": "https://graph.instagram.com"}
 RUPLOAD_HOST = "https://rupload.facebook.com/ig-api-upload"
@@ -234,7 +234,10 @@ class InstagramClient:
 
         params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms)
         params["upload_type"] = "resumable"
-        data = self._request("POST", f"{self.user_id}/media", params)
+        try:
+            data = self._request("POST", f"{self.user_id}/media", params)
+        except InstagramAPIError as exc:
+            raise InstagramAPIError(f"create container: {exc}", exc.status, exc.code, exc.subcode, exc.fbtrace_id) from None
         if "id" not in data:
             raise InstagramAPIError(f"resumable container creation returned no id: {data}")
         container_id = str(data["id"])
@@ -247,7 +250,10 @@ class InstagramClient:
         request.add_header("offset", "0")
         request.add_header("file_size", str(size))
         request.add_header("User-Agent", USER_AGENT)
-        result = self._send(request, "POST rupload")
+        try:
+            result = self._send(request, "POST rupload")
+        except InstagramAPIError as exc:
+            raise InstagramAPIError(f"upload video: {exc}", exc.status, exc.code, exc.subcode, exc.fbtrace_id) from None
         if not result.get("success"):
             raise InstagramAPIError(f"video upload was not accepted: {result}")
         return container_id
@@ -271,7 +277,10 @@ class InstagramClient:
             waited += interval
 
     def publish_container(self, container_id: str) -> str:
-        data = self._request("POST", f"{self.user_id}/media_publish", {"creation_id": container_id})
+        try:
+            data = self._request("POST", f"{self.user_id}/media_publish", {"creation_id": container_id})
+        except InstagramAPIError as exc:
+            raise InstagramAPIError(f"publish: {exc}", exc.status, exc.code, exc.subcode, exc.fbtrace_id) from None
         if "id" not in data:
             raise InstagramAPIError(f"media_publish returned no media id: {data}")
         return str(data["id"])
@@ -279,16 +288,32 @@ class InstagramClient:
     def permalink(self, media_id: str) -> Optional[str]:
         return self._request("GET", media_id, {"fields": "permalink"}).get("permalink")
 
+    def _prepare_container(self, caption: str, video_url: Optional[str], video_path: Optional[str],
+                           attempts: int = 3, **container_kwargs) -> Tuple[str, str]:
+        """Create + upload + wait, retrying the whole sequence on Meta's intermittent failures
+        ("Request processing failed", container ERROR). Returns (container_id, status)."""
+        last: Optional[Exception] = None
+        for attempt in range(1, attempts + 1):
+            try:
+                if video_path:
+                    container_id = self.upload_reel_file(video_path, caption, **container_kwargs)
+                else:
+                    container_id = self.create_reel_container(video_url, caption, **container_kwargs)
+                return container_id, self.wait_for_container(container_id)
+            except (InstagramAPIError, ContainerError) as exc:
+                last = exc
+                retryable = isinstance(exc, ContainerError) or exc.transient or "processing failed" in str(exc).lower()
+                if not retryable or attempt == attempts:
+                    raise
+                self._sleep(20 * attempt)
+        raise last  # pragma: no cover
+
     def publish_reel(self, caption: str, video_url: Optional[str] = None, video_path: Optional[str] = None,
                      publish: bool = False, **container_kwargs) -> PublishResult:
         """Full flow. With publish=False (default) it stops once the container is FINISHED."""
         if bool(video_url) == bool(video_path):
             raise ValueError("pass exactly one of video_url or video_path")
-        if video_path:
-            container_id = self.upload_reel_file(video_path, caption, **container_kwargs)
-        else:
-            container_id = self.create_reel_container(video_url, caption, **container_kwargs)
-        status = self.wait_for_container(container_id)
+        container_id, status = self._prepare_container(caption, video_url, video_path, **container_kwargs)
         if not publish or status == "PUBLISHED":
             return PublishResult(container_id, status, published=status == "PUBLISHED")
         media_id = self.publish_container(container_id)

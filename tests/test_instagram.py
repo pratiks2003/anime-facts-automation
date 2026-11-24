@@ -75,7 +75,7 @@ class InstagramClientTests(unittest.TestCase):
         self.assertEqual(len(graph.calls), 2)
 
     def test_container_error_never_publishes(self):
-        graph = FakeGraph([("/1789/media", {"id": "C1"}), ("/C1", {"status_code": "ERROR", "status": "bad codec"})])
+        graph = FakeGraph([("/1789/media", {"id": "C1"}), ("/C1", {"status_code": "ERROR", "status": "bad codec"})] * 3)
         with self.assertRaises(ContainerError) as ctx:
             client(graph).publish_reel("x", video_url="https://example.org/v.mp4", publish=True)
         self.assertIn("bad codec", str(ctx.exception))
@@ -180,3 +180,23 @@ class InstagramClientTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RetryTests(unittest.TestCase):
+    def test_processing_failed_is_retried_then_published(self):
+        graph = FakeGraph([
+            ("/1789/media", http_error(400, message="Request processing failed")),
+            ("/1789/media", {"id": "C2"}),
+            ("/C2", {"status_code": "FINISHED"}),
+            ("/1789/media_publish", {"id": "M2"}),
+            ("/M2", {"permalink": "https://www.instagram.com/reel/x/"}),
+        ])
+        result = client(graph).publish_reel("cap", video_url="https://example.org/v.mp4", publish=True)
+        self.assertTrue(result.published)
+        self.assertEqual(result.media_id, "M2")
+
+    def test_hard_error_not_retried(self):
+        graph = FakeGraph([("/1789/media", http_error(400, code=100, message="Invalid parameter"))])
+        with self.assertRaises(InstagramAPIError):
+            client(graph).publish_reel("cap", video_url="https://example.org/v.mp4", publish=True)
+        self.assertEqual(len(graph.calls), 1)

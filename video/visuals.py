@@ -126,6 +126,25 @@ def image_background(photo: Image.Image, theme: Theme) -> Image.Image:
     return Image.blend(bg, tint, 0.62)
 
 
+FULL_OVERSCAN = 1.10
+
+
+def full_shade() -> Image.Image:
+    """Alpha mask darkening the top (brand) and lower half (text) over full-bleed art."""
+    mask = Image.new("L", (1, H), 0)
+    for y in range(H):
+        if y < 400:
+            a = 170 * (1 - y / 400)
+        elif y < 780:
+            a = 0
+        elif y < 1180:
+            a = 225 * (y - 780) / 400
+        else:
+            a = 225 + 20 * (y - 1180) / (H - 1180)
+        mask.putpixel((0, y), int(a))
+    return mask.resize((W, H))
+
+
 def card_mask() -> Image.Image:
     mask = Image.new("L", (CARD_W, CARD_H), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, CARD_W - 1, CARD_H - 1], radius=34, fill=255)
@@ -215,6 +234,8 @@ class FrameRenderer:
         self.embers = Embers(self.theme)
         images = images or [None] * len(self.scenes)
         self.mask = card_mask()
+        self.shade = full_shade()
+        self.fulls: List[Optional[Image.Image]] = []
 
         base = base_background(self.theme)
         self.backgrounds, self.headlines, self.tags, self.cards, self.credits = [], [], [], [], []
@@ -224,6 +245,21 @@ class FrameRenderer:
             if scene.role not in ("hook", "outro"):
                 fact_no += 1
                 number = fact_no
+            if image and image.get("layout") == "full":
+                art = Image.open(image["path"]).convert("RGB")
+                self.fulls.append(cover(art, (int(W * FULL_OVERSCAN), int(H * FULL_OVERSCAN))))
+                self.backgrounds.append(None)
+                self.cards.append(None)
+                self.credits.append(image.get("credit", ""))
+                self.headlines.append(headline_image(spec["headline"], spec.get("emphasis", []), self.theme,
+                                                     sizes=(132, 118, 106, 94, 84), max_lines=2))
+                tag = ROLE_TAGS.get(scene.role) or (
+                    f"#{number}" if script["mode"] == "ranking" else f"FACT {number:02d}")
+                if script["mode"] == "what_if" and scene.role not in ("hook", "outro"):
+                    tag = ROLE_TAGS["what_if"]
+                self.tags.append(tag)
+                continue
+            self.fulls.append(None)
             if image:
                 photo = Image.open(image["path"]).convert("RGB")
                 self.backgrounds.append(image_background(photo, self.theme))
@@ -255,7 +291,11 @@ class FrameRenderer:
         i = self.scene_at(t)
         scene = self.scenes[i]
         u = t - scene.start
-        img = self.backgrounds[i].copy()
+        full = self.fulls[i] is not None
+        if full:
+            img = self.full_frame(i, u, scene.end - scene.start)
+        else:
+            img = self.backgrounds[i].copy()
         d = ImageDraw.Draw(img)
         self.embers.draw(d, t)
 
@@ -273,7 +313,7 @@ class FrameRenderer:
         tag = self.tags[i]
         warn = scene.role in ("theory", "what_if") or tag.startswith(("FAN THEORY", "WHAT IF"))
         tag_alpha_in = min(max(u / 0.2, 0), 1)
-        tag_y = CARD_Y + CARD_H - 34 if has_card else 470
+        tag_y = 930 if full else (CARD_Y + CARD_H - 34 if has_card else 470)
         if tag_alpha_in > 0:
             pill(d, W // 2, int(tag_y - 30 * (1 - tag_alpha_in)), tag,
                  THEORY_COLOR if warn else self.theme.accent, DARK, size=38)
@@ -293,25 +333,41 @@ class FrameRenderer:
         if scene.role == "hook" and u < 0.5:
             amp = 14 * (1 - u / 0.5)
             dx, dy = int(amp * math.sin(u * 90)), int(amp * math.cos(u * 70))
-        cy = 1175 if has_card else 800
+        cy = 1150 if full else (1175 if has_card else 800)
         img.paste(head, (W // 2 - head.width // 2 + dx, cy - head.height // 2 + dy), head)
 
         # karaoke captions
         if captions:
-            self.draw_caption(d, i, t, y=1365 if has_card else 1200)
+            self.draw_caption(d, i, t, y=1365 if (has_card or full) else 1200)
 
         # outro: follow call-to-action + sources
         if scene.role == "outro":
+            follow_y, src_y = (1455, 1545) if full else (1395, 1490)
             if self.handle and u > 0.4:
-                pill(d, W // 2, 1395, f"FOLLOW {self.handle}", self.theme.accent2, WHITE, size=34)
+                pill(d, W // 2, follow_y, f"FOLLOW {self.handle}", self.theme.accent2, WHITE, size=34)
             if self.sources_note:
-                d.text((W // 2, 1490), self.sources_note, font=font("Poppins-SemiBold.ttf", 24),
+                d.text((W // 2, src_y), self.sources_note, font=font("Poppins-SemiBold.ttf", 24),
                        fill=mix(WHITE, self.theme.bg_top, 0.35), anchor="mm")
 
         # flash on scene change
         if u < 0.1 and i > 0:
             flash = Image.new("RGB", (W, H), WHITE)
             img = Image.blend(img, flash, 0.55 * (1 - u / 0.1))
+        return img
+
+    def full_frame(self, i: int, u: float, length: float) -> Image.Image:
+        """Full-screen artwork with slow zoom-in and readability shading."""
+        big = self.fulls[i]
+        progress = min(max(u / max(length, 0.1), 0.0), 1.0)
+        span = 1.0 + (FULL_OVERSCAN - 1.0) * (1.0 - progress)
+        cw, ch = int(W * span), int(H * span)
+        left, top = (big.width - cw) // 2, int((big.height - ch) * 0.35)
+        img = big.crop((left, top, left + cw, top + ch)).resize((W, H), Image.BILINEAR)
+        img.paste((0, 0, 0), mask=self.shade)
+        credit = self.credits[i]
+        if credit:
+            ImageDraw.Draw(img).text((W - 150, 372), credit, font=font("Poppins-SemiBold.ttf", 20),
+                                     fill=(230, 230, 230), anchor="rm", stroke_width=3, stroke_fill=(0, 0, 0))
         return img
 
     def draw_card(self, img: Image.Image, d: ImageDraw.ImageDraw, i: int, u: float, length: float) -> None:

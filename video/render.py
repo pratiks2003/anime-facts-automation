@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 
 import soundfile as sf
 
+from .imagegen import CloudflareImageGenerator, ImageGenError, QuotaExceeded, build_prompt
 from .media import MediaAsset, Openverse, build_blocklist, credits_text, find_image, find_music
 from .script import ScriptError, full_caption, knowledge_ids, load_script
 from .sfx import SR as SFX_SR
@@ -33,6 +34,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHANNEL_FILE = PROJECT_ROOT / "channel.json"
 MUSIC_DIR = PROJECT_ROOT / "assets" / "music"
 AUDIO_EXT = (".mp3", ".wav", ".ogg", ".m4a", ".flac")
+
+
+AI_DISCLOSURE = ("🎨 Artwork: AI-generated fan art. Characters and series belong to their creators; "
+                 "this is an unofficial fan page.")
 
 
 def log(msg: str) -> None:
@@ -165,10 +170,25 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
     blocklist = build_blocklist(phrases + [script["anime"]], names)
     scene_assets: List[Optional[MediaAsset]] = []
     used: set = set()
-    for scene in script["scenes"]:
+    generator = CloudflareImageGenerator.from_env() if images else None
+    quota_hit = False
+    for index, scene in enumerate(script["scenes"]):
         queries = scene.get("visual_queries") or []
         asset = None
-        if images and queries:
+        if generator and scene.get("image_prompt") and not quota_hit:
+            try:
+                started = time.time()
+                path, model = generator.generate(build_prompt(scene["image_prompt"], script["anime"]),
+                                                 cache, seed=1000 + index)
+                asset = MediaAsset("ai_image", str(path), scene["headline"], "", "AI-generated",
+                                   "", model.rsplit("/", 1)[-1], f"ai-{index}")
+                log(f"AI art scene {index + 1}: {model.rsplit('/', 1)[-1]} ({time.time() - started:.1f}s)")
+            except QuotaExceeded as exc:
+                quota_hit = True
+                log(f"warning: {exc}; falling back to licensed photos")
+            except ImageGenError as exc:
+                log(f"warning: AI art failed for scene {index + 1} ({exc})")
+        if asset is None and images and queries:
             try:
                 asset = find_image(client, queries, cache, blocklist, used)
             except ValueError:
@@ -195,6 +215,11 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
            speed: Optional[float] = None, stills: bool = False,
            images: bool = True, music: bool = True) -> dict:
     script = load_script(script_path)
+    try:
+        from integrations.instagram import load_env_file
+        load_env_file(PROJECT_ROOT / ".env")  # CF_* credentials for local runs
+    except Exception:
+        pass
     channel = channel_config()
     out = Path(out_root) / script["id"]
     out.mkdir(parents=True, exist_ok=True)
@@ -214,7 +239,9 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
 
     scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music)
     image_specs = [
-        {"path": a.path, "credit": f"Photo: {a.creator or 'unknown'} · {a.license}"} if a else None
+        None if a is None else
+        {"path": a.path, "layout": "full", "credit": "AI ART"} if a.kind == "ai_image" else
+        {"path": a.path, "credit": f"Photo: {a.creator or 'unknown'} · {a.license}"}
         for a in scene_assets
     ]
     log(f"images: {sum(1 for a in scene_assets if a)}/{len(scene_assets)} scenes")
@@ -249,8 +276,10 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "video": str(out / "video.mp4"),
         "cover": str(out / "cover.jpg"),
         "thumb_offset_ms": int(thumb_t * 1000),
-        "caption": "\n\n".join(x for x in (full_caption(script),
-                                             credits_text([a for a in scene_assets if a], music_asset)) if x),
+        "caption": "\n\n".join(x for x in (
+            full_caption(script),
+            AI_DISCLOSURE if any(a and a.kind == "ai_image" for a in scene_assets) else "",
+            credits_text([a for a in scene_assets if a and a.kind == "image"], music_asset)) if x),
         "knowledge_ids": ids,
         "unverified_knowledge_ids": unverified,
         "missing_knowledge_ids": missing,

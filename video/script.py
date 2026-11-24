@@ -66,6 +66,9 @@ def validate_script(script: dict) -> List[str]:
         queries = scene.get("visual_queries", [])
         if not isinstance(queries, list) or not all(isinstance(q, str) and q.strip() for q in queries):
             errors.append(f"{where}: visual_queries must be a list of non-empty strings")
+        prompt = scene.get("image_prompt", "")
+        if not isinstance(prompt, str) or len(prompt) > 1500:
+            errors.append(f"{where}: image_prompt must be a string under 1500 chars")
         if scene.get("role") == "theory" and script["mode"] != "theory":
             errors.append(f"{where}: theory scenes are only allowed in mode 'theory'")
 

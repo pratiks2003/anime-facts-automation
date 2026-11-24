@@ -15,7 +15,8 @@
       "visual_queries": [
         "stormy ocean waves",
         "ocean waves night"
-      ]
+      ],
+      "image_prompt": "Monkey D. Luffy, cheerful young pirate in a straw hat and red open vest with a small scar under his left eye, stretching his rubber arm far across a stormy sea from a ship deck, huge crashing waves"
     },
     {
       "role": "fact",
@@ -30,7 +31,8 @@
       "visual_queries": [
         "deep ocean underwater",
         "ocean waves"
-      ]
+      ],
+      "image_prompt": "Monkey D. Luffy in his straw hat sinking helplessly underwater, eyes closed, bubbles rising, sunbeams piercing deep blue ocean, a hand reaching down from the surface"
     },
     {
       "role": "fact",
@@ -45,7 +47,8 @@
       "visual_queries": [
         "straw hat",
         "straw hat beach"
-      ]
+      ],
+      "image_prompt": "Shanks, red-haired pirate captain with three scars over his left eye and a black cloak, gently placing a straw hat on the head of a crying young boy, seaside village harbor at sunset"
     },
     {
       "role": "fact",
@@ -60,7 +63,8 @@
       "visual_queries": [
         "treasure chest gold coins",
         "pirate ship sails"
-      ]
+      ],
+      "image_prompt": "Monkey D. Luffy in his straw hat standing on the bow of a pirate ship, fist raised triumphantly, golden light of a legendary treasure glowing on the horizon, epic clouds"
     },
     {
       "role": "outro",
@@ -68,7 +72,8 @@
       "emphasis": [
         "hardest?"
       ],
-      "narration": "Which Straw Hat dream do you think is the hardest to achieve? Tell me in the comments, and follow for more anime secrets."
+      "narration": "Which Straw Hat dream do you think is the hardest to achieve? Tell me in the comments, and follow for more anime secrets.",
+      "image_prompt": "silhouettes of a pirate crew on a ship with a straw hat jolly roger flag sailing toward a huge sunrise, wide shot, warm golden light"
     }
   ],
   "caption": "Luffy can stretch, punch and survive almost anything... except this. 🌊 Which Straw Hat dream is the hardest? 👇",

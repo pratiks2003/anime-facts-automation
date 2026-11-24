@@ -1,0 +1,3 @@
+# Runtime dependencies for the Python pipeline (Phase 1: RAG + trends).
+# Everything else uses the standard library.
+rank-bm25==0.2.2

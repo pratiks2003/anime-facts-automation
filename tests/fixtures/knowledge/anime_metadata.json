@@ -1,0 +1,6 @@
+{
+  "anime": [
+    {"name": "Naruto", "aliases": ["NARUTO", "Naruto Shippuden"], "anilist_id": 20},
+    {"name": "One Piece", "aliases": ["ONE PIECE", "OP"], "anilist_id": 21}
+  ]
+}

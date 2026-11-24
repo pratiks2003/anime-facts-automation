@@ -1,0 +1,22 @@
+{
+  "anime": [
+    {
+      "name": "Naruto",
+      "aliases": ["NARUTO", "Naruto Shippuden", "Naruto Shippuuden"],
+      "anilist_id": 20,
+      "knowledge_file": "naruto.jsonl",
+      "id_prefix": "NAR",
+      "genres": ["Action", "Adventure", "Comedy", "Drama", "Fantasy"],
+      "active": true
+    },
+    {
+      "name": "One Piece",
+      "aliases": ["ONE PIECE", "OP"],
+      "anilist_id": 21,
+      "knowledge_file": "one_piece.jsonl",
+      "id_prefix": "OP",
+      "genres": ["Action", "Adventure", "Comedy", "Drama", "Fantasy"],
+      "active": true
+    }
+  ]
+}

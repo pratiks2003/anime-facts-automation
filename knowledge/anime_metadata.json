@@ -86,6 +86,22 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "Bleach",
+      "aliases": [
+        "'בליץ",
+        "Блич",
+        "بليتش",
+        "เทพมรณะ",
+        "ブリーチ"
+      ],
+      "anilist_id": 269,
+      "knowledge_file": "bleach.jsonl",
+      "id_prefix": "BLE",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

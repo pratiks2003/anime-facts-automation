@@ -20,6 +20,8 @@
                             <div class="thumb-empty">{r.Format__c}</div>
                         </template>
                         <span class={r.badge}>{r.Status__c}</span>
+                        <template lwc:if={r.hasScore}><span class={r.scoreClass}>{r.Quality_Score__c}</span></template>
+                        <template lwc:if={r.held}><span class="held">Held for review</span></template>
                     </div>
                     <div class="card-body">
                         <div class="card-title">{r.Name}</div>
@@ -67,6 +69,20 @@
                         </p>
                         <template lwc:if={selected.Hook__c}><p class="hook">“{selected.Hook__c}”</p></template>
                         <template lwc:if={selected.Error_Message__c}><div class="error">{selected.Error_Message__c}</div></template>
+                        <template lwc:if={selected.Hold_Reason__c}><div class="hold">⏸ {selected.Hold_Reason__c}</div></template>
+                        <div class="meta small">
+                            <template lwc:if={selected.hasScore}><span class={selected.scoreClass}>Director {selected.Quality_Score__c}/10</span></template>
+                            <template lwc:if={selected.Script_Source__c}><span class="muted">Script: {selected.Script_Source__c}</span></template>
+                        </div>
+                        <template lwc:if={selected.brief}><p class="muted small">🎬 {selected.brief}</p></template>
+                        <template lwc:if={selected.Director_Notes__c}>
+                            <h4>Director notes</h4>
+                            <pre class="caption-full">{selected.Director_Notes__c}</pre>
+                        </template>
+                        <template lwc:if={selected.QA_Issues__c}>
+                            <h4>QA issues</h4>
+                            <pre class="caption-full">{selected.QA_Issues__c}</pre>
+                        </template>
                         <h4>Caption</h4>
                         <pre class="caption-full">{selected.Caption__c}</pre>
                     </div>

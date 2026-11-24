@@ -166,9 +166,11 @@ def find_image(client: Openverse, queries: List[str], cache_dir: Path, blocklist
     return None
 
 
-def find_music(client: Openverse, mood: str, seed: str, cache_dir: Path, min_seconds: int = 45) -> Optional[MediaAsset]:
+def find_music(client: Openverse, mood: str, seed: str, cache_dir: Path, min_seconds: int = 45,
+               keywords: str = "") -> Optional[MediaAsset]:
     candidates = []
-    for query in MOOD_QUERIES.get(mood, MOOD_QUERIES["default"]):
+    queries = ([k.strip() for k in keywords.split(",") if k.strip()][:2] if keywords else []) + MOOD_QUERIES.get(mood, MOOD_QUERIES["default"])
+    for query in queries:
         for r in client.search("audio", query, category="music"):
             if (r.get("duration") or 0) < min_seconds * 1000:
                 continue

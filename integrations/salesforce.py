@@ -76,18 +76,24 @@ class SalesforceClient:
         self._token = data["access_token"]
         self.instance_url = data.get("instance_url") or f"https://{self.domain}"
 
-    def request(self, method: str, path: str, payload: Optional[dict] = None, attempts: int = 3) -> Optional[dict]:
+    def apex_post(self, path: str, payload: dict, timeout_attempts: int = 1) -> Optional[dict]:
+        """POST to an Apex REST resource (/services/apexrest/...)."""
+        return self.request("POST", path, payload, attempts=2, base="apexrest")
+
+    def request(self, method: str, path: str, payload: Optional[dict] = None, attempts: int = 3,
+                base: str = "data") -> Optional[dict]:
         if not self._token:
             self._authenticate()
         for attempt in range(1, attempts + 1):
-            url = f"{self.instance_url}/services/data/{API_VERSION}/{path.lstrip('/')}"
+            prefix = f"/services/data/{API_VERSION}" if base == "data" else "/services/apexrest"
+            url = f"{self.instance_url}{prefix}/{path.lstrip('/')}"
             data = json.dumps(payload).encode() if payload is not None else None
             req = urllib.request.Request(url, data=data, method=method)
             req.add_header("Authorization", f"Bearer {self._token}")
             req.add_header("Content-Type", "application/json")
             req.add_header("User-Agent", USER_AGENT)
             try:
-                with self._opener(req, timeout=60) as resp:
+                with self._opener(req, timeout=180) as resp:
                     raw = resp.read()
                     return json.loads(raw.decode()) if raw else None
             except urllib.error.HTTPError as exc:

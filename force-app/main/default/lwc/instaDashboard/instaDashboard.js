@@ -28,7 +28,7 @@ export default class InstaDashboard extends LightningElement {
         return [
             { key: 'pub', label: 'Published', value: c.Published || 0, tone: 'kpi kpi_good' },
             { key: 'flight', label: 'In progress', value: inFlight, tone: 'kpi kpi_info' },
-            { key: 'review', label: 'Awaiting review', value: c.Rendered || 0, tone: 'kpi kpi_warn' },
+            { key: 'review', label: 'Held for review', value: (this.overview && this.overview.held) || 0, tone: 'kpi kpi_warn' },
             { key: 'fail', label: 'Failed', value: c.Failed || 0, tone: 'kpi kpi_bad' },
             { key: 'views', label: 'Views (recent posts)', value: compactNumber(views), tone: 'kpi' }
         ];

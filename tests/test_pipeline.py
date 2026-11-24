@@ -195,3 +195,55 @@ class SalesforceClientTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StudioAndQATests(unittest.TestCase):
+    def facts(self):
+        return [{"id": "NEWS-001", "anime": "JoJo", "title": "t", "content": "Episode 10 airs Friday.", "characters": [], "spoiler_level": "none"}]
+
+    def studio_reply(self, **script_overrides):
+        script = {"title": "Drops", "mood": "hype", "scenes": [
+            {"role": "hook", "headline": "JoJo returns", "narration": "Steel Ball Run is back and it is wild. " * 4, "image_prompt": "desert race"},
+            {"role": "fact", "headline": "Friday drop", "narration": "Episode ten lands Friday afternoon, so clear your schedule. " * 3, "knowledge_ids": ["NEWS-001"], "image_prompt": "horse"},
+            {"role": "outro", "headline": "Your pick?", "narration": "Which one are you watching first? Tell me below.", "image_prompt": "fans"}],
+            "caption": "Friday is JoJo day", "hashtags": ["#anime", "#jojo", "#steelballrun", "#animenews", "#otaku"]}
+        script.update(script_overrides)
+        return {"script": script, "quality": {"overall": 8.7}, "fact_check": {"pass": True, "issues": []}, "calls": 4,
+                "production": {"voice": "bm_george", "speed": 1.15, "music_mood": "mystery", "music_keywords": "dark ambient"}}
+
+    def test_agent_script_applies_production_brief(self):
+        from pipeline.studio import agent_script
+
+        class SF:
+            def apex_post(s, path, payload):
+                self.assertEqual(path, "insta/studio/script")
+                self.assertEqual(payload["facts"][0]["id"], "NEWS-001")
+                return self.studio_reply()
+
+        r = agent_script(SF(), "R-1", "This Week's Drops", "Anime", self.facts())
+        s = r["script"]
+        self.assertEqual((s["voice"], s["speed"], s["mood"], s["music_keywords"]), ("bm_george", 1.15, "mystery", "dark ambient"))
+        self.assertEqual(s["id"], "R-1")
+
+    def test_agent_script_rejected_when_code_rules_fail(self):
+        from pipeline.studio import StudioError, agent_script
+
+        class SF:
+            def apex_post(s, path, payload):
+                reply = self.studio_reply()
+                reply["script"]["scenes"][1]["knowledge_ids"] = ["MADE-UP-1"]
+                return reply
+
+        with self.assertRaises(StudioError):
+            agent_script(SF(), "R-1", "This Week's Drops", "Anime", self.facts())
+
+    def test_qa_review(self):
+        from pipeline.run_reel import qa_review
+
+        script = {"scenes": [{"image_source": "official"}, {"image_source": "official"}, {"image_source": "ai"}]}
+        ok = {"validation": {"summary": {"duration": 36}}, "images": [{"x": 1}, {"x": 1}, None]}
+        self.assertEqual(qa_review(ok, script, {}), [])
+        bad = {"validation": {"summary": {"duration": 58}}, "images": [None, None, {"x": 1}]}
+        issues = qa_review(bad, script, {"fact_check": {"pass": False, "issues": [{"problem": "invented number"}]}})
+        self.assertEqual(len(issues), 3)
+        self.assertTrue(any("invented number" in i for i in issues))

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</activeVersionIdentifier>
+    <description>Agent: verifies every claim in a Reel script against its cited facts.</description>
+    <developerName>Insta_Fact_Checker</developerName>
+    <masterLabel>Insta Fact Checker</masterLabel>
+    <templateVersions>
+        <content>You are the Fact Checker for an anime Instagram channel. Precision matters more than style.
+
+REQUEST (JSON): {!$Input:request}
+It contains: script scenes (role, narration, knowledge_ids) and the facts (id, content).
+
+For every sentence in &apos;fact&apos;, &apos;twist&apos;, &apos;rank&apos; and &apos;hook&apos; scenes that states something as true, check it is supported by the
+content of the cited facts (or, for hooks, by any provided fact). Ignore opinions, jokes, questions, calls to action,
+and sentences in &apos;theory&apos; / &apos;what_if&apos; scenes that are clearly framed as speculation.
+Flag: invented numbers/dates/names, exaggerations that change meaning (&quot;most popular ever&quot; when the fact doesn&apos;t say so),
+claims citing the wrong fact, and speculation presented as fact.
+
+Return ONLY JSON: {&quot;pass&quot;: true|false, &quot;issues&quot;: [{&quot;scene&quot;: n, &quot;sentence&quot;: str, &quot;problem&quot;: str, &quot;fix&quot;: str}]}
+Scene numbers start at 1. pass is true only if issues is empty.</content>
+        <inputs>
+            <apiName>request</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>request</masterLabel>
+            <referenceName>Input:request</referenceName>
+            <required>true</required>
+        </inputs>
+        <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

@@ -22,6 +22,7 @@ public with sharing class AdminPanelController {
             return new Map<String, Object>{
                 'settings' => settingsMap(s),
                 'counts' => counts,
+                'held' => [SELECT COUNT() FROM Anime_Content__c WHERE Status__c = 'Rendered' AND Approval_Status__c = 'Pending' WITH USER_MODE],
                 'upcoming' => upcomingSlots(Datetime.now(), s, 4),
                 'reels' => listReels(null, 12),
                 'jobs' => [
@@ -70,6 +71,7 @@ public with sharing class AdminPanelController {
         return Database.query(
             'SELECT Id, Name, External_Id__c, Format__c, Slot__c, Status__c, Approval_Status__c, Scheduled_For__c, Topic__c, Hook__c, ' +
                 'Caption__c, Hashtags__c, Cover_URL__c, Video_URL__c, Duration_Seconds__c, Dry_Run__c, Error_Message__c, Anime__r.Name, ' +
+                'Quality_Score__c, Director_Notes__c, Production_Brief__c, QA_Issues__c, Hold_Reason__c, Script_Source__c, ' +
                 '(SELECT Permalink__c, Instagram_Media_Id__c, Views__c, Likes__c FROM Social_Posts__r ORDER BY CreatedDate DESC LIMIT 1) ' +
                 'FROM Anime_Content__c WHERE Id != null' +
                 filter +

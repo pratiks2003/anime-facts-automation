@@ -123,6 +123,36 @@ def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_
     return result.media_id, result.permalink
 
 
+def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
+    """Post-render QA Editor (code checks). Any issue makes the quality gate hold the Reel."""
+    issues: List[str] = []
+    duration = manifest["validation"]["summary"].get("duration") or 0
+    if duration > 50:
+        issues.append(f"too long ({duration:.0f}s; target 28-45s)")
+    if duration < 20:
+        issues.append(f"too short ({duration:.0f}s)")
+    images = manifest.get("images") or []
+    planned = [sc for sc in script["scenes"] if sc.get("image_source") == "official"]
+    missing = sum(1 for sc, img in zip(script["scenes"], images) if sc.get("image_source") == "official" and not img)
+    if planned and missing > len(planned) / 2:
+        issues.append(f"{missing} of {len(planned)} official images missing")
+    fact_check = (quality or {}).get("fact_check") or {}
+    if fact_check and not fact_check.get("pass", True):
+        issues.append("fact checker flagged: " + "; ".join(str(i.get("problem", i)) for i in fact_check.get("issues", []))[:300])
+    return issues
+
+
+def gate_holds(sf, content_id: str) -> bool:
+    """Read back the Reel after the Reel Quality Gate flow ran on our update."""
+    if isinstance(sf, NullSalesforce):
+        return False
+    rows = sf.query(f"SELECT Approval_Status__c, Hold_Reason__c FROM Anime_Content__c WHERE External_Id__c = '{content_id}' LIMIT 1")
+    if rows and rows[0].get("Approval_Status__c") != "Auto-Approved":
+        log(f"quality gate: {rows[0].get('Hold_Reason__c')}")
+        return True
+    return False
+
+
 def generate(args, sf) -> int:
     from pipeline.github_release import ReleaseStore
     from pipeline.llm import LLM
@@ -142,18 +172,30 @@ def generate(args, sf) -> int:
                      recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid)
     log(f"plan: {plan.format} about {plan.anime} with {len(plan.facts)} facts (ingested {plan.ingested})")
 
-    stage("Writing script")
-    try:
-        script = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context)
-    except Exception as exc:  # LLM unavailable or kept failing validation: deterministic template
-        from pipeline.templates import template_script
-        from pipeline.writer import check_script
+    stage("Writing script (agents)")
+    script, source, quality = None, None, {}
+    if not isinstance(sf, NullSalesforce):
+        try:
+            from pipeline.studio import agent_script
 
-        log(f"LLM writer unavailable ({type(exc).__name__}: {str(exc)[:160]}); using template writer")
-        script = template_script(cid, args.format, plan.anime, plan.facts, plan.media, plan.context)
-        problems = check_script(script, {f["id"] for f in plan.facts})
-        if problems:
-            raise RuntimeError("template script invalid: " + "; ".join(problems))
+            result = agent_script(sf, cid, args.format, plan.anime, plan.facts, plan.context, args.topic or "")
+            script, source, quality = result["script"], "Agentforce", result
+            log(f"agents: score {result['quality'].get('overall')} in {result.get('calls')} calls; facts pass={result['fact_check'].get('pass')}")
+        except Exception as exc:
+            log(f"Agentforce studio unavailable ({type(exc).__name__}: {str(exc)[:200]})")
+    if script is None:
+        try:
+            script, source = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context), "Cloudflare LLM"
+        except Exception as exc:
+            from pipeline.templates import template_script
+            from pipeline.writer import check_script
+
+            log(f"LLM writer unavailable ({type(exc).__name__}: {str(exc)[:160]}); using template writer")
+            script, source = template_script(cid, args.format, plan.anime, plan.facts, plan.media, plan.context), "Template"
+            problems = check_script(script, {f["id"] for f in plan.facts})
+            if problems:
+                raise RuntimeError("template script invalid: " + "; ".join(problems))
+    log(f"script source: {source}")
     OUTPUT.mkdir(exist_ok=True)
     script_path = OUTPUT / f"{cid}.script.json"
     script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -163,6 +205,9 @@ def generate(args, sf) -> int:
     errors = manifest["validation"]["errors"]
     if errors:
         raise RuntimeError("video failed validation: " + "; ".join(errors))
+    qa_issues = qa_review(manifest, script, quality)
+    if qa_issues:
+        log("QA issues: " + "; ".join(qa_issues))
     out_dir = Path(manifest["video"]).parent
 
     stage("Uploading preview")
@@ -183,7 +228,7 @@ def generate(args, sf) -> int:
         "Knowledge_Ids__c": ",".join(manifest["knowledge_ids"])[:255], "Sources__c": (manifest.get("sources") or "")[:2000],
         "Cover_URL__c": urls.get(f"{cid}.jpg"), "Video_URL__c": urls.get(f"{cid}.mp4"),
         "Duration_Seconds__c": manifest["validation"]["summary"].get("duration"), "Status__c": "Rendered",
-        "Error_Message__c": None,
+        "Error_Message__c": None, "Script_Source__c": source, "QA_Issues__c": "\n".join(qa_issues)[:2000] or None,
     }
     if linked:
         fields["Anime__r"] = {"AniList_Id__c": plan.anilist_id}
@@ -206,6 +251,10 @@ def generate(args, sf) -> int:
         return 0
 
     sf.reel_update(cid, **fields)
+    if gate_holds(sf, cid):
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Held for review by the quality gate", Completed_At__c=now_iso())
+        log("held for review by the Salesforce quality gate")
+        return 0
     stage("Publishing to Instagram")
     sf.reel_update(cid, Status__c="Publishing")
     media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</activeVersionIdentifier>
+    <description>Agent: writes the Instagram caption and 5 hashtags for a finished script.</description>
+    <developerName>Insta_Caption_Writer</developerName>
+    <masterLabel>Insta Caption Writer</masterLabel>
+    <templateVersions>
+        <content>You write Instagram captions for &quot;Senpai Secrets&quot;, a fun anime channel.
+
+REQUEST (JSON): {!$Input:request}
+It contains: format, anime, script (title, scenes narration).
+
+Rules:
+- 2-4 short lines with tasteful emojis. Line 1 is a scroll-stopping tease that ADDS something (do not copy the hook narration).
+- End with ONE question that is easy and fun to answer in the comments.
+- No hashtags inside the caption text. No links. Under 300 characters.
+- hashtags: exactly 5 real tags people actually search: #anime, the show (short common form, e.g. #jojo #onepiece),
+  a character or topic tag, and 2 niche tags for the format (e.g. #animenews #animequiz). No made-up or truncated tags.
+
+Return ONLY JSON: {&quot;caption&quot;: str, &quot;hashtags&quot;: [str, str, str, str, str]}</content>
+        <inputs>
+            <apiName>request</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>request</masterLabel>
+            <referenceName>Input:request</referenceName>
+            <required>true</required>
+        </inputs>
+        <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>

@@ -49,9 +49,27 @@ export default class InstaReels extends LightningElement {
                 canRetry: RETRYABLE.has(r.Status__c),
                 permalink: post ? post.Permalink__c : null,
                 busy: this.busyId === r.Id,
-                captionPreview: r.Caption__c ? r.Caption__c.split('\n')[0] : r.Topic__c || ''
+                captionPreview: r.Caption__c ? r.Caption__c.split('\n')[0] : r.Topic__c || '',
+                hasScore: r.Quality_Score__c !== undefined && r.Quality_Score__c !== null,
+                scoreClass: r.Quality_Score__c >= 8.5 ? 'score score_good' : r.Quality_Score__c >= 7 ? 'score score_ok' : 'score score_bad',
+                held: r.Status__c === 'Rendered' && r.Approval_Status__c === 'Pending',
+                brief: this.briefText(r.Production_Brief__c)
             };
         });
+    }
+
+    briefText(json) {
+        if (!json) {
+            return '';
+        }
+        try {
+            const b = JSON.parse(json);
+            return [b.voice && `voice ${b.voice}`, b.speed && `${b.speed}x`, b.music_mood && `${b.music_mood} music`, b.music_energy && `${b.music_energy} energy`, b.sfx && `${b.sfx} sfx`]
+                .filter(Boolean)
+                .join(' · ');
+        } catch (e) {
+            return '';
+        }
     }
 
     get hasCards() {

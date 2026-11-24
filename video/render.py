@@ -214,7 +214,8 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool):
     music_asset: Optional[MediaAsset] = None
     if music and not local:
         try:
-            music_asset = find_music(client, script.get("mood", "default"), script["id"], cache)
+            music_asset = find_music(client, script.get("mood", "default"), script["id"], cache,
+                                     keywords=script.get("music_keywords", ""))
         except Exception as exc:
             log(f"warning: music search failed ({exc})")
     return scene_assets, local, music_asset

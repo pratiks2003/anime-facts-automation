@@ -94,6 +94,38 @@ def character_art(name: str, anime: str, cache: Path, opener: Callable = urllib.
     return _save(_get(ch["image"]["large"], opener), cache, ch["image"]["large"])
 
 
+GALLERY = """query ($search: String) { Media(search: $search, type: ANIME, isAdult: false) {
+  trailer { id site } streamingEpisodes { title thumbnail }
+  characters(sort: [ROLE, FAVOURITES_DESC], perPage: 12) { nodes { name { full alternative } image { large } } } } }"""
+
+
+def anilist_gallery(title: str, opener: Callable = urllib.request.urlopen) -> dict:
+    """Image URLs for a show beyond the poster: episode screenshots, main-character portraits, trailer frame.
+    {"episodes": [url], "characters": [(name, [aliases], url)], "trailer": url|None}"""
+    out: dict = {"episodes": [], "characters": [], "trailer": None}
+    try:
+        media = _graphql(GALLERY, {"search": title}, opener).get("Media") or {}
+    except Exception:
+        return out
+    out["episodes"] = [e["thumbnail"] for e in media.get("streamingEpisodes") or [] if e.get("thumbnail")][:40]
+    for node in (media.get("characters") or {}).get("nodes") or []:
+        url = (node.get("image") or {}).get("large")
+        if url and "/default." not in url:
+            out["characters"].append((node["name"]["full"], node["name"].get("alternative") or [], url))
+    trailer = media.get("trailer") or {}
+    if trailer.get("site") == "youtube" and trailer.get("id"):
+        out["trailer"] = f"https://i.ytimg.com/vi/{trailer['id']}/maxresdefault.jpg"
+        out["trailer_id"] = trailer["id"]
+    return out
+
+
+def download_art(url: str, cache: Path, opener: Callable = urllib.request.urlopen) -> Optional[Path]:
+    try:
+        return _save(_get(url, opener), cache, url)
+    except Exception:
+        return None
+
+
 def _size(path: Path) -> Tuple[int, int]:
     from PIL import Image
 

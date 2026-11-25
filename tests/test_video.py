@@ -291,3 +291,34 @@ class AudioLibraryTests(unittest.TestCase):
         self.assertGreater(len(beats), 15)
         gaps = np.diff(beats)
         self.assertAlmostEqual(float(np.median(gaps)), 0.5, delta=0.05)
+
+
+class ImageInspectorTests(unittest.TestCase):
+    def _img(self, tmp, name, size, noise=True, seed=0):
+        from PIL import Image
+        y, x = np.mgrid[0:size[1], 0:size[0]]
+        grad = ((x * (3 + seed) + y * 2) % 256).astype(np.uint8)  # structured picture (not flat)
+        arr = np.stack([grad, grad[::-1], 255 - grad], axis=-1) if noise else np.full((size[1], size[0], 3), 128, np.uint8)
+        path = Path(tmp) / name
+        Image.fromarray(arr).save(path)
+        return path
+
+    def test_technical_and_duplicates_without_clip(self):
+        import tempfile
+        from video.image_check import Inspector, full_bleed_ok
+        with tempfile.TemporaryDirectory() as tmp:
+            ins = Inspector(clip=None)
+            self.assertIn("too small", ins.inspect(self._img(tmp, "a.png", (150, 150))).reason)
+            self.assertIn("flat", ins.inspect(self._img(tmp, "b.png", (800, 800), noise=False)).reason)
+            self.assertIn("aspect", ins.inspect(self._img(tmp, "c.png", (1900, 400))).reason)
+            good = self._img(tmp, "d.png", (900, 1400), seed=3)
+            self.assertTrue(ins.inspect(good).ok)
+            self.assertIn("duplicate", ins.inspect(good).reason)
+        self.assertTrue(full_bleed_ok(1080, 1920))
+        self.assertFalse(full_bleed_ok(230, 345))
+
+    def test_name_matches(self):
+        from video.shots import name_matches
+        self.assertTrue(name_matches("Monkey D. Luffy", "Luffy Monkey"))
+        self.assertTrue(name_matches("Rain", "Rain Garland"))
+        self.assertFalse(name_matches("Roronoa Zoro", "Luffy Monkey"))

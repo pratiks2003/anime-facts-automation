@@ -1,15 +1,17 @@
 """Shot resolution for the cinematic layout: turn each scene's shot list (from the Visual
 Director, or derived from the scene) into concrete image files. It never leaves a shot blank.
 
-Chain per shot: fan wiki (screenshots / manga panels) -> official art -> the scene's primary
-asset (official/AI/photo) -> show key art -> any other image of this Reel.
+Chain per shot: the scene's own asset -> fan-wiki pictures of each subject -> AniList character
+portrait -> the show's episode screenshots / trailer frame -> key art -> stock (last resort).
+Every candidate passes the Image Inspector (video/image_check.py) first; nothing repeats.
 """
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Iterator, List, Optional
 
 from .wiki_art import FandomWiki
 
@@ -59,49 +61,153 @@ def shot_plan(scene: dict, script: dict, count: int, characters: List[str] = ())
     return shots[:max(count, 1)]
 
 
+def name_matches(subject: str, name: str, aliases: List[str] = ()) -> bool:
+    """'Monkey D. Luffy' ~ AniList 'Luffy Monkey'; 'Rain' ~ 'Rain Garland'."""
+    words = {w for w in re.findall(r"[a-z0-9]+", subject.casefold()) if len(w) > 2}
+    for n in [name, *aliases]:
+        if words & {w for w in re.findall(r"[a-z0-9]+", (n or "").casefold()) if len(w) > 2}:
+            return True
+    return False
+
+
+class ShotSources:
+    """Candidate pictures for a subject, best source first, downloaded lazily."""
+
+    def __init__(self, script: dict, cache: Path):
+        self.anime, self.cache = script["anime"], cache
+        entry = anime_entry(self.anime)
+        self.wiki = None
+        self.gallery: dict = {"episodes": [], "characters": [], "trailer": None}
+        if self.anime != "Anime":
+            self.wiki = FandomWiki.for_anime(self.anime, entry.get("aliases", []), entry.get("fandom", ""))
+            try:
+                from .official_art import anilist_gallery
+
+                self.gallery = anilist_gallery(self.anime)
+            except Exception:
+                pass
+        self._wiki: dict = {}
+        log(f"sources: fan wiki {self.wiki.subdomain + '.fandom.com' if self.wiki else 'none'}; AniList "
+            f"{len(self.gallery['episodes'])} episode shots, {len(self.gallery['characters'])} characters, "
+            f"trailer {'yes' if self.gallery['trailer'] else 'no'}")
+
+    def _download(self, url: str) -> Optional[str]:
+        from .official_art import download_art
+
+        path = download_art(url, self.cache)
+        return str(path) if path else None
+
+    def for_subject(self, subject: str) -> Iterator[str]:
+        if self.wiki and subject:
+            if subject not in self._wiki:
+                self._wiki[subject] = [str(x) for x in self.wiki.images(subject, self.cache, limit=8)]
+            yield from self._wiki[subject]
+        for name, aliases, url in self.gallery["characters"]:
+            if subject and name_matches(subject, name, aliases):
+                path = self._download(url)
+                if path:
+                    yield path
+
+    def general(self) -> Iterator[str]:
+        """Pictures of the show itself: official-trailer stills, episode screenshots, main characters."""
+        if self.gallery.get("trailer_id"):
+            from .trailer_frames import trailer_frames
+
+            yield from (str(f) for f in trailer_frames(self.gallery["trailer_id"], self.cache))
+        urls = list(self.gallery["episodes"])
+        if self.gallery["trailer"]:
+            urls.insert(0, self.gallery["trailer"])
+        urls += [url for _, _, url in self.gallery["characters"]]
+        for url in urls:
+            path = self._download(url)
+            if path:
+                yield path
+
+
 def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[str]], cache: Path,
                   backup: List[str], extra_records: Optional[List[dict]] = None,
-                  last_resort: List[str] = ()) -> List[List[str]]:
-    """Image paths per scene. primary[i] is the scene's already-verified asset (or None)."""
-    entry = anime_entry(script["anime"])
-    wiki = None
-    if script["anime"] != "Anime":
-        wiki = FandomWiki.for_anime(script["anime"], entry.get("aliases", []), entry.get("fandom", ""))
-    log(f"fan wiki: {wiki.subdomain + '.fandom.com' if wiki else 'none found'}")
-    used: set = set()
-    per_subject: dict = {}
+                  last_resort: List[str] = (), inspector=None) -> List[List[str]]:
+    """Image paths per scene. Every picture is inspected before use and never repeated;
+    when a scene runs out of distinct good pictures it gets fewer, longer shots instead."""
+    from .image_check import Inspector
+
+    inspector = inspector or Inspector.create()
+    sources = ShotSources(script, cache)
     reel_characters: List[str] = []  # everyone this Reel talks about: variety for hook/outro shots
     for scene in script["scenes"]:
         reel_characters += [c for c in record_characters(scene, extra_records) if c not in reel_characters]
+    general = sources.general()
+    rejections: List[str] = []
+
+    bad_paths: set = set()
+
+    small: List[str] = []  # tiny pictures (e.g. 230px portraits): only if nothing better is left
+
+    def take(path: Optional[str], subject: str, expect: str = "anime", description: str = "") -> bool:
+        if not path or path in bad_paths or path in small:
+            return False
+        try:
+            from PIL import Image
+
+            with Image.open(path) as im:
+                if min(im.size) < 400:
+                    small.append(path)
+                    return False
+        except Exception:
+            pass
+        verdict = inspector.inspect(Path(path), subject, expect, description)
+        if not verdict.ok:
+            bad_paths.add(path)
+        if not verdict.ok and "duplicate" not in verdict.reason:
+            rejections.append(f"{subject or 'show'}: {Path(path).name} - {verdict.reason}")
+        return verdict.ok
+
     result: List[List[str]] = []
     for i, (scene, timing) in enumerate(zip(script["scenes"], narration.scenes)):
         count = max(1, round(max(0.5, timing.end - timing.start) / style["image_interval"]))
         paths: List[str] = []
         if primary[i]:
-            paths.append(primary[i])
+            ai = Path(primary[i]).name.startswith("ai_")
+            if take(primary[i], scene.get("image_subject", ""), "scene" if ai else "anime", scene.get("image_prompt", "")):
+                paths.append(primary[i])
         characters = record_characters(scene, extra_records)
         plan = shot_plan(scene, script, count, characters)
-        # wiki subjects to try for this scene: the planned ones first, then cited characters, then the show
         subjects = [s.get("subject") for s in plan if s.get("source", "wiki") in ("wiki", "official", "any", "")]
         subjects = [x for x in dict.fromkeys([*subjects, *characters, script["anime"], *reel_characters]) if x]
-        for subject in subjects if wiki else []:
-            if len(paths) >= count:
-                break
-            if subject not in per_subject:
-                per_subject[subject] = [str(p) for p in wiki.images(subject, cache, limit=6)]
-            for p in per_subject[subject]:
+        for subject in subjects:
+            for path in sources.for_subject(subject):
                 if len(paths) >= count:
                     break
-                if p not in used and p not in paths:
-                    paths.append(p)
-                    used.add(p)
-        if len(paths) < count:  # never blank: reuse this scene's images, then the show's art, then the Reel's
-            pool = (paths[:] or [p for p in backup if p] or [p for row in result for p in row]
-                    or [p for p in last_resort if p])
-            k = 0
-            while len(paths) < count and pool:
-                paths.append(pool[k % len(pool)])
-                k += 1
+                if path not in paths and take(path, subject):
+                    paths.append(path)
+            if len(paths) >= count:
+                break
+        for path in general:  # the show's own screenshots / trailer / characters
+            if len(paths) >= count:
+                break
+            if take(path, script["anime"]):
+                paths.append(path)
+        if len(paths) < count:
+            for path in [*backup, *last_resort]:
+                if len(paths) >= count:
+                    break
+                if path and path not in paths and take(path, script["anime"], "anime" if path in backup else "scene",
+                                                       scene.get("image_prompt", "")):
+                    paths.append(path)
+        while len(paths) < count and small:  # small but correct pictures, framed (not blown up)
+            path = small.pop(0)
+            if inspector.inspect(Path(path), scene.get("image_subject", "")).ok:
+                paths.append(path)
+        if not paths:  # nothing new left: reuse an earlier picture, never the one just shown
+            earlier = [p for row in result for p in row]
+            previous = result[-1][-1] if result and result[-1] else None
+            reuse = [p for p in earlier if p != previous] or earlier
+            if reuse:
+                paths.append(reuse[i % len(reuse)])
         result.append(paths)
-        log(f"scene {i + 1}: {len(paths)} shot(s) ({count} wanted)")
+        log(f"scene {i + 1}: {len(paths)} distinct shot(s) ({count} wanted)")
+    log(f"image inspector: {inspector.accepted} accepted, {len(rejections)} rejected")
+    for r in rejections[:12]:
+        log(f"  rejected {r}")
+    resolve_shots.rejections = rejections
     return result

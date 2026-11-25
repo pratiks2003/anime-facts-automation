@@ -306,6 +306,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     ]
     log(f"images: {sum(1 for a in scene_assets if a)}/{len(scene_assets)} scenes")
     on_screen_sources = sources_note if channel.get("show_sources_on_video") else ""
+    image_rejections: List[str] = []
     if cinematic:
         cache = Path(out_root) / "_media_cache"
         backup = []
@@ -320,6 +321,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         stock = [a.path for a in scene_assets if a and a.kind == "image"]
         shots = resolve_shots(script, narration, style, primary, cache, backup, extra_records, stock) \
             if images else [[] for _ in scene_assets]
+        image_rejections = list(getattr(resolve_shots, "rejections", []))
         music_file = local_music or (Path(music_asset.path) if music_asset else None)
         beats = audio_library.beat_times(music_file) if music_file else []
         log(f"beat sync: {len(beats)} beats" if beats else "beat sync: off (no steady pulse)")
@@ -377,6 +379,8 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "images": [a.to_dict() if a else None for a in scene_assets],
         "voice": voice,
         "style": style,
+        "image_rejections": image_rejections,
+        "shots": [len(row) for row in shots] if cinematic else None,
         "validation": {"errors": errors, "warnings": warnings, "summary": summary},
         "render_seconds": round(time.time() - t0, 1),
     }

@@ -43,6 +43,12 @@ def main() -> int:
             return 1
         tmp.replace(path)
         print(f"ok {name}")
+    from .image_check import fetch_clip  # CLIP for the Image Inspector (also checksum verified)
+
+    if not fetch_clip():
+        print("CLIP download failed; the inspector will run technical checks only", file=sys.stderr)
+    else:
+        print("ok clip")
     return 0
 
 

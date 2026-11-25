@@ -49,9 +49,18 @@ def grade(img: Image.Image, mode: str) -> Image.Image:
 
 
 def prepare(img: Image.Image, mode: str) -> Image.Image:
-    """Fill a 9:16 overscanned canvas. Portrait art is covered; wide/square art sits on a blurred copy."""
+    """Fill a 9:16 overscanned canvas. Big portrait art is covered; wide/square art - and any picture too small
+    to fill the frame sharply - sits on a blurred copy of itself instead of being blown up."""
     size = (int(W * OVERSCAN), int(H * OVERSCAN))
     ratio = img.width / img.height
+    scale_needed = max(size[0] / img.width, size[1] / img.height)
+    if ratio <= 0.75 and scale_needed > 1.6:  # small portrait (e.g. 460x690 poster): framed, at most 2x
+        canvas = cover(img, (size[0] // 8, size[1] // 8)).filter(ImageFilter.GaussianBlur(4)).resize(size, Image.BILINEAR)
+        canvas = ImageEnhance.Brightness(canvas).enhance(0.5)
+        k = min(2.0, size[0] * 0.86 / img.width, size[1] * 0.7 / img.height)
+        sharp = img.resize((int(img.width * k), int(img.height * k)), Image.LANCZOS)
+        canvas.paste(sharp, ((size[0] - sharp.width) // 2, (size[1] - sharp.height) // 2))
+        return grade(canvas, mode)
     if ratio > 0.75:  # landscape or square: show it whole over a blurred, darkened extension
         canvas = cover(img, (size[0] // 8, size[1] // 8)).filter(ImageFilter.GaussianBlur(4)).resize(size, Image.BILINEAR)
         canvas = ImageEnhance.Brightness(canvas).enhance(0.55)
@@ -97,9 +106,9 @@ class CinematicRenderer:
             length = max(0.5, scene.end - scene.start)
             count = max(1, round(length / interval))
             if paths:
-                count = min(count, max(1, len(paths) * 2))  # never stretch one image too thin
+                count = min(count, len(paths))  # one shot per distinct picture: fewer, longer shots beat repeats
             for k in range(count):
-                path = paths[k % len(paths)] if paths else None
+                path = paths[k] if paths else None
                 key = f"{path}|{style['grading']}"
                 if path and key not in cache:
                     try:

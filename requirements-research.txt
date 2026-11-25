@@ -1,4 +1,3 @@
 # Research jobs only (analyze.yml / research.yml): reference Reel download + transcription. Free / open source.
 -r requirements.txt
-yt-dlp==2026.11.23
 faster-whisper==1.2.1

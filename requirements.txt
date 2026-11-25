@@ -10,3 +10,7 @@ kokoro-onnx==0.6.1
 onnxruntime==1.32.0
 pillow==13.0.0
 soundfile==0.14.0
+
+# Shot pictures: official-trailer stills (yt-dlp) and the local CLIP image inspector (tokenizer)
+yt-dlp==2026.11.23
+tokenizers==0.23.3

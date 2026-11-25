@@ -53,7 +53,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: models
-          key: kokoro-v1.0-${{ hashFiles('video/fetch_models.py') }}
+          key: models-${{ hashFiles('video/fetch_models.py', 'video/image_check.py') }}
 
       - name: Fetch model (checksum verified)
         run: python -m video.fetch_models

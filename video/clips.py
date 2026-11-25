@@ -1,8 +1,9 @@
 """Anime video clips for the cinematic layout (owner's decision, 2026-11-25).
 
 Sources: the show's official trailer (YouTube; works locally, usually blocked on cloud runners) and
-public Reels from watchlist pages (Instagram business_discovery permalinks that mention the show or
-its characters; yt-dlp without login works on cloud runners).
+public Reels from OFFICIAL accounts only (channel.json clip_accounts, e.g. crunchyroll; found via
+business_discovery, downloaded with yt-dlp without login). Never fan-edit pages: their clips carry
+their own captions and watermarks.
 
 Edit style: 1.0-2.4 s cuts from inside a shot, cropped to 9:16, colour-graded, ORIGINAL AUDIO DROPPED
 (our voiceover + music play over them). Downloaded videos are deleted right after the cuts are made.

@@ -231,8 +231,8 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool, music_pic
     return scene_assets, local, music_asset
 
 
-def gather_clips(script: dict, cache: Path, style: dict, inspector, watchlist) -> List[str]:
-    """Short anime video clips (official trailer / watchlist Reels about this show), inspected."""
+def gather_clips(script: dict, cache: Path, style: dict, inspector, accounts) -> List[str]:
+    """Short anime video clips (official trailer / official accounts' Reels about this show), inspected."""
     from .clips import find_clips
     from .official_art import anilist_gallery
 
@@ -240,7 +240,7 @@ def gather_clips(script: dict, cache: Path, style: dict, inspector, watchlist) -
         gallery = anilist_gallery(script["anime"])
         names = [n for n, _, _ in gallery.get("characters", [])][:8]
         wanted = int(sum(1 for _ in script["scenes"]) * 3 * style["clip_ratio"]) + 2
-        return find_clips(script["anime"], cache / "clips", style["grading"], inspector, list(watchlist or []),
+        return find_clips(script["anime"], cache / "clips", style["grading"], inspector, list(accounts or []),
                           gallery.get("trailer_id"), names, max_clips=min(20, wanted))
     except Exception as exc:
         log(f"warning: clips unavailable ({type(exc).__name__}: {str(exc)[:160]})")
@@ -276,7 +276,7 @@ def official_asset(scene: dict, script: dict, index: int, cache: Path, vision) -
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
            speed: Optional[float] = None, stills: bool = False,
            images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None,
-           music_picker=None, recent_music=(), watchlist=("crunchyroll",)) -> dict:
+           music_picker=None, recent_music=()) -> dict:
     script = load_script(script_path)
     try:
         from integrations.instagram import load_env_file
@@ -340,7 +340,9 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         inspector = Inspector.create() if images else None
         clips: List[str] = []
         if images and channel.get("use_clips", True) and style["clip_ratio"] > 0 and script["anime"] != "Anime":
-            clips = gather_clips(script, cache, style, inspector, watchlist)
+            # footage only from OFFICIAL accounts (channel.json clip_accounts) - never other creators' edits,
+            # which carry their own captions and watermarks
+            clips = gather_clips(script, cache, style, inspector, channel.get("clip_accounts", ["crunchyroll"]))
         shots = resolve_shots(script, narration, style, primary, cache, backup, extra_records, stock,
                               inspector=inspector, clips=clips) if images else [[] for _ in scene_assets]
         image_rejections = list(getattr(resolve_shots, "rejections", []))

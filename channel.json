@@ -7,5 +7,6 @@
   "voice_provider": "kokoro",
   "random_voice": false,
   "fixed_voice": "am_fenrir",
-  "use_clips": true
+  "use_clips": true,
+  "clip_accounts": ["crunchyroll"]
 }

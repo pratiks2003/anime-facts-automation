@@ -158,11 +158,17 @@ class FandomWiki:
         except Exception:
             return []
         scored = []
+        top_page = {c["url"] for c in candidates[:len(self.page_images(hits[0]["title"]))]} if hits else set()
         for c in candidates:
             name = c["name"].lower()
             matches = sum(w in name for w in words)
+            size = min(c["width"] * c["height"], 2_000_000) / 4_000_000
             if matches:
-                scored.append((matches + min(c["width"] * c["height"], 2_000_000) / 4_000_000, c))
+                scored.append((matches + size, c))
+            elif c["url"] in top_page:
+                # the page ABOUT this topic (e.g. "Elbaph" for "Elbaf mural"): its pictures are on-topic even when
+                # file names don't repeat the words (spelling variants, translations)
+                scored.append((0.1 + size, c))
         out: List[Path] = []
         for _, c in sorted(scored, key=lambda x: x[0], reverse=True):
             if len(out) >= limit:

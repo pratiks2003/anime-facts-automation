@@ -128,7 +128,7 @@ class ShotSources:
         if not scene:
             return
         if self.wiki:
-            yield from (str(x) for x in self.wiki.scene_images(scene, self.cache, limit=3))
+            yield from (str(x) for x in self.wiki.scene_images(scene, self.cache, limit=5))
         if self.google:
             query = f"{self.anime} {scene} anime screenshot"
             yield from (str(x) for x in self.google.images(query, self.cache, limit=3))

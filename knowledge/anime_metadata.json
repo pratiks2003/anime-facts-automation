@@ -102,6 +102,24 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "That Time I Got Reincarnated as a Slime Season 4",
+      "aliases": [
+        "Aquella vez que me convertí en slime - Temporada 4",
+        "Moi, quand je me réincarne en Slime Saison 4",
+        "Tensei Shitara Slime Datta Ken 4th Season Part 1 & 2",
+        "Tensura 4",
+        "О моём перерождении в слизь 4",
+        "เกิดใหม่ทั้งทีก็เป็นสไลม์ไปซะแล้ว ซีซั่น 4",
+        "転スラ 4"
+      ],
+      "anilist_id": 182205,
+      "knowledge_file": "that_time_i_got_reincarnated_as_a_slime_season_4.jsonl",
+      "id_prefix": "TTIG",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

@@ -29,6 +29,9 @@ from .sfx import SR as SFX_SR
 from .sfx import build_sfx_track
 from .tts import Narrator, to_srt
 from .validate import validate_video
+from .cinematic import CinematicRenderer
+from .shots import resolve_shots
+from .style import resolve_style
 from .visuals import FPS, H, W, FrameRenderer
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -263,7 +266,11 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     out.mkdir(parents=True, exist_ok=True)
     # a fixed channel voice (owner's choice) beats the Director's suggestion
     voice = voice or channel.get("fixed_voice") or script.get("voice") or channel.get("voice", "am_fenrir")
-    speed = speed or script.get("speed") or channel.get("speed", 1.1)
+    style = resolve_style(script.get("style"))
+    cinematic = style["layout"] == "cinematic"
+    # the style owns pacing in the cinematic layout; classic keeps the old voice speed
+    speed = speed or (style["voice_speed"] if cinematic else None) or script.get("speed") or channel.get("speed", 1.1)
+    log(f"style: {style['name']} ({style['layout']}, voice x{speed})")
 
     ids = knowledge_ids(script)
     sources_note, unverified, missing = sources_for(ids, extra_records)
@@ -293,8 +300,24 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     ]
     log(f"images: {sum(1 for a in scene_assets if a)}/{len(scene_assets)} scenes")
     on_screen_sources = sources_note if channel.get("show_sources_on_video") else ""
-    renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=on_screen_sources,
-                             images=image_specs)
+    if cinematic:
+        cache = Path(out_root) / "_media_cache"
+        backup = []
+        if images and script["anime"] != "Anime":
+            try:
+                art = show_art(script["anime"], cache)
+                backup = [str(p) for p in (art.get("banner"), art.get("poster")) if p]
+            except Exception as exc:
+                log(f"warning: show art lookup failed ({exc})")
+        # stock photos are a last resort in the cinematic look: fan-wiki shots of the actual subject beat them
+        primary = [a.path if a and a.kind in ("official_image", "ai_image") else None for a in scene_assets]
+        stock = [a.path for a in scene_assets if a and a.kind == "image"]
+        shots = resolve_shots(script, narration, style, primary, cache, backup, extra_records, stock) \
+            if images else [[] for _ in scene_assets]
+        renderer = CinematicRenderer(script, narration, style, shots, handle=channel.get("handle", ""))
+    else:
+        renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=on_screen_sources,
+                                 images=image_specs)
     thumb_t = min(narration.scenes[0].start + 0.9, narration.scenes[0].end - 0.1)
     renderer.frame(thumb_t, captions=False).save(out / "cover.jpg", quality=92)
 
@@ -337,6 +360,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "music": music_asset.to_dict() if music_asset else (music.name if music else None),
         "images": [a.to_dict() if a else None for a in scene_assets],
         "voice": voice,
+        "style": style,
         "validation": {"errors": errors, "warnings": warnings, "summary": summary},
         "render_seconds": round(time.time() - t0, 1),
     }

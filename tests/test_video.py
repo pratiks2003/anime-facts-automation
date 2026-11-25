@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import numpy as np
@@ -160,3 +161,80 @@ class VoiceTests(unittest.TestCase):
         self.assertIn(n.voice_used, KOKORO_VOICES)
         self.assertTrue(all(b == "kokoro" for b, _ in calls[-3:]))
         self.assertGreater(narration.duration, 0)
+
+
+# ------------------------------------------------------------------ v2: style spec, cinematic, shots, wiki
+
+class StyleSpecTests(unittest.TestCase):
+    def test_defaults_and_clamps(self):
+        from video.style import DEFAULT_STYLE, resolve_style
+        self.assertEqual(resolve_style(None), DEFAULT_STYLE)
+        s = resolve_style({"image_interval": 0.1, "voice_speed": "9", "grading": "neon", "motion": -3,
+                           "keyword_color": 0, "watermark": "x" * 99, "unknown": 1})
+        self.assertEqual(s["image_interval"], 1.2)
+        self.assertEqual(s["voice_speed"], 1.5)
+        self.assertEqual(s["grading"], DEFAULT_STYLE["grading"])  # invalid choice ignored
+        self.assertEqual(s["motion"], 0.0)
+        self.assertFalse(s["keyword_color"])
+        self.assertEqual(len(s["watermark"]), 40)
+        self.assertNotIn("unknown", s)
+        self.assertIsInstance(resolve_style({"target_seconds": 30.7})["target_seconds"], int)
+
+
+class WikiSlugTests(unittest.TestCase):
+    def test_slug_candidates(self):
+        from video.wiki_art import slug_candidates
+        self.assertEqual(slug_candidates("One Piece")[:2], ["onepiece", "one-piece"])
+        self.assertIn("naruto", slug_candidates("Naruto: Shippuden"))
+        self.assertIn("tensura", slug_candidates("That Time I Got Reincarnated as a Slime Season 4", ["Tensura 4"]))
+        self.assertEqual(slug_candidates("転スラ"), [])
+
+    def test_page_images_filters_junk(self):
+        from video import wiki_art
+        payload = {"query": {"pages": {
+            "1": {"title": "File:Luffy Anime Infobox.png", "imageinfo": [{"url": "u1", "width": 900, "height": 1400, "mime": "image/png"}]},
+            "2": {"title": "File:Luffy Bounty Rush.png", "imageinfo": [{"url": "u2", "width": 900, "height": 1400, "mime": "image/png"}]},
+            "3": {"title": "File:Tiny.png", "imageinfo": [{"url": "u3", "width": 100, "height": 120, "mime": "image/png"}]},
+            "4": {"title": "File:Anim.gif", "imageinfo": [{"url": "u4", "width": 900, "height": 900, "mime": "image/gif"}]}}}}
+        wiki = wiki_art.FandomWiki("onepiece")
+        with mock.patch.object(wiki_art, "_get_json", return_value=payload):
+            self.assertEqual([c["url"] for c in wiki.page_images("Monkey D. Luffy")], ["u1"])
+
+
+class ShotPlanTests(unittest.TestCase):
+    def test_derived_and_padded(self):
+        from video.shots import shot_plan
+        script = {"anime": "One Piece"}
+        plan = shot_plan({"image_subject": "Gecko Moria"}, script, 3, ["Luffy"])
+        self.assertEqual(len(plan), 3)
+        self.assertEqual(plan[0]["subject"], "Gecko Moria")
+        self.assertEqual(shot_plan({}, script, 1)[0]["subject"], "One Piece")
+        director = shot_plan({"shots": [{"subject": "Zoro", "source": "wiki"}, "junk"]}, script, 2)
+        self.assertEqual([s["subject"] for s in director], ["Zoro", "Zoro"])
+
+
+class CinematicRendererTests(unittest.TestCase):
+    def test_frames_render_with_and_without_images(self):
+        import tempfile
+        from PIL import Image
+        from video.cinematic import CinematicRenderer
+        from video.style import resolve_style
+        from video.tts import Narration, SceneTiming, Word
+        with tempfile.TemporaryDirectory() as tmp:
+            wide = Path(tmp) / "wide.jpg"
+            Image.new("RGB", (1600, 900), (200, 40, 40)).save(wide)
+            tall = Path(tmp) / "tall.jpg"
+            Image.new("RGB", (700, 1200), (40, 200, 40)).save(tall)
+            scenes = [SceneTiming(0, "hook", "Luffy can not swim", 0.0, 3.0,
+                                  [Word("Luffy", 0.1, 0.5), Word("can", 0.5, 0.8), Word("not", 0.8, 1.1), Word("swim", 1.1, 1.6)]),
+                      SceneTiming(1, "outro", "Follow", 3.0, 6.0, [Word("Follow", 3.1, 3.6)])]
+            narration = Narration(audio=np.zeros(6 * 24000), sample_rate=24000, scenes=scenes)
+            script = {"id": "T-1", "anime": "One Piece", "scenes": [{"emphasis": ["swim"]}, {}]}
+            r = CinematicRenderer(script, narration, resolve_style({"image_interval": 1.5}), [[str(wide), str(tall)], []],
+                                  handle="@x")
+            self.assertGreaterEqual(len(r.shots), 4)
+            for t in (0.0, 0.05, 1.3, 2.9, 4.0, 5.9):
+                frame = r.frame(t)
+                self.assertEqual(frame.size, (1080, 1920))
+            self.assertTrue(dict((w.text, k) for w, k in r.words)["Luffy"] is False)  # first word isn't "proper noun" coloured
+            self.assertTrue(dict((w.text, k) for w, k in r.words)["swim"])

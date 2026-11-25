@@ -70,3 +70,10 @@ def resolve_style(spec: Any) -> Dict[str, Any]:
         elif key in ("name", "watermark") and isinstance(value, str):
             style[key] = value.strip()[:40]
     return style
+
+
+def style_limits() -> Dict[str, Any]:
+    """What an agent may put in a spec (sent to the Strategist / Style Analyst)."""
+    return {"choices": {k: list(v) for k, v in _CHOICES.items()}, "ranges": {k: list(v) for k, v in _RANGES.items()},
+            "booleans": list(_BOOLS), "text": {"name": "max 40 chars", "watermark": "max 40 chars, '' for none"},
+            "defaults": DEFAULT_STYLE}

@@ -264,8 +264,27 @@ def generate(args, sf) -> int:
         cloudflare = None
     llm = ChainLLM([None if isinstance(sf, NullSalesforce) else AgentforceLLM(sf), cloudflare])
     recent_ids, recent_anime = recent_usage(sf)
-    lessons, idea = learning_inputs(sf, args.format)
     anime_hint, topic = args.anime or "", args.topic or ""
+
+    # Creative Strategist: what to make and how it should look (format, angle, length, style)
+    decision = {}
+    if not isinstance(sf, NullSalesforce):
+        try:
+            from pipeline.studio import strategy
+
+            decision = strategy(sf, cid, args.format, args.slot, anime_hint, topic)
+            log(f"strategist ({decision.get('mode')}): {decision['format']} / style '{decision['style']['name']}' / "
+                f"{decision['length_seconds']}s / angle: {decision.get('angle')}")
+            args.format = decision["format"]
+        except Exception as exc:
+            log(f"strategist unavailable ({type(exc).__name__}: {str(exc)[:200]}); using the default style")
+    from video.style import resolve_style
+
+    style = decision.get("style") or resolve_style(None)
+    angle = str(decision.get("angle") or "")
+    lessons, idea = learning_inputs(sf, args.format)
+    if not anime_hint and not topic and decision.get("anime"):
+        anime_hint, topic = str(decision["anime"]), str(decision.get("topic") or "")
     if idea and not anime_hint and not topic and args.format not in ("This Week's Drops", "Why It's Trending", "Hype Check", "Season Preview", "Just Announced"):
         anime_hint, topic = idea.get("Anime__c") or "", idea["Name"]
         log(f"using backlog idea: {idea['Name']} ({anime_hint})")
@@ -281,14 +300,15 @@ def generate(args, sf) -> int:
         try:
             from pipeline.studio import agent_script
 
-            result = agent_script(sf, cid, args.format, plan.anime, plan.facts, plan.context, topic, lessons)
+            result = agent_script(sf, cid, args.format, plan.anime, plan.facts, plan.context, topic, lessons,
+                                  angle=angle, length_seconds=decision.get("length_seconds"), style=style)
             script, source, quality = result["script"], "Agentforce", result
             log(f"agents: score {result['quality'].get('overall')} in {result.get('calls')} calls; facts pass={result['fact_check'].get('pass')}")
         except Exception as exc:
             log(f"Agentforce studio unavailable ({type(exc).__name__}: {str(exc)[:200]})")
     if script is None:
         try:
-            script = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or "", context=plan.context)
+            script = write_script(llm, cid, args.format, plan.anime, plan.facts, topic_hint=args.topic or angle, context=plan.context)
             source = "Cloudflare LLM"  # single-pass writer via the LLM chain (Agentforce task or Cloudflare)
         except Exception as exc:
             from pipeline.templates import template_script
@@ -300,6 +320,8 @@ def generate(args, sf) -> int:
             if problems:
                 raise RuntimeError("template script invalid: " + "; ".join(problems))
     log(f"script source: {source}")
+    script["style"] = style
+    trending_sound = bool(decision.get("needs_trending_sound"))
     OUTPUT.mkdir(exist_ok=True)
     script_path = OUTPUT / f"{cid}.script.json"
     script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -308,7 +330,9 @@ def generate(args, sf) -> int:
     picker = music_picker_for(sf, script)
     manifest, qa_issues = None, []
     for attempt in range(2):  # render -> QA -> (team repairs -> re-render) at most once
-        manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker)
+        # a trending sound is added by hand in the Instagram app, so the export carries voice + SFX only
+        manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker,
+                          music=not trending_sound)
         errors = manifest["validation"]["errors"]
         if errors:
             raise RuntimeError("video failed validation: " + "; ".join(errors))
@@ -323,6 +347,7 @@ def generate(args, sf) -> int:
         if repaired is None:
             break
         script, extra_quality = repaired
+        script["style"] = style  # the look stays the Strategist's decision through repairs
         quality = extra_quality or quality
         script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")
         log("re-rendering with the team's fixes")
@@ -363,6 +388,15 @@ def generate(args, sf) -> int:
         fields["Anime__r"] = {"AniList_Id__c": plan.anilist_id}
     if not manifest["publishable"]:
         raise RuntimeError(f"not publishable: unverified={manifest['unverified_knowledge_ids']} missing={manifest['missing_knowledge_ids']}")
+
+    if trending_sound:
+        fields.update(Approval_Status__c="Pending", Needs_Trending_Sound__c=True,
+                      Hold_Reason__c="Post manually with a trending sound: download the video from the admin site, "
+                                     "add the sound in the Instagram app (rendered without music).")
+        sf.reel_update(cid, **fields)
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Waiting: post with a trending sound", Completed_At__c=now_iso())
+        log("rendered without music; waiting for a manual post with a trending sound")
+        return 0
 
     if not truthy(args.auto_approve):
         fields["Approval_Status__c"] = "Pending"
@@ -438,6 +472,7 @@ def main(argv=None) -> int:
     parser.add_argument("--format", default="Fact")
     parser.add_argument("--anime", default="")
     parser.add_argument("--topic", default="")
+    parser.add_argument("--slot", default="")
     parser.add_argument("--auto-approve", default="true")
     parser.add_argument("--dry-run", default="true")
     args = parser.parse_args(argv)

@@ -43,7 +43,7 @@ class ScriptTests(unittest.TestCase):
 
     def test_length_and_hashtags(self):
         s = copy.deepcopy(self.script)
-        s["scenes"][1]["narration"] = "word " * 200
+        s["scenes"][1]["narration"] = "word " * 320
         self.assertTrue(any("words" in e for e in validate_script(s)))
         s = copy.deepcopy(self.script)
         s["hashtags"] = ["anime"]

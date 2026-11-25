@@ -65,12 +65,13 @@ jobs:
           IN_FORMAT: ${{ inputs.format }}
           IN_ANIME: ${{ inputs.anime }}
           IN_TOPIC: ${{ inputs.topic }}
+          IN_SLOT: ${{ inputs.slot }}
           IN_AUTO_APPROVE: ${{ inputs.auto_approve }}
           IN_DRY_RUN: ${{ inputs.dry_run }}
         run: >
           python -m pipeline.run_reel generate
           --content-id "$IN_CONTENT_ID" --job-id "$IN_JOB_ID" --format "$IN_FORMAT"
-          --anime "$IN_ANIME" --topic "$IN_TOPIC"
+          --anime "$IN_ANIME" --topic "$IN_TOPIC" --slot "$IN_SLOT"
           --auto-approve "$IN_AUTO_APPROVE" --dry-run "$IN_DRY_RUN"
 
       - name: Commit new verified knowledge

@@ -8,6 +8,7 @@ public with sharing class ScriptStudio {
     public static final String DIRECTOR = 'Insta_Creative_Director';
     public static final String FACT_CHECKER = 'Insta_Fact_Checker';
     public static final String CAPTION = 'Insta_Caption_Writer';
+    public static final String VISUAL = 'Insta_Visual_Director';
     public static final Integer MAX_REWRITES = 2;
     public static final Decimal REVISE_BELOW = 8.5;
     public static final Integer MAX_REMAKES = 2;
@@ -46,7 +47,9 @@ public with sharing class ScriptStudio {
             'context' => request.get('context'),
             'topic' => request.get('topic'),
             'facts' => request.get('facts'),
-            'lessons' => request.get('lessons')
+            'lessons' => request.get('lessons'),
+            'angle' => request.get('angle'),
+            'length_seconds' => request.get('length_seconds')
         };
         Map<String, Object> guide = (Map<String, Object>) request.get('guide');
         if (guide != null) {
@@ -106,8 +109,63 @@ public with sharing class ScriptStudio {
         if (caption.get('hashtags') instanceof List<Object>) {
             r.script.put('hashtags', caption.get('hashtags'));
         }
+        directVisuals(request, r.script);
         r.calls = PromptRunner.calls - startCalls;
         return r;
+    }
+
+    /**
+     * Visual Director: a shot list per scene (one shot per ~image_interval seconds of narration) naming
+     * exactly WHO/WHAT is on screen, so every sentence shows what it talks about. Best effort: the
+     * renderer derives shots itself if this fails.
+     */
+    public static void directVisuals(Map<String, Object> request, Map<String, Object> script) {
+        if (!(script.get('scenes') instanceof List<Object>)) {
+            return;
+        }
+        Map<String, Object> style = request.get('style') instanceof Map<String, Object>
+            ? (Map<String, Object>) request.get('style') : new Map<String, Object>();
+        Decimal interval = style.get('image_interval') == null ? 2.6 : Decimal.valueOf(String.valueOf(style.get('image_interval')));
+        Decimal speed = style.get('voice_speed') == null ? 1.3 : Decimal.valueOf(String.valueOf(style.get('voice_speed')));
+        List<Object> scenes = (List<Object>) script.get('scenes');
+        List<Object> brief = new List<Object>();
+        Set<String> characters = new Set<String>();
+        if (request.get('facts') instanceof List<Object>) {
+            for (Object f : (List<Object>) request.get('facts')) {
+                Object names = ((Map<String, Object>) f).get('characters');
+                if (names instanceof List<Object>) {
+                    for (Object n : (List<Object>) names) {
+                        characters.add(String.valueOf(n));
+                    }
+                }
+            }
+        }
+        for (Integer i = 0; i < scenes.size(); i++) {
+            Map<String, Object> scene = (Map<String, Object>) scenes[i];
+            String narration = String.valueOf(scene.get('narration') == null ? '' : scene.get('narration'));
+            Decimal seconds = narration.split('\\s+').size() / (2.6 * speed);
+            brief.add(new Map<String, Object>{
+                'index' => i, 'role' => scene.get('role'), 'narration' => narration, 'image_subject' => scene.get('image_subject'),
+                'shots_wanted' => Math.max(1, (seconds / interval).round(System.RoundingMode.HALF_UP).intValue())
+            });
+        }
+        try {
+            Map<String, Object> out = PromptRunner.runJson(VISUAL, new Map<String, Object>{
+                'anime' => request.get('anime'), 'characters' => new List<String>(characters), 'scenes' => brief
+            });
+            if (!(out.get('scenes') instanceof List<Object>)) {
+                return;
+            }
+            for (Object o : (List<Object>) out.get('scenes')) {
+                Map<String, Object> plan = (Map<String, Object>) o;
+                Integer idx = plan.get('index') == null ? -1 : Integer.valueOf(String.valueOf(plan.get('index')));
+                if (idx >= 0 && idx < scenes.size() && plan.get('shots') instanceof List<Object>) {
+                    ((Map<String, Object>) scenes[idx]).put('shots', plan.get('shots'));
+                }
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'Visual Director failed: ' + e.getMessage());
+        }
     }
 
     /**
@@ -203,9 +261,11 @@ public with sharing class ScriptStudio {
         if (caption.get('hashtags') instanceof List<Object>) {
             r.script.put('hashtags', caption.get('hashtags'));
         }
+        directVisuals(request, r.script);
         r.calls = PromptRunner.calls - startCalls;
         return r;
     }
+
 
     /** Models sometimes wrap the script as {"script": {...}}; return the object that has "scenes". */
     @TestVisible

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Needs_Trending_Sound__c</fullName>
+    <description>A trending audio is driving reach; Reels may be held for manual posting with that sound.</description>
+    <label>Trending Sound Wanted</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+    <defaultValue>false</defaultValue>
+</CustomField>

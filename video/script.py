@@ -24,7 +24,7 @@ from typing import List
 MODES = ("fact", "theory", "what_if", "ranking")
 ROLES = ("hook", "fact", "twist", "theory", "what_if", "rank", "outro")
 HEADLINE_MAX = 48
-MIN_WORDS, MAX_WORDS = 60, 140  # roughly 25-50 s at speed 1.1
+MIN_WORDS, MAX_WORDS = 60, 300  # ~20-90 s at the cinematic voice speed (x1.3 ~ 3.2 words/s)
 
 
 class ScriptError(ValueError):
@@ -42,8 +42,8 @@ def validate_script(script: dict) -> List[str]:
     if script["mode"] not in MODES:
         errors.append(f"mode must be one of {MODES}")
     scenes = script["scenes"]
-    if not isinstance(scenes, list) or not 3 <= len(scenes) <= 8:
-        return errors + ["scenes must be a list of 3-8 scenes"]
+    if not isinstance(scenes, list) or not 3 <= len(scenes) <= 10:
+        return errors + ["scenes must be a list of 3-10 scenes"]
     if scenes[0].get("role") != "hook":
         errors.append("first scene must have role 'hook'")
     if scenes[-1].get("role") != "outro":
@@ -79,7 +79,7 @@ def validate_script(script: dict) -> List[str]:
             errors.append(f"{where}: theory scenes are only allowed in mode 'theory'")
 
     if not MIN_WORDS <= words <= MAX_WORDS:
-        errors.append(f"narration has {words} words; keep it between {MIN_WORDS} and {MAX_WORDS} (~30-45 s)")
+        errors.append(f"narration has {words} words; keep it between {MIN_WORDS} and {MAX_WORDS}")
     hashtags = script["hashtags"]
     if not isinstance(hashtags, list) or not all(isinstance(h, str) and h.startswith("#") for h in hashtags):
         errors.append("hashtags must be a list of strings starting with '#'")

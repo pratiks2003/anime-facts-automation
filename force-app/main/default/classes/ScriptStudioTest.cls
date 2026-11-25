@@ -29,7 +29,8 @@ private class ScriptStudioTest {
                 '{"pass":false,"issues":[{"scene":1,"sentence":"v2","problem":"unsupported","fix":"cite NEWS-001"}]}',
                 '{"pass":true,"issues":[]}'
             },
-            ScriptStudio.CAPTION => new List<String>{ '{"caption":"Friday is JoJo day 🔥\\nWhich are you watching?","hashtags":["#anime","#jojo","#steelballrun","#animenews","#otaku"]}' }
+            ScriptStudio.CAPTION => new List<String>{ '{"caption":"Friday is JoJo day 🔥\\nWhich are you watching?","hashtags":["#anime","#jojo","#steelballrun","#animenews","#otaku"]}' },
+            ScriptStudio.VISUAL => new List<String>{ '{"scenes":[{"index":0,"shots":[{"subject":"Jotaro Kujo","source":"wiki"}]},{"index":9,"shots":[]}]}' }
         };
         Test.startTest();
         ScriptStudio.Result r = ScriptStudio.run(request());
@@ -39,7 +40,9 @@ private class ScriptStudioTest {
         Assert.areEqual('v3', (String) ((Map<String, Object>) ((List<Object>) r.script.get('scenes'))[0]).get('narration'));
         Assert.areEqual(9.1, r.overall);
         Assert.isTrue(r.factsPass);
-        Assert.areEqual(7, r.calls, 'writer + 3 director + 2 fact checks + caption');
+        Assert.areEqual(8, r.calls, 'writer + 3 director + 2 fact checks + caption + visual director');
+        List<Object> shots = (List<Object>) ((Map<String, Object>) ((List<Object>) r.script.get('scenes'))[0]).get('shots');
+        Assert.areEqual('Jotaro Kujo', ((Map<String, Object>) shots[0]).get('subject'));
         Assert.areEqual(5, ((List<Object>) r.script.get('hashtags')).size());
         Assert.areEqual('am_fenrir', r.production.get('voice'));
         Anime_Content__c c = [SELECT Quality_Score__c, Director_Notes__c, Production_Brief__c, Script_Source__c FROM Anime_Content__c];
@@ -62,7 +65,7 @@ private class ScriptStudioTest {
         ScriptStudioResource.run();
         Assert.areEqual(200, RestContext.response.statusCode);
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
-        Assert.areEqual(4, (Integer) body.get('calls'));
+        Assert.areEqual(5, (Integer) body.get('calls'), 'includes the (unmocked, tolerated) visual director');
 
         RestContext.response = new RestResponse();
         RestContext.request.requestBody = Blob.valueOf('{"format":"Fact"}');
@@ -122,7 +125,7 @@ private class ScriptStudioTest {
         ScriptStudio.Result r = ScriptStudio.run(request());
         Assert.isTrue(r.factsPass);
         Assert.areEqual('v1 fixed', (String) ((Map<String, Object>) ((List<Object>) r.script.get('scenes'))[0]).get('narration'));
-        Assert.areEqual(5, r.calls, 'writer + director + 2 fact checks + caption: no director needed for a minor fix');
+        Assert.areEqual(6, r.calls, 'writer + director + 2 fact checks + caption + visual: no director needed for a minor fix');
     }
 
     @IsTest

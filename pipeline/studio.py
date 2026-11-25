@@ -31,12 +31,45 @@ def enforce_official_subjects(script: dict, anime: str, facts: List[dict]) -> No
             scene["image_source"] = "ai"
 
 
+def format_choices(scheduled: str) -> List[dict]:
+    """Formats the Strategist may switch to: news slots stay news, evergreen slots stay evergreen."""
+    from .planner import NEWS_FORMATS
+
+    news = scheduled in NEWS_FORMATS
+    return [{"name": name, "about": guide.get("shape", "")[:220]} for name, guide in FORMAT_GUIDE.items()
+            if (name in NEWS_FORMATS) == news]
+
+
+def strategy(sf, content_id: str, scheduled_format: str, slot: str = "", anime_hint: str = "", topic_hint: str = "") -> dict:
+    """Creative Strategist decision (format, angle, length, style). Raises StudioError if unavailable."""
+    from video.style import resolve_style, style_limits
+
+    result = sf.apex_post("insta/studio/strategy", {
+        "content_id": content_id, "slot": slot, "scheduled_format": scheduled_format,
+        "formats": format_choices(scheduled_format), "anime_hint": anime_hint, "topic_hint": topic_hint,
+        "style_limits": style_limits(),
+    })
+    if not isinstance(result, dict) or result.get("error") or "style" not in result:
+        raise StudioError(f"strategist returned nothing usable: {str(result)[:300]}")
+    if result.get("format") not in FORMAT_GUIDE:
+        result["format"] = scheduled_format
+    result["style"] = resolve_style(result.get("style"))
+    result["style"]["name"] = result.get("style_name") or result["style"]["name"]
+    try:
+        result["length_seconds"] = max(20, min(90, int(result.get("length_seconds") or result["style"]["target_seconds"])))
+    except (TypeError, ValueError):
+        result["length_seconds"] = result["style"]["target_seconds"]
+    return result
+
+
 def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[dict], context: str = "",
-                 topic: str = "", lessons: Optional[List[str]] = None) -> dict:
+                 topic: str = "", lessons: Optional[List[str]] = None, angle: str = "",
+                 length_seconds: Optional[int] = None, style: Optional[dict] = None) -> dict:
     """Return {"script", "quality", "production", "fact_check", "calls"} with a code-validated script."""
     payload = {
         "content_id": content_id, "format": format_name, "guide": FORMAT_GUIDE[format_name], "anime": anime,
-        "context": context, "topic": topic, "lessons": lessons or [],
+        "context": context, "topic": topic, "lessons": lessons or [], "angle": angle,
+        "length_seconds": length_seconds, "style": style or {},
         "facts": [{k: f.get(k) for k in ("id", "anime", "title", "content", "characters", "spoiler_level")} for f in facts],
     }
     result = sf.apex_post("insta/studio/script", payload)

@@ -384,6 +384,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     on_screen_sources = sources_note if channel.get("show_sources_on_video") else ""
     image_rejections: List[str] = []
     visual_qa: dict = {}
+    gemini = None
     if cinematic:
         cache = Path(out_root) / "_media_cache"
         backup = []
@@ -434,6 +435,14 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
                                  images=image_specs)
     thumb_t = min(narration.scenes[0].start + 0.9, narration.scenes[0].end - 0.1)
     renderer.frame(thumb_t, captions=False).save(out / "cover.jpg", quality=92)
+    cover_info = None
+    if cinematic and images:  # designed cover for the profile grid, picked by the quality checker
+        try:
+            from .cover import make_cover
+
+            cover_info = make_cover(renderer, script, out, gemini, channel.get("handle", ""))
+        except Exception as exc:
+            log(f"warning: cover design failed ({type(exc).__name__}: {exc}); using a video frame")
 
     if stills:
         for i, s in enumerate(narration.scenes):
@@ -468,6 +477,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "video": str(out / "video.mp4"),
         "cover": str(out / "cover.jpg"),
         "thumb_offset_ms": int(thumb_t * 1000),
+        "designed_cover": cover_info,
         "caption": "\n\n".join(x for x in (
             full_caption(script),
             AI_DISCLOSURE if any(a and a.kind == "ai_image" for a in scene_assets) else "",

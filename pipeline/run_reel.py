@@ -129,17 +129,19 @@ class TrialNotAvailable(RuntimeError):
 
 
 def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_url: Optional[str] = None,
-                         trial: bool = False) -> tuple:
+                         trial: bool = False, cover_url: Optional[str] = None) -> tuple:
     """Prefer handing Meta the public preview URL (reliable); fall back to direct upload,
     whose endpoint intermittently answers 'Request processing failed'."""
     from integrations.instagram import ContainerError, InstagramAPIError, client_from_env
 
     ig = client_from_env()
     extra = {"trial_strategy": "SS_PERFORMANCE"} if trial else {}
+    # a designed cover (public JPEG) beats a frame offset; Meta ignores thumb_offset when cover_url is set
+    extra.update({"cover_url": cover_url} if cover_url else {"thumb_offset_ms": thumb_offset_ms})
     result = None
     if video_url:
         try:
-            result = ig.publish_reel(caption, video_url=video_url, publish=True, thumb_offset_ms=thumb_offset_ms, **extra)
+            result = ig.publish_reel(caption, video_url=video_url, publish=True, **extra)
         except (InstagramAPIError, ContainerError) as exc:
             if trial and isinstance(exc, InstagramAPIError) and exc.code == 10:
                 raise TrialNotAvailable(str(exc)) from None  # account not eligible for Trial Reels yet
@@ -147,7 +149,7 @@ def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_
                 raise  # the container was fine; don't risk a duplicate post via the fallback
             log(f"video_url publish failed ({exc}); trying direct upload")
     if result is None:
-        result = ig.publish_reel(caption, video_path=str(video), publish=True, thumb_offset_ms=thumb_offset_ms, **extra)
+        result = ig.publish_reel(caption, video_path=str(video), publish=True, **extra)
     if not result.published or not result.media_id:
         raise RuntimeError("Instagram did not confirm publication")
     return result.media_id, result.permalink
@@ -458,7 +460,8 @@ def generate(args, sf) -> int:
     sf.reel_update(cid, Status__c="Publishing")
     try:
         media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
-                                                   urls.get(f"{cid}.mp4"), trial=trial)
+                                                   urls.get(f"{cid}.mp4"), trial=trial,
+                                                   cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None)
     except TrialNotAvailable as exc:
         reason = "Trial Reels are not available for this account yet (Instagram eligibility); held for your review."
         sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Publish_As_Trial__c=False, Hold_Reason__c=reason)
@@ -480,7 +483,7 @@ def publish(args, sf) -> int:
     sf.job_update(job, Status__c="Running", Started_At__c=now_iso(), Run_URL__c=run_url(),
                   GitHub_Run_Id__c=os.environ.get("GITHUB_RUN_ID"), Stage__c="Downloading")
     rows = [] if isinstance(sf, NullSalesforce) else sf.query(
-        f"SELECT Caption__c, Video_URL__c FROM Anime_Content__c WHERE External_Id__c = '{cid}' LIMIT 1")
+        f"SELECT Caption__c, Video_URL__c, Cover_URL__c FROM Anime_Content__c WHERE External_Id__c = '{cid}' LIMIT 1")
     if not rows:
         raise RuntimeError(f"Reel {cid} not found in Salesforce")
     store = ReleaseStore.from_env()
@@ -492,7 +495,8 @@ def publish(args, sf) -> int:
         sf.job_update(job, Status__c="Succeeded", Stage__c="Dry run complete", Completed_At__c=now_iso())
         return 0
     sf.job_update(job, Stage__c="Publishing to Instagram")
-    media_id, permalink = publish_to_instagram(video, rows[0]["Caption__c"] or "", 900, rows[0].get("Video_URL__c"))
+    media_id, permalink = publish_to_instagram(video, rows[0]["Caption__c"] or "", 900, rows[0].get("Video_URL__c"),
+                                               cover_url=rows[0].get("Cover_URL__c"))
     sf.record_post(cid, media_id, permalink)
     sf.reel_update(cid, Status__c="Published", Error_Message__c=None)
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())

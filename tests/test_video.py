@@ -383,3 +383,21 @@ class VisualQATests(unittest.TestCase):
     def test_secrets_are_redacted(self):
         from video.visual_qa import SECRET_RE
         self.assertEqual(SECRET_RE.sub("[x]", "token EAAB" + "a" * 30 + " ok"), "token [x] ok")
+
+
+class CoverTests(unittest.TestCase):
+    def test_design_fits_grid_and_title(self):
+        import tempfile
+        from types import SimpleNamespace
+        from PIL import Image
+        from video.cover import GRID_BOTTOM, GRID_TOP, cover_title, grid_view, make_cover
+        script = {"anime": "One Piece", "title": "t", "scenes": [{"headline": "Robin's secret power revealed today now"}]}
+        self.assertEqual(cover_title(script), "Robin's secret power revealed today")
+        with tempfile.TemporaryDirectory() as tmp:
+            pic = Path(tmp) / "p.jpg"
+            Image.new("RGB", (900, 1400), (120, 40, 200)).save(pic)
+            info = make_cover(SimpleNamespace(shots=[SimpleNamespace(source=str(pic))]), script, Path(tmp))
+            cover = Image.open(Path(tmp) / "cover.jpg")
+            self.assertEqual(cover.size, (1080, 1920))
+            self.assertEqual(grid_view(cover).size, (1080, GRID_BOTTOM - GRID_TOP))
+            self.assertEqual(info["source"], str(pic))

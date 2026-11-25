@@ -130,7 +130,7 @@ def top_up(llm, store: KnowledgeStore, anime: dict, entry: dict, opener: Callabl
 
 def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", recent_ids: Optional[Set[str]] = None,
               recent_anime: Optional[List[str]] = None, slot_seed: str = "", store: Optional[KnowledgeStore] = None,
-              opener: Callable = urllib.request.urlopen) -> Plan:
+              opener: Callable = urllib.request.urlopen, strict_anime: bool = True) -> Plan:
     recent_ids = recent_ids or set()
     if format_name in NEWS_FORMATS:
         news = news_facts(format_name, opener)
@@ -154,11 +154,12 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
             ingested = {"error": 1}
             print(f"[planner] knowledge top-up skipped: {type(exc).__name__}: {str(exc)[:160]}")
         facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
-    if len(facts) < 3 and not anime_hint:
-        # Couldn't learn enough about the trending pick: fall back to the best-covered show we know.
+    if len(facts) < 3 and (not anime_hint or not strict_anime):
+        # Couldn't learn enough about the trending / suggested pick: fall back to the best-covered show we know.
+        # (Only an anime the owner asked for explicitly is strict.)
         known = sorted(store.metadata, key=lambda e: -len(usable_facts(store, e["name"], recent_ids, format_name, "")))
         for alt in known:
-            alt_facts = usable_facts(store, alt["name"], recent_ids, format_name, topic)
+            alt_facts = usable_facts(store, alt["name"], recent_ids, format_name, "")
             if len(alt_facts) >= 3:
                 print(f"[planner] {entry['name']} has too few verified facts; switching to {alt['name']}")
                 entry, facts = alt, alt_facts

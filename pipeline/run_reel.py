@@ -302,7 +302,10 @@ def generate(args, sf) -> int:
     else:
         idea = None
     plan = plan_reel(llm, args.format, anime_hint=anime_hint, topic=topic,
-                     recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid)
+                     recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid, strict_anime=bool(args.anime))
+    if anime_hint and plan.anime.casefold() != anime_hint.casefold() and not args.anime:
+        log(f"{anime_hint} lacked verified facts; the team switched to {plan.anime}")
+        idea, topic, angle = None, "", ""  # the idea stays in the backlog for when we know more about it
     log(f"plan: {plan.format} about {plan.anime} with {len(plan.facts)} facts (ingested {plan.ingested})")
 
     stage("Writing script (agents)")

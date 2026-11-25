@@ -11,6 +11,7 @@ public with sharing class ScriptStudio {
     public static final Integer MAX_REWRITES = 2;
     public static final Decimal REVISE_BELOW = 8.5;
     public static final Integer MAX_REMAKES = 2;
+    public static final Integer MAX_FACT_ROUNDS = 3;
 
     public class Result {
         public Map<String, Object> script;
@@ -91,20 +92,107 @@ public with sharing class ScriptStudio {
         r.script = bestScript;
         applyVerdict(r, bestVerdict);
 
-        // Fact Checker, with one targeted Director fix pass.
-        Map<String, Object> check = factCheck(request, r.script);
-        if (!(Boolean) check.get('pass')) {
-            Map<String, Object> fix = direct(request, r.script, (List<Object>) check.get('issues'));
-            if (fix.get('revised_script') instanceof Map<String, Object>) {
-                r.script = unwrap((Map<String, Object>) fix.get('revised_script'));
-                applyVerdict(r, fix);
-                check = factCheck(request, r.script);
+        // Fact accuracy: the team repairs instead of blocking.
+        repairFacts(request, r, writerReq);
+
+        // Caption & hashtags written for the final script.
+        Map<String, Object> caption = PromptRunner.runJson(
+            CAPTION,
+            new Map<String, Object>{ 'format' => request.get('format'), 'anime' => request.get('anime'), 'script' => r.script }
+        );
+        if (caption.get('caption') != null) {
+            r.script.put('caption', caption.get('caption'));
+        }
+        if (caption.get('hashtags') instanceof List<Object>) {
+            r.script.put('hashtags', caption.get('hashtags'));
+        }
+        r.calls = PromptRunner.calls - startCalls;
+        return r;
+    }
+
+    /**
+     * Fact Checker -> minor issues: apply the checker's corrected sentence; major issues: Director fix pass.
+     * Up to MAX_FACT_ROUNDS; if facts still fail, the Writer remakes the script with the problems as its brief.
+     */
+    public static void repairFacts(Map<String, Object> request, Result r, Map<String, Object> writerReq) {
+        Map<String, Object> check;
+        for (Integer round = 0; round < MAX_FACT_ROUNDS; round++) {
+            check = factCheck(request, r.script);
+            if ((Boolean) check.get('pass')) {
+                break;
+            }
+            List<Object> remaining = applyMinorFixes(r.script, (List<Object>) check.get('issues'));
+            if (!remaining.isEmpty()) {
+                Map<String, Object> fix = direct(request, r.script, remaining);
+                if (fix.get('revised_script') instanceof Map<String, Object>) {
+                    r.script = unwrap((Map<String, Object>) fix.get('revised_script'));
+                    applyVerdict(r, fix);
+                }
+            }
+            check = null; // re-check on the next round
+        }
+        if (check == null) {
+            check = factCheck(request, r.script);
+        }
+        if (!(Boolean) check.get('pass') && writerReq != null) {
+            Map<String, Object> remakeReq = writerReq.clone();
+            remakeReq.put('director_notes', check.get('issues'));
+            remakeReq.put('previous_script', r.script);
+            Map<String, Object> remade = unwrap(PromptRunner.runJson(WRITER, remakeReq));
+            Map<String, Object> verdict = direct(request, remade, null);
+            Map<String, Object> recheck = factCheck(request, remade);
+            if ((Boolean) recheck.get('pass')) {
+                r.script = remade;
+                applyVerdict(r, verdict);
+                check = recheck;
             }
         }
         r.factsPass = (Boolean) check.get('pass');
         r.factIssues = (List<Object>) check.get('issues');
+    }
 
-        // Caption & hashtags written for the final script.
+    /** Applies "minor" fixes in place (exact sentence replacement); returns issues that still need the Director. */
+    @TestVisible
+    private static List<Object> applyMinorFixes(Map<String, Object> script, List<Object> issues) {
+        List<Object> remaining = new List<Object>();
+        List<Object> scenes = (List<Object>) script.get('scenes');
+        for (Object o : issues) {
+            Map<String, Object> issue = (Map<String, Object>) o;
+            String sentence = (String) issue.get('sentence');
+            String fix = (String) issue.get('fix');
+            Boolean applied = false;
+            if (issue.get('severity') == 'minor' && String.isNotBlank(sentence) && String.isNotBlank(fix) && scenes != null) {
+                for (Object so : scenes) {
+                    Map<String, Object> scene = (Map<String, Object>) so;
+                    String narration = (String) scene.get('narration');
+                    if (narration != null && narration.contains(sentence)) {
+                        scene.put('narration', narration.replace(sentence, fix));
+                        applied = true;
+                        break;
+                    }
+                }
+            }
+            if (!applied) {
+                remaining.add(issue);
+            }
+        }
+        return remaining;
+    }
+
+    /**
+     * Post-render revision: QA found problems (length, pacing, facts). Director fixes the script with the
+     * issues as notes, facts are repaired, caption rewritten. Used by /insta/studio/revise.
+     */
+    public static Result revise(Map<String, Object> request) {
+        Integer startCalls = PromptRunner.calls;
+        Result r = new Result();
+        r.script = unwrap((Map<String, Object>) request.get('script'));
+        Map<String, Object> fix = direct(request, r.script, (List<Object>) request.get('issues'));
+        if (fix.get('revised_script') instanceof Map<String, Object>) {
+            r.script = unwrap((Map<String, Object>) fix.get('revised_script'));
+        }
+        applyVerdict(r, fix);
+        repairFacts(request, r, null);
         Map<String, Object> caption = PromptRunner.runJson(
             CAPTION,
             new Map<String, Object>{ 'format' => request.get('format'), 'anime' => request.get('anime'), 'script' => r.script }

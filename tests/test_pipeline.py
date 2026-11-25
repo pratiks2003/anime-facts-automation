@@ -320,3 +320,42 @@ class VisualVarietyTests(unittest.TestCase):
         self.assertEqual([sc["image_source"] for sc in s["scenes"]], ["official", "ai", "official", "ai"])
         self.assertNotIn("tag", s["scenes"][0])
         self.assertNotIn("tag", s["scenes"][3])
+
+
+class RepairAfterQATests(unittest.TestCase):
+    def plan(self):
+        from pipeline.planner import Plan
+        return Plan("Fact", "One Piece", 21, [{"id": "OP-1", "anime": "One Piece", "title": "t", "content": "c", "characters": [], "spoiler_level": "none"}])
+
+    def script(self):
+        return {"id": "R-1", "anime": "One Piece", "mode": "fact", "format": "Fact", "title": "T", "voice": "am_fenrir", "scenes": [
+            {"role": "hook", "headline": "Hook", "narration": "Big secret incoming today. " * 6, "image_source": "official", "image_subject": "One Piece", "image_prompt": "p"},
+            {"role": "fact", "headline": "Fact", "narration": "Luffy is rubber and cannot swim at all. " * 4, "knowledge_ids": ["OP-1"], "image_source": "ai", "image_prompt": "p"},
+            {"role": "outro", "headline": "Outro", "narration": "Comment your pick below and follow.", "image_source": "ai", "image_prompt": "p"}],
+            "caption": "c", "hashtags": ["#a", "#b", "#c", "#d", "#e"]}
+
+    def test_missing_official_image_switches_to_ai_without_llm(self):
+        from integrations.salesforce import NullSalesforce
+        from pipeline.run_reel import repair_after_qa
+        fixed, quality = repair_after_qa(NullSalesforce(), "R-1", "Fact", self.plan(), self.script(),
+                                         {"images": [None, {"x": 1}, None]}, ["1 of 1 official images missing"])
+        self.assertEqual(fixed["scenes"][0]["image_source"], "ai")
+        self.assertIsNone(quality)
+
+    def test_length_issue_goes_to_the_director(self):
+        from pipeline.run_reel import repair_after_qa
+        shorter = self.script()
+        shorter["scenes"][0]["narration"] = "Big secret incoming. " * 9
+
+        class SF:
+            calls = []
+
+            def apex_post(self, path, payload):
+                SF.calls.append((path, payload["issues"]))
+                return {"script": shorter, "quality": {"overall": 8.6}, "fact_check": {"pass": True}}
+
+        fixed, quality = repair_after_qa(SF(), "R-1", "Fact", self.plan(), self.script(), {"images": [{"x": 1}, {"x": 1}, None]},
+                                         ["too long (52s; target 28-45s)"])
+        self.assertEqual(SF.calls[0], ("insta/studio/revise", ["too long (52s; target 28-45s)"]))
+        self.assertEqual(fixed["voice"], "am_fenrir")
+        self.assertEqual(quality["quality"]["overall"], 8.6)

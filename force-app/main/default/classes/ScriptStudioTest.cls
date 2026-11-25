@@ -106,4 +106,48 @@ private class ScriptStudioTest {
         Assert.areEqual(8.8, r.overall, 'the remake that scored 8.8 wins');
         Assert.areEqual('v2', (String) ((Map<String, Object>) ((List<Object>) r.script.get('scenes'))[0]).get('narration'));
     }
+
+    @IsTest
+    static void minorFactIssueIsFixedInPlaceWithoutDirector() {
+        String approve = '{"overall":9,"verdict":"approve","scores":{},"notes":[],' + BRIEF + ',"revised_script":null}';
+        PromptRunner.mock = new Map<String, List<String>>{
+            ScriptStudio.WRITER => new List<String>{ SCRIPT_V1 },
+            ScriptStudio.DIRECTOR => new List<String>{ approve },
+            ScriptStudio.FACT_CHECKER => new List<String>{
+                '{"pass":false,"issues":[{"scene":1,"sentence":"v1","problem":"every day vs each night","severity":"minor","fix":"v1 fixed"}]}',
+                '{"pass":true,"issues":[]}'
+            },
+            ScriptStudio.CAPTION => new List<String>{ '{"caption":"c","hashtags":["#a","#b","#c","#d","#e"]}' }
+        };
+        ScriptStudio.Result r = ScriptStudio.run(request());
+        Assert.isTrue(r.factsPass);
+        Assert.areEqual('v1 fixed', (String) ((Map<String, Object>) ((List<Object>) r.script.get('scenes'))[0]).get('narration'));
+        Assert.areEqual(5, r.calls, 'writer + director + 2 fact checks + caption: no director needed for a minor fix');
+    }
+
+    @IsTest
+    static void reviseEndpointFixesQaIssues() {
+        String revised = '{"overall":8.7,"verdict":"revise","scores":{},"notes":["tightened"],' + BRIEF + ',"revised_script":' + SCRIPT_V2 + '}';
+        PromptRunner.mock = new Map<String, List<String>>{
+            ScriptStudio.DIRECTOR => new List<String>{ revised },
+            ScriptStudio.FACT_CHECKER => new List<String>{ '{"pass":true,"issues":[]}' },
+            ScriptStudio.CAPTION => new List<String>{ '{"caption":"c2","hashtags":["#a","#b","#c","#d","#e"]}' }
+        };
+        Map<String, Object> req = request();
+        req.put('script', JSON.deserializeUntyped(SCRIPT_V1));
+        req.put('issues', new List<Object>{ 'too long (52s; target 28-45s)' });
+        RestContext.response = new RestResponse();
+        RestContext.request = new RestRequest();
+        RestContext.request.requestBody = Blob.valueOf(JSON.serialize(req));
+        StudioReviseResource.run();
+        Assert.areEqual(200, RestContext.response.statusCode);
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
+        Map<String, Object> script = (Map<String, Object>) body.get('script');
+        Assert.areEqual('v2', (String) ((Map<String, Object>) ((List<Object>) script.get('scenes'))[0]).get('narration'));
+
+        RestContext.response = new RestResponse();
+        RestContext.request.requestBody = Blob.valueOf('{"script":{}}');
+        StudioReviseResource.run();
+        Assert.areEqual(400, RestContext.response.statusCode);
+    }
 }

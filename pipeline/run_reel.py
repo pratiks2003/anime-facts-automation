@@ -172,6 +172,42 @@ def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
     return issues
 
 
+def repair_after_qa(sf, cid: str, format_name: str, plan, script: dict, manifest: dict, issues: List[str]):
+    """QA found problems: hand them to the team. Returns (fixed script, new quality) or None if nothing to do.
+
+    - official images missing -> those scenes switch to AI art (no LLM needed)
+    - length / fact problems  -> Creative Director + Fact Checker revise the script (/insta/studio/revise)
+    """
+    from pipeline.writer import check_script, normalise
+
+    fixed = json.loads(json.dumps(script))
+    changed = False
+    images = manifest.get("images") or []
+    for scene, img in zip(fixed["scenes"], images):
+        if scene.get("image_source") == "official" and not img:
+            scene["image_source"] = "ai"
+            changed = True
+    script_issues = [i for i in issues if "official images" not in i]
+    new_quality = None
+    if script_issues and not isinstance(sf, NullSalesforce):
+        facts = [{k: f.get(k) for k in ("id", "anime", "title", "content", "characters", "spoiler_level")} for f in plan.facts]
+        try:
+            result = sf.apex_post("insta/studio/revise", {"content_id": cid, "format": format_name, "anime": plan.anime,
+                                                          "facts": facts, "script": fixed, "issues": script_issues})
+        except Exception as exc:
+            log(f"revise unavailable ({exc})")
+            result = None
+        if isinstance(result, dict) and isinstance(result.get("script"), dict):
+            candidate = normalise(result["script"], cid, plan.anime, format_name)
+            for key in ("voice", "speed", "mood", "music_keywords", "music_energy"):
+                if key in fixed and key not in candidate:
+                    candidate[key] = fixed[key]
+            if not check_script(candidate, {f["id"] for f in plan.facts}):
+                fixed, changed, new_quality = candidate, True, result
+                log(f"team revised the script: score {result.get('quality', {}).get('overall')}, facts pass={result.get('fact_check', {}).get('pass')}")
+    return (fixed, new_quality) if changed else None
+
+
 def gate_decision(sf, content_id: str) -> tuple:
     """(hold, trial) read back after the Reel Quality Gate flow ran on our update."""
     if isinstance(sf, NullSalesforce):
@@ -270,19 +306,32 @@ def generate(args, sf) -> int:
 
     stage("Rendering")
     picker = music_picker_for(sf, script)
-    manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker)
+    manifest, qa_issues = None, []
+    for attempt in range(2):  # render -> QA -> (team repairs -> re-render) at most once
+        manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker)
+        errors = manifest["validation"]["errors"]
+        if errors:
+            raise RuntimeError("video failed validation: " + "; ".join(errors))
+        qa_issues = qa_review(manifest, script, quality)
+        if not qa_issues:
+            break
+        log("QA issues: " + "; ".join(qa_issues))
+        if attempt == 1:
+            break
+        stage("Team fixing QA issues")
+        repaired = repair_after_qa(sf, cid, args.format, plan, script, manifest, qa_issues)
+        if repaired is None:
+            break
+        script, extra_quality = repaired
+        quality = extra_quality or quality
+        script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")
+        log("re-rendering with the team's fixes")
     music = manifest.get("music")
     music_choice = None
     if isinstance(music, dict):
         reason = (picker.state.get("reason") if picker else None) or "stable pick"
         music_choice = f"{music.get('title')} by {music.get('creator')} - {reason}"[:255]
         log(f"music: {music_choice}")
-    errors = manifest["validation"]["errors"]
-    if errors:
-        raise RuntimeError("video failed validation: " + "; ".join(errors))
-    qa_issues = qa_review(manifest, script, quality)
-    if qa_issues:
-        log("QA issues: " + "; ".join(qa_issues))
     out_dir = Path(manifest["video"]).parent
 
     stage("Uploading preview")

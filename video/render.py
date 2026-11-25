@@ -238,11 +238,10 @@ def reset(inspector):
     return inspector
 
 
-def run_visual_qa(script, narration, style, renderer, images: bool, channel: dict, beats, repick, rounds: int = 2) -> dict:
+def run_visual_qa(script, narration, style, renderer, gemini, channel: dict, beats, repick, rounds: int = 2) -> dict:
     """Visual QA agent: watch -> ban wrong shots -> re-pick -> watch again. Returns the report (+ final renderer)."""
-    from .visual_qa import Gemini, review
+    from .visual_qa import review
 
-    gemini = Gemini.from_env() if images else None
     if gemini is None:
         return {"status": "skipped (no GEMINI_API_KEY)"}
     banned: set = set()
@@ -256,14 +255,29 @@ def run_visual_qa(script, narration, style, renderer, images: bool, channel: dic
                 report.update(status="fixed (re-check unavailable)", fixed_issues=report.pop("issues"), issues=[])
             report.setdefault("status", "unavailable (Gemini busy)")
             break
-        log(f"visual QA round {attempt + 1}: {len(result['bad'])} wrong shot(s) - {result['summary']}")
+        log(f"visual QA round {attempt + 1}: {len(result['bad'])} wrong shot(s), edit score {result['edit_score']}/10 - "
+            f"{result['summary']}")
         for issue in result["issues"]:
             log(f"  {issue}")
         report = {"status": "checked", "summary": result["summary"], "issues": result["issues"],
+                  "edit_score": result["edit_score"], "up_to_mark": result["up_to_mark"], "edit_notes": result["edit_notes"],
                   "rounds": attempt + 1, "fixed": fixed, "fixed_issues": report.get("fixed_issues", []) + report.get("issues", [])
                   if attempt else []}
-        if not result["bad"] or attempt == rounds:
+        # weak shots: when the edit is below 8/10, act on the editor's "show this instead" suggestions
+        weak = [(i, better) for i, better in result.get("weak", []) if i not in result["bad"]]
+        if result["edit_score"] is not None and result["edit_score"] >= 8:
+            weak = []
+        if (not result["bad"] and not weak) or attempt == rounds:
             break
+        for i, better in weak:
+            shot = renderer.shots[i]
+            scene_index = next((k for k, sc in enumerate(narration.scenes) if sc.start <= shot.start < sc.end + 0.01),
+                               len(narration.scenes) - 1)
+            plan = script["scenes"][scene_index].setdefault("shots", [])
+            plan.insert(0, {"subject": better, "scene": better, "source": "wiki"})
+            if shot.source:
+                result["bad_sources"].append(shot.source)
+        log(f"  editor asks for {len(weak)} better shot(s): " + "; ".join(b for _, b in weak)[:300]) if weak else None
         new = set(result["bad_sources"]) - banned
         if not new:
             break  # nothing new to ban (e.g. the only available picture): leave it to the QA gate
@@ -390,16 +404,30 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
             # footage only from OFFICIAL accounts (channel.json clip_accounts) - never other creators' edits,
             # which carry their own captions and watermarks
             clips = gather_clips(script, cache, style, inspector, channel.get("clip_accounts", ["crunchyroll"]))
+        from .visual_qa import Gemini, approve_clips
+
+        gemini = Gemini.from_env() if images else None
+        clip_scenes = None
+        if clips:
+            approval = approve_clips(gemini, clips, [sc.get("narration", "") for sc in script["scenes"]], script["anime"]) \
+                if gemini else None
+            if approval is None:  # no clip editor available: clips only as generic hook/outro motion
+                clip_scenes = {c: None for c in clips}
+                log("clip editor unavailable: clips limited to hook/outro")
+            else:
+                clips = [c for c in clips if c in approval]
+                clip_scenes = approval
         shots = resolve_shots(script, narration, style, primary, cache, backup, extra_records, stock,
-                              inspector=inspector, clips=clips) if images else [[] for _ in scene_assets]
+                              inspector=inspector, clips=clips, clip_scenes=clip_scenes) if images else [[] for _ in scene_assets]
         image_rejections = list(getattr(resolve_shots, "rejections", []))
         music_file = local_music or (Path(music_asset.path) if music_asset else None)
         beats = audio_library.beat_times(music_file) if music_file else []
         log(f"beat sync: {len(beats)} beats" if beats else "beat sync: off (no steady pulse)")
         renderer = CinematicRenderer(script, narration, style, shots, handle=channel.get("handle", ""), beats=beats)
-        visual_qa = run_visual_qa(script, narration, style, renderer, images, channel, beats,
+        visual_qa = run_visual_qa(script, narration, style, renderer, gemini, channel, beats,
                                   lambda banned: resolve_shots(script, narration, style, primary, cache, backup, extra_records,
-                                                               stock, inspector=reset(inspector), clips=clips, banned=banned))
+                                                               stock, inspector=reset(inspector), clips=clips, banned=banned,
+                                                               clip_scenes=clip_scenes))
         renderer = visual_qa.pop("renderer", renderer)
     else:
         renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=on_screen_sources,

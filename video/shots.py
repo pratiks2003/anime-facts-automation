@@ -159,7 +159,7 @@ class ShotSources:
 def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[str]], cache: Path,
                   backup: List[str], extra_records: Optional[List[dict]] = None,
                   last_resort: List[str] = (), inspector=None, clips: Optional[List[str]] = None,
-                  banned: Optional[set] = None) -> List[List[str]]:
+                  banned: Optional[set] = None, clip_scenes: Optional[dict] = None) -> List[List[str]]:
     """Image paths per scene. Every picture is inspected before use and never repeated;
     when a scene runs out of distinct good pictures it gets fewer, longer shots instead."""
     from .image_check import Inspector
@@ -175,6 +175,15 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
     rejections: List[str] = []
     banned = set(banned or ())  # pictures the Visual QA agent rejected
     clip_pool = [c for c in (clips or []) if c not in banned]  # each clip is used once
+    # clip editor's placement: {clip: scene index | None (generic: hook/outro only)}; no map = place anywhere
+    placement = dict(clip_scenes) if clip_scenes is not None else None
+
+    def clips_for(i: int, last: bool) -> List[str]:
+        if placement is None:
+            return clip_pool
+        mine = [c for c in clip_pool if placement.get(c) == i]
+        generic = [c for c in clip_pool if placement.get(c) is None] if (i == 0 or last) else []
+        return mine + generic
     ratio = float(style.get("clip_ratio", 0.5))
 
     bad_paths: set = set()
@@ -208,11 +217,17 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
             ai = Path(primary[i]).name.startswith("ai_")
             if take(primary[i], scene.get("image_subject", ""), "scene" if ai else "anime", scene.get("image_prompt", "")):
                 paths.append(primary[i])
-        clip_slots = min(len(clip_pool), round(count * ratio))
-        if i == 0 and clip_pool and ratio > 0:
+        last_scene = i == len(script["scenes"]) - 1
+        available = clips_for(i, last_scene)
+        clip_slots = min(len(available), round(count * ratio))
+        if placement is not None:
+            clip_slots = min(len(available), max(clip_slots, len([c for c in available if placement.get(c) == i])))
+        if i == 0 and available and ratio > 0:
             clip_slots = max(1, clip_slots)  # open on motion
         if i == 0 and clip_slots:
-            paths.insert(0, clip_pool.pop(0))
+            first = available[0]
+            clip_pool.remove(first)
+            paths.insert(0, first)
             clip_slots -= 1
         still_target = count - clip_slots
         characters = named_in(scene.get("narration", ""), record_characters(scene, extra_records))
@@ -237,8 +252,11 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
         scenes_left = max(1, len(script["scenes"]) - i)
         fair_share = max(clip_slots, -(-len(clip_pool) // scenes_left))  # spread clips over the whole Reel
         added = 0
-        while len(paths) < count and clip_pool and added < fair_share:  # anime motion between the stills
-            paths.append(clip_pool.pop(0))
+        for clip in clips_for(i, last_scene):  # anime motion between the stills (only where it fits)
+            if len(paths) >= count or added >= fair_share:
+                break
+            clip_pool.remove(clip)
+            paths.append(clip)
             added += 1
         for path in general:  # the show's own screenshots / trailer / characters
             if len(paths) >= count:

@@ -169,6 +169,8 @@ def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
     visual = manifest.get("visual_qa") or {}
     if visual.get("status") == "checked" and visual.get("issues"):
         issues.append("visual QA: " + "; ".join(visual["issues"])[:400])
+    if visual.get("status") == "checked" and visual.get("up_to_mark") is False:
+        issues.append(f"edit quality {visual.get('edit_score')}/10 (quality checker): " + "; ".join(visual.get("edit_notes") or [])[:300])
     fact_check = (quality or {}).get("fact_check") or {}
     if fact_check and not fact_check.get("pass", True):
         issues.append("fact checker flagged: " + "; ".join(str(i.get("problem", i)) for i in fact_check.get("issues", []))[:300])

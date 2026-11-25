@@ -43,6 +43,7 @@ BAD_LABELS = {  # kind -> prompts (probabilities are summed per kind)
     "logo": ["a logo or title text on a plain background"],
     "merch": ["a toy figure or merchandise product photo"],
     "game": ["a video game user interface screenshot", "a 3D video game character render", "a Fortnite skin"],
+    "sketch": ["a rough pencil sketch", "an unfinished storyboard or animation key-frame drawing", "messy line art scribbles"],
     "nsfw": ["explicit sexual or nude content"],
 }
 UPSCALE_FULL = 1.6  # a picture may be enlarged at most this much when shown full-screen
@@ -199,7 +200,8 @@ class Inspector:
 
     def inspect(self, path: Path, subject: str = "", expect: str = "anime", description: str = "",
                 register: bool = True) -> Verdict:
-        """expect: "anime" (wiki/official art) or "scene" (AI / stock picture matching `description`)."""
+        """expect: "anime" (wiki/official art, manga panels), "clip" (video clip frame: also rejects rough sketches /
+        animation-process footage) or "scene" (AI / stock picture matching `description`)."""
         try:
             img = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
         except Exception as exc:
@@ -222,11 +224,13 @@ class Inspector:
             for k, ts in BAD_LABELS.items():
                 bad[k] = float(probs[i:i + len(ts)].sum())
                 i += len(ts)
+            if expect != "clip":
+                bad.pop("sketch", None)  # B&W manga panels look "sketchy" to CLIP; the sketch rule is for video clips only
             worst = max(bad, key=bad.get)
             kind = "anime" if good >= max(bad.values()) else worst
             if bad["nsfw"] > 0.25:
                 return self._reject("NSFW risk", h=h, kind="nsfw")
-            if expect == "anime" and bad[worst] > good:
+            if expect in ("anime", "clip") and bad[worst] > good:
                 return self._reject(f"not anime art (looks like {worst}: {bad[worst]:.0%})", h=h, kind=worst)
             score += good
             if expect == "scene" and description:

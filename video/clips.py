@@ -55,7 +55,9 @@ def mentions(caption: str, names: Sequence[str]) -> bool:
 # Official accounts also post ads, collabs and merch: those Reels are not story footage.
 PROMO = re.compile(r"\b(fortnite|collab|collaboration|game|gaming|playstation|xbox|nintendo|merch|figure|figurine|"
                    r"pre-?order|shop|store|sale|giveaway|sponsored|ad\b|available now on|tickets?|concert|cafe|"
-                   r"live[- ]action|netflix series|event|booth|convention|expo)", re.I)
+                   r"live[- ]action|netflix series|event|booth|convention|expo|"
+                   r"process|making[- ]of|behind the scenes|key animation|genga|storyboard|sketch|drawing|timelapse|"
+                   r"time-lapse|draws?|artist)", re.I)
 
 
 def instagram_sources(names: Sequence[str], watchlist: Sequence[str], limit: int = 4,
@@ -171,7 +173,7 @@ def collect_clips(urls: Iterable[str], cache: Path, grading: str, inspector=None
                     continue
                 frames = clip_frames(str(folder))
                 if inspector is not None:
-                    verdict = inspector.inspect(frames[len(frames) // 2], expect="anime")
+                    verdict = inspector.inspect(frames[len(frames) // 2], expect="clip")
                     if not verdict.ok:
                         rejected += 1
                         shutil.rmtree(folder, ignore_errors=True)

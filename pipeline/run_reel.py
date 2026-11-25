@@ -382,8 +382,11 @@ def generate(args, sf) -> int:
     urls = {}
     store = ReleaseStore.from_env()
     if store:
-        urls = store.upload({f"{cid}.mp4": Path(manifest["video"]), f"{cid}.jpg": Path(manifest["cover"])})
-        store.prune()
+        try:
+            urls = store.upload({f"{cid}.mp4": Path(manifest["video"]), f"{cid}.jpg": Path(manifest["cover"])})
+            store.prune()
+        except Exception as exc:  # no preview link: Instagram still gets the file by direct upload
+            log(f"warning: preview upload failed ({type(exc).__name__}: {str(exc)[:160]}); continuing without it")
     if idea:
         try:
             sf.request("PATCH", f"sobjects/Topic_Idea__c/{idea['Id']}", {"Status__c": "Used", "Used_By__r": {"External_Id__c": cid}})

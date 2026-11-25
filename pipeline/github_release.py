@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -33,6 +34,8 @@ class ReleaseStore:
         repo, token = os.environ.get("GITHUB_REPOSITORY", ""), os.environ.get("GITHUB_TOKEN", "")
         return cls(repo, token) if repo and token else None
 
+    _backoff = 10.0
+
     def _req(self, method: str, url: str, data: Optional[bytes] = None, ctype: str = "application/json") -> Optional[dict]:
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Authorization", f"Bearer {self._token}")
@@ -41,9 +44,19 @@ class ReleaseStore:
         req.add_header("User-Agent", "anime-facts-automation/0.1")
         if data is not None:
             req.add_header("Content-Type", ctype)
-        with self._opener(req, timeout=300) as resp:
-            raw = resp.read()
-            return json.loads(raw.decode()) if raw else None
+        for attempt in range(4):  # GitHub has short 5xx outages: retry instead of failing a finished Reel
+            try:
+                with self._opener(req, timeout=300) as resp:
+                    raw = resp.read()
+                    return json.loads(raw.decode()) if raw else None
+            except urllib.error.HTTPError as exc:
+                if exc.code < 500 or attempt == 3:
+                    raise
+            except urllib.error.URLError:
+                if attempt == 3:
+                    raise
+            time.sleep(self._backoff * (attempt + 1))
+        return None
 
     def release(self) -> dict:
         try:

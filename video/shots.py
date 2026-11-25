@@ -158,7 +158,8 @@ class ShotSources:
 
 def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[str]], cache: Path,
                   backup: List[str], extra_records: Optional[List[dict]] = None,
-                  last_resort: List[str] = (), inspector=None, clips: Optional[List[str]] = None) -> List[List[str]]:
+                  last_resort: List[str] = (), inspector=None, clips: Optional[List[str]] = None,
+                  banned: Optional[set] = None) -> List[List[str]]:
     """Image paths per scene. Every picture is inspected before use and never repeated;
     when a scene runs out of distinct good pictures it gets fewer, longer shots instead."""
     from .image_check import Inspector
@@ -172,7 +173,8 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
                             if c not in reel_characters]
     general = sources.general()
     rejections: List[str] = []
-    clip_pool = list(clips or [])  # each clip is used once
+    banned = set(banned or ())  # pictures the Visual QA agent rejected
+    clip_pool = [c for c in (clips or []) if c not in banned]  # each clip is used once
     ratio = float(style.get("clip_ratio", 0.5))
 
     bad_paths: set = set()
@@ -180,7 +182,7 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
     small: List[str] = []  # tiny pictures (e.g. 230px portraits): only if nothing better is left
 
     def take(path: Optional[str], subject: str, expect: str = "anime", description: str = "") -> bool:
-        if not path or path in bad_paths or path in small:
+        if not path or path in bad_paths or path in small or path in banned:
             return False
         try:
             from PIL import Image
@@ -257,7 +259,7 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
         if not paths:  # nothing new left: reuse an earlier picture, never the one just shown
             earlier = [p for row in result for p in row]
             previous = result[-1][-1] if result and result[-1] else None
-            reuse = [p for p in earlier if p != previous] or earlier
+            reuse = [p for p in earlier if p != previous and p not in banned] or earlier
             if reuse:
                 paths.append(reuse[i % len(reuse)])
         result.append(paths)

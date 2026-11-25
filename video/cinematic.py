@@ -34,6 +34,7 @@ class Shot:
     pan: Tuple[float, float]      # direction of drift (-1..1)
     clip: Optional[List[str]] = None  # 30 fps frames of a video clip (already 1080x1920 + graded)
     layers: Optional[Tuple[Image.Image, Image.Image]] = None  # 2.5D parallax: (background, subject RGBA)
+    source: Optional[str] = None  # picture / clip folder it came from (for the Visual QA agent)
 
 
 def grade(img: Image.Image, mode: str) -> Image.Image:
@@ -121,7 +122,7 @@ class CinematicRenderer:
                     if frames:
                         start = scene.start + length * k / count
                         end = scene.start + length * (k + 1) / count
-                        self.shots.append(Shot(start, end, None, True, (0.0, 0.0), clip=frames))
+                        self.shots.append(Shot(start, end, None, True, (0.0, 0.0), clip=frames, source=path))
                         continue
                     path = None
                 key = f"{path}|{style['grading']}"
@@ -140,7 +141,8 @@ class CinematicRenderer:
                 start = scene.start + length * k / count
                 end = scene.start + length * (k + 1) / count
                 self.shots.append(Shot(start, end, img, self.rng.random() < 0.6,
-                                       (self.rng.uniform(-1, 1), self.rng.uniform(-0.6, 0.6)), layers=layers))
+                                       (self.rng.uniform(-1, 1), self.rng.uniform(-0.6, 0.6)), layers=layers,
+                                       source=path))
         if beats and len(self.shots) > 1:  # land the cuts on the music's beat
             from .audio_library import snap_to_beats
 

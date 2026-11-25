@@ -231,6 +231,51 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool, music_pic
     return scene_assets, local, music_asset
 
 
+def reset(inspector):
+    """Fresh duplicate memory before re-picking shots (the same Reel is assembled again)."""
+    if inspector is not None:
+        inspector.seen.clear()
+    return inspector
+
+
+def run_visual_qa(script, narration, style, renderer, images: bool, channel: dict, beats, repick, rounds: int = 2) -> dict:
+    """Visual QA agent: watch -> ban wrong shots -> re-pick -> watch again. Returns the report (+ final renderer)."""
+    from .visual_qa import Gemini, review
+
+    gemini = Gemini.from_env() if images else None
+    if gemini is None:
+        return {"status": "skipped (no GEMINI_API_KEY)"}
+    banned: set = set()
+    report: dict = {}
+    fixed = 0
+    for attempt in range(rounds + 1):
+        result = review(renderer, narration, script, gemini, [sh.source for sh in renderer.shots])
+        if result is None:
+            if report.get("issues") and fixed:
+                # the exact pictures it flagged were banned and replaced; only the re-check could not run
+                report.update(status="fixed (re-check unavailable)", fixed_issues=report.pop("issues"), issues=[])
+            report.setdefault("status", "unavailable (Gemini busy)")
+            break
+        log(f"visual QA round {attempt + 1}: {len(result['bad'])} wrong shot(s) - {result['summary']}")
+        for issue in result["issues"]:
+            log(f"  {issue}")
+        report = {"status": "checked", "summary": result["summary"], "issues": result["issues"],
+                  "rounds": attempt + 1, "fixed": fixed, "fixed_issues": report.get("fixed_issues", []) + report.get("issues", [])
+                  if attempt else []}
+        if not result["bad"] or attempt == rounds:
+            break
+        new = set(result["bad_sources"]) - banned
+        if not new:
+            break  # nothing new to ban (e.g. the only available picture): leave it to the QA gate
+        banned |= new
+        fixed += len(new)
+        shots = repick(banned)
+        renderer = CinematicRenderer(script, narration, style, shots, handle=channel.get("handle", ""), beats=beats)
+    report["renderer"] = renderer
+    report["calls"] = gemini.calls
+    return report
+
+
 def gather_clips(script: dict, cache: Path, style: dict, inspector, accounts) -> List[str]:
     """Short anime video clips (official trailer / official accounts' Reels about this show), inspected."""
     from .clips import find_clips
@@ -324,6 +369,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     log(f"images: {sum(1 for a in scene_assets if a)}/{len(scene_assets)} scenes")
     on_screen_sources = sources_note if channel.get("show_sources_on_video") else ""
     image_rejections: List[str] = []
+    visual_qa: dict = {}
     if cinematic:
         cache = Path(out_root) / "_media_cache"
         backup = []
@@ -351,6 +397,10 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         beats = audio_library.beat_times(music_file) if music_file else []
         log(f"beat sync: {len(beats)} beats" if beats else "beat sync: off (no steady pulse)")
         renderer = CinematicRenderer(script, narration, style, shots, handle=channel.get("handle", ""), beats=beats)
+        visual_qa = run_visual_qa(script, narration, style, renderer, images, channel, beats,
+                                  lambda banned: resolve_shots(script, narration, style, primary, cache, backup, extra_records,
+                                                               stock, inspector=reset(inspector), clips=clips, banned=banned))
+        renderer = visual_qa.pop("renderer", renderer)
     else:
         renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=on_screen_sources,
                                  images=image_specs)
@@ -405,6 +455,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "voice": voice,
         "style": style,
         "image_rejections": image_rejections,
+        "visual_qa": visual_qa,
         "shots": [len(row) for row in shots] if cinematic else None,
         "validation": {"errors": errors, "warnings": warnings, "summary": summary},
         "render_seconds": round(time.time() - t0, 1),

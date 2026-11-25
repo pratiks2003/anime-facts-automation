@@ -360,3 +360,26 @@ class NamedInTests(unittest.TestCase):
         cast = ["Nico Robin", "Donquixote Doflamingo", "Kaido"]
         self.assertEqual(named_in("Her bounty exploded after the Onigashima raid", cast), [])
         self.assertEqual(named_in("Robin can sprout arms anywhere", cast), ["Nico Robin"])
+
+
+class VisualQATests(unittest.TestCase):
+    def test_review_flags_major_mismatches(self):
+        from types import SimpleNamespace
+        from PIL import Image
+        from video.visual_qa import review
+        from video.tts import SceneTiming, Word
+        shots = [SimpleNamespace(start=0.0, end=2.0, clip=None), SimpleNamespace(start=2.0, end=4.0, clip=None)]
+        renderer = SimpleNamespace(shots=shots, frame=lambda t, captions=False: Image.new("RGB", (108, 192)))
+        narration = SimpleNamespace(scenes=[SceneTiming(0, "fact", "x", 0, 4, [Word("Robin", 0.2, 0.6), Word("smiles", 2.2, 2.6)])])
+        gemini = SimpleNamespace(json=lambda parts: {"shots": [
+            {"shot": 1, "on_screen": "Nico Robin", "matches": True},
+            {"shot": 2, "on_screen": "Doflamingo", "matches": False, "severity": "major", "problem": "wrong character"}],
+            "summary": "one wrong"})
+        r = review(renderer, narration, {"anime": "One Piece"}, gemini, ["a.jpg", "b.jpg"])
+        self.assertEqual(r["bad"], [1])
+        self.assertEqual(r["bad_sources"], ["b.jpg"])
+        self.assertIn("Doflamingo", r["issues"][0])
+
+    def test_secrets_are_redacted(self):
+        from video.visual_qa import SECRET_RE
+        self.assertEqual(SECRET_RE.sub("[x]", "token EAAB" + "a" * 30 + " ok"), "token [x] ok")

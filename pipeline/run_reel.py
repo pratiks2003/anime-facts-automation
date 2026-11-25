@@ -166,6 +166,9 @@ def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
     missing = sum(1 for sc, img in zip(script["scenes"], images) if sc.get("image_source") == "official" and not img)
     if planned and missing > len(planned) / 2:
         issues.append(f"{missing} of {len(planned)} official images missing")
+    visual = manifest.get("visual_qa") or {}
+    if visual.get("status") == "checked" and visual.get("issues"):
+        issues.append("visual QA: " + "; ".join(visual["issues"])[:400])
     fact_check = (quality or {}).get("fact_check") or {}
     if fact_check and not fact_check.get("pass", True):
         issues.append("fact checker flagged: " + "; ".join(str(i.get("problem", i)) for i in fact_check.get("issues", []))[:300])

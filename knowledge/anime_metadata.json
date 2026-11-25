@@ -120,6 +120,23 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "The Apothecary Diaries Season 3",
+      "aliases": [
+        "Die Tagebücher der Apothekerin Season 3",
+        "Diários de uma Apotecária 3ª Temporada",
+        "Kusuriya no Hitorigoto 3rd Season",
+        "Les Carnets de l'Apothicaire Saison 3",
+        "Los diarios de la boticaria temporada 3",
+        "Монолог фармацевта 3"
+      ],
+      "anilist_id": 195516,
+      "knowledge_file": "the_apothecary_diaries_season_3.jsonl",
+      "id_prefix": "TADS",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

@@ -29,6 +29,7 @@ from .sfx import SR as SFX_SR
 from .sfx import build_sfx_track
 from .tts import Narrator, to_srt
 from .validate import validate_video
+from . import audio_library
 from .cinematic import CinematicRenderer
 from .shots import resolve_shots
 from .style import resolve_style
@@ -88,14 +89,14 @@ def run(cmd: List[str]) -> None:
         raise RuntimeError(f"command failed: {' '.join(cmd[:4])} ...\n{result.stderr[-2000:]}")
 
 
-def mix_audio(voice: Path, sfx: Path, music: Optional[Path], duration: float, out: Path) -> None:
+def mix_audio(voice: Path, sfx: Path, music: Optional[Path], duration: float, out: Path, music_volume: float = 0.30) -> None:
     cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(voice), "-i", str(sfx)]
     if music:
         cmd += ["-stream_loop", "-1", "-i", str(music)]
         graph = (
             "[0:a]aresample=48000,asplit=2[v1][v2];"
             "[1:a]volume=0.9[s];"
-            f"[2:a]aresample=48000,atrim=0:{duration:.3f},volume=0.30,"
+            f"[2:a]aresample=48000,atrim=0:{duration:.3f},volume={music_volume:.3f},"
             f"afade=t=out:st={max(0, duration - 1.5):.3f}:d=1.5[m];"
             "[m][v2]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=350[md];"
             "[v1][s][md]amix=inputs=3:normalize=0,"
@@ -171,7 +172,7 @@ def blocklist_terms():
     return phrases, names
 
 
-def gather_media(script: dict, cache: Path, images: bool, music: bool, music_picker=None):
+def gather_media(script: dict, cache: Path, images: bool, music: bool, music_picker=None, recent_music=()):
     """Per-scene images and a music track from Openverse (local assets/music wins for music)."""
     client = Openverse()
     phrases, names = blocklist_terms()
@@ -215,7 +216,12 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool, music_pic
 
     local = pick_music(script)
     music_asset: Optional[MediaAsset] = None
-    if music and not local:
+    library_tried = False
+    if music and not local and audio_library.music_candidates(script.get("format", ""), script.get("mood", ""), recent_music):
+        library_tried = True  # the licensed library has tracks for this format: the Supervisor's verdict is final
+        music_asset = audio_library.pick_music(script.get("format", ""), script.get("mood", ""), script["id"],
+                                               cache / "audio", recent_music, picker=music_picker)
+    if music and not local and not library_tried:
         try:
             music_asset = find_music(client, script.get("mood", "default"), script["id"], cache,
                                      keywords=script.get("music_keywords", ""), picker=music_picker,
@@ -254,7 +260,7 @@ def official_asset(scene: dict, script: dict, index: int, cache: Path, vision) -
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
            speed: Optional[float] = None, stills: bool = False,
            images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None,
-           music_picker=None) -> dict:
+           music_picker=None, recent_music=()) -> dict:
     script = load_script(script_path)
     try:
         from integrations.instagram import load_env_file
@@ -289,7 +295,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
     (out / "timeline.json").write_text(json.dumps(narration.timeline_dict(), indent=2), encoding="utf-8")
     (out / "captions.srt").write_text(to_srt(narration.scenes), encoding="utf-8")
 
-    scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music, music_picker)
+    scene_assets, local_music, music_asset = gather_media(script, Path(out_root) / "_media_cache", images, music, music_picker, recent_music)
     image_specs = [
         None if a is None else
         {"path": a.path, "layout": "poster", "background": a.source_url or None} if a.kind == "official_image" else
@@ -314,7 +320,10 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         stock = [a.path for a in scene_assets if a and a.kind == "image"]
         shots = resolve_shots(script, narration, style, primary, cache, backup, extra_records, stock) \
             if images else [[] for _ in scene_assets]
-        renderer = CinematicRenderer(script, narration, style, shots, handle=channel.get("handle", ""))
+        music_file = local_music or (Path(music_asset.path) if music_asset else None)
+        beats = audio_library.beat_times(music_file) if music_file else []
+        log(f"beat sync: {len(beats)} beats" if beats else "beat sync: off (no steady pulse)")
+        renderer = CinematicRenderer(script, narration, style, shots, handle=channel.get("handle", ""), beats=beats)
     else:
         renderer = FrameRenderer(script, narration, handle=channel.get("handle", ""), sources_note=on_screen_sources,
                                  images=image_specs)
@@ -328,11 +337,18 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         return {"out": str(out), "stills": True}
 
     sf.write(out / "voice.wav", narration.audio, narration.sample_rate)
-    sf.write(out / "sfx.wav", build_sfx_track(duration, [s.start for s in narration.scenes],
-                                              [s.role for s in narration.scenes]), SFX_SR)
+    scene_starts, roles = [s.start for s in narration.scenes], [s.role for s in narration.scenes]
+    sfx_track = None
+    if cinematic:
+        events = audio_library.sfx_events(scene_starts, roles, [sh.start for sh in renderer.shots], duration, style)
+        sfx_track = audio_library.build_sfx_track(duration, events, script["id"], Path(out_root) / "_media_cache" / "audio", SFX_SR)
+        log(f"sfx: {len(events)} library effects ({style['sfx_density']})" if sfx_track is not None else "sfx: synthesized")
+    sf.write(out / "sfx.wav", sfx_track if sfx_track is not None else build_sfx_track(duration, scene_starts, roles), SFX_SR)
     music = local_music or (Path(music_asset.path) if music_asset else None)
     log(f"mixing audio (music: {music_asset.credit() if music_asset else (music.name if music else 'none')})")
-    mix_audio(out / "voice.wav", out / "sfx.wav", music, duration, out / "mix.wav")
+    # style music_gain_db: -10 dB ~ the classic 0.30 bed; reference Reels sit around -7 dB
+    music_volume = 0.30 * 10 ** ((style["music_gain_db"] + 10) / 20) if cinematic else 0.30
+    mix_audio(out / "voice.wav", out / "sfx.wav", music, duration, out / "mix.wav", music_volume=music_volume)
 
     t1 = time.time()
     log(f"rendering {int(duration * FPS)} frames")

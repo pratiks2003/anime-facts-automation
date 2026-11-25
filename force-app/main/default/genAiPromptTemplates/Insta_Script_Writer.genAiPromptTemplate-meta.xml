@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</activeVersionIdentifier>
     <description>Agent: writes a Reel script for one format from verified facts only.</description>
     <developerName>Insta_Script_Writer</developerName>
     <masterLabel>Insta Script Writer</masterLabel>
@@ -22,7 +22,7 @@ WRITE LIKE A PRO EDITOR:
 - Every item needs one &quot;why should I care&quot; line (premise, stakes, twist) - not just numbers.
 - Never repeat the same sentence pattern across scenes. Never say a full show title twice in a row; use &quot;it&quot;, &quot;this one&quot; or a short name.
 - Numbers only when they impress. Times only if they matter, written like &quot;Friday 1:30 PM IST&quot; (never &quot;India time&quot;).
-- Total narration about 3.2 words per second of length_seconds (default 45 s = about 145 words). Stories may use more scenes (up to 9) - keep every sentence earning its place. Facts the fans widely believe/theorise may be stated as &quot;fans believe...&quot;. One clear call to action in the outro (a question to comment on).
+- Total narration about 3.4 words per second of length_seconds (default 45 s = about 150 words). Stories may use more scenes (up to 9) - keep every sentence earning its place. Facts the fans widely believe/theorise may be stated as &quot;fans believe...&quot;. One clear call to action in the outro (a question to comment on).
 
 HARD RULES:
 1. Factual claims ONLY from the provided facts. Every &apos;fact&apos;, &apos;twist&apos; and &apos;rank&apos; scene lists the fact ids it uses in &quot;knowledge_ids&quot;. Never invent dates, numbers, quotes or events.
@@ -48,7 +48,7 @@ First scene role &quot;hook&quot;, last scene role &quot;outro&quot;.</content>
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

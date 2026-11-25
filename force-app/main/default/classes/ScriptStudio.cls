@@ -143,7 +143,7 @@ public with sharing class ScriptStudio {
         for (Integer i = 0; i < scenes.size(); i++) {
             Map<String, Object> scene = (Map<String, Object>) scenes[i];
             String narration = String.valueOf(scene.get('narration') == null ? '' : scene.get('narration'));
-            Decimal seconds = narration.split('\\s+').size() / (2.6 * speed);
+            Decimal seconds = narration.split('\\s+').size() / (2.85 * speed);
             brief.add(new Map<String, Object>{
                 'index' => i, 'role' => scene.get('role'), 'narration' => narration, 'image_subject' => scene.get('image_subject'),
                 'shots_wanted' => Math.max(1, (seconds / interval).round(System.RoundingMode.HALF_UP).intValue())

@@ -1,0 +1,99 @@
+<template>
+    <template lwc:if={error}><div class="error spaced">{error}</div></template>
+
+    <section class="panel spaced">
+        <h2 class="panel-title">Learn from a Reel</h2>
+        <p class="muted small">
+            Paste a public Reel, YouTube Short or TikTok you like. GitHub downloads it without logging in, measures the pacing,
+            captions, voice speed and music level, then deletes it. The Style Analyst turns it into lessons and a new style to try,
+            and the page goes on the trend watchlist.
+        </p>
+        <div class="learn-form">
+            <input class="field" type="url" placeholder="https://www.instagram.com/reel/..." value={url} onchange={handleUrl} />
+            <textarea class="field" rows="2" placeholder="What do you like about it? (optional)" value={notes} onchange={handleNotes}></textarea>
+            <div class="learn-actions">
+                <button class="btn btn_primary" onclick={handleLearn} disabled={submitting}>
+                    <template lwc:if={submitting}>Sending…</template>
+                    <template lwc:else>Learn from this Reel</template>
+                </button>
+                <template lwc:if={message}><span class="ok">{message}</span></template>
+            </div>
+        </div>
+        <template lwc:if={hasReferences}>
+            <ul class="list">
+                <template for:each={references} for:item="r">
+                    <li key={r.Id} class="row">
+                        <div>
+                            <div class="row-title">{r.Name}</div>
+                            <div class="muted small"><a href={r.URL__c} target="_blank" rel="noopener">{r.URL__c}</a> · {r.when}</div>
+                            <template lwc:if={r.styleName}><div class="muted small">New style: {r.styleName}</div></template>
+                            <template lwc:if={r.Error__c}><div class="error small">{r.Error__c}</div></template>
+                            <template lwc:if={r.lessons.length}>
+                                <ul class="lessons">
+                                    <template for:each={r.lessons} for:item="l"><li key={l}>{l}</li></template>
+                                </ul>
+                            </template>
+                        </div>
+                        <div class="side"><span class={r.badge}>{r.Status__c}</span></div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+    </section>
+
+    <template lwc:if={brief}>
+        <section class="panel spaced">
+            <h2 class="panel-title">Today's trend brief · {brief.Brief_Date__c}</h2>
+            <p>{brief.Summary__c}</p>
+            <template lwc:if={brief.Needs_Trending_Sound__c}>
+                <p class="ok">A trending sound is driving reach. Matching Reels are held so you can post them with that sound.</p>
+            </template>
+            <template lwc:if={styleSignals.length}>
+                <h3 class="muted small">What breakout Reels look like</h3>
+                <ul class="lessons">
+                    <template for:each={styleSignals} for:item="s"><li key={s}>{s}</li></template>
+                </ul>
+            </template>
+            <template lwc:if={gaps.length}>
+                <h3 class="muted small">Where we fall short</h3>
+                <ul class="lessons">
+                    <template for:each={gaps} for:item="g"><li key={g}>{g}</li></template>
+                </ul>
+            </template>
+        </section>
+    </template>
+
+    <section class="panel">
+        <h2 class="panel-title">Style library</h2>
+        <p class="muted small">
+            The Creative Strategist picks a style for every Reel. A new style gets 3 Reels as a trial, then becomes Active if it
+            beats the channel average or gets Retired if it falls well below. You can override that here.
+        </p>
+        <template lwc:if={loading}><div class="empty">Loading…</div></template>
+        <template lwc:else>
+            <ul class="list">
+                <template for:each={styles} for:item="s">
+                    <li key={s.Id} class="row">
+                        <div>
+                            <div class="row-title">{s.Name}</div>
+                            <div class="muted small">{s.Description__c}</div>
+                            <div class="muted small stats">
+                                <span>{s.Origin__c}</span><span>{s.reels} Reels</span><span>{s.views} avg views</span>
+                                <span>{s.watch} avg watch</span><span>{s.score}</span>
+                            </div>
+                        </div>
+                        <div class="side">
+                            <span class={s.badge}>{s.Status__c}</span>
+                            <template lwc:if={s.canActivate}>
+                                <button class="btn btn_good" data-id={s.Id} data-status="Active" onclick={handleStyle}>Activate</button>
+                            </template>
+                            <template lwc:if={s.canRetire}>
+                                <button class="btn btn_danger" data-id={s.Id} data-status="Retired" onclick={handleStyle}>Retire</button>
+                            </template>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+    </section>
+</template>

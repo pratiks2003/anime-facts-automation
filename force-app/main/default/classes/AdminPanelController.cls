@@ -74,7 +74,7 @@ public with sharing class AdminPanelController {
         return Database.query(
             'SELECT Id, Name, External_Id__c, Format__c, Slot__c, Status__c, Approval_Status__c, Scheduled_For__c, Topic__c, Hook__c, ' +
                 'Caption__c, Hashtags__c, Cover_URL__c, Video_URL__c, Duration_Seconds__c, Dry_Run__c, Error_Message__c, Anime__r.Name, ' +
-                'Quality_Score__c, Director_Notes__c, Production_Brief__c, QA_Issues__c, Hold_Reason__c, Script_Source__c, Music_Choice__c, Music_Rating__c, ' +
+                'Quality_Score__c, Director_Notes__c, Production_Brief__c, QA_Issues__c, Hold_Reason__c, Script_Source__c, Music_Choice__c, Music_Rating__c, Style__r.Name, Strategy__c, Needs_Trending_Sound__c, ' +
                 '(SELECT Permalink__c, Instagram_Media_Id__c, Views__c, Likes__c FROM Social_Posts__r ORDER BY CreatedDate DESC LIMIT 1) ' +
                 'FROM Anime_Content__c WHERE Id != null' +
                 filter +

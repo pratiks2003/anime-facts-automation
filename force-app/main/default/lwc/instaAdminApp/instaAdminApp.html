@@ -46,6 +46,9 @@
                     <template lwc:if={isIdeas}>
                         <c-insta-ideas></c-insta-ideas>
                     </template>
+                    <template lwc:if={isLearn}>
+                        <c-insta-learn></c-insta-learn>
+                    </template>
                     <template lwc:if={isSettings}>
                         <c-insta-settings settings={settings} onchanged={handleChanged}></c-insta-settings>
                     </template>

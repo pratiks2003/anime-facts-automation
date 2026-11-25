@@ -73,6 +73,8 @@
                         <div class="meta small">
                             <template lwc:if={selected.hasScore}><span class={selected.scoreClass}>Director {selected.Quality_Score__c}/10</span></template>
                             <template lwc:if={selected.Script_Source__c}><span class="muted">Script: {selected.Script_Source__c}</span></template>
+                            <template lwc:if={selected.Style__r}><span class="muted">Style: {selected.Style__r.Name}</span></template>
+                            <template lwc:if={selected.Needs_Trending_Sound__c}><span class="muted">🎵 Post with a trending sound</span></template>
                         </div>
                         <template lwc:if={selected.brief}><p class="muted small">🎬 {selected.brief}</p></template>
                         <template lwc:if={selected.musicTitle}>

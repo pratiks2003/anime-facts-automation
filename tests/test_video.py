@@ -238,3 +238,55 @@ class CinematicRendererTests(unittest.TestCase):
                 self.assertEqual(frame.size, (1080, 1920))
             self.assertTrue(dict((w.text, k) for w, k in r.words)["Luffy"] is False)  # first word isn't "proper noun" coloured
             self.assertTrue(dict((w.text, k) for w, k in r.words)["swim"])
+
+
+class AudioLibraryTests(unittest.TestCase):
+    INDEX = {"music": [
+        {"id": "a", "key": "battle", "title": "War Drums", "file": "a.mp3"},
+        {"id": "b", "key": "phonk", "title": "Night Drift", "file": "b.mp3"},
+        {"id": "c", "key": "emotional", "title": "Rain Piano", "file": "c.mp3"}], "sfx": []}
+
+    def test_candidates_follow_format_and_skip_recent(self):
+        from video.audio_library import music_candidates
+        ids = [e["id"] for e in music_candidates("Who Would Win", "hype", [], self.INDEX)]
+        self.assertEqual(ids, ["a", "b"])
+        ids = [e["id"] for e in music_candidates("Who Would Win", "hype", ["War Drums by X - stable pick"], self.INDEX)]
+        self.assertEqual(ids, ["b"])
+        self.assertEqual([e["id"] for e in music_candidates("Backstory", "sad", [], self.INDEX)], ["c"])
+
+    def test_supervisor_none_means_no_music(self):
+        from video.audio_library import pick_music
+        self.assertIsNone(pick_music("Who Would Win", "", "seed", Path("/nonexistent"), picker=lambda c: None, index=self.INDEX))
+
+    def test_sfx_events_follow_density(self):
+        from video.audio_library import sfx_events
+        shots = [0.0, 2.5, 5.0, 7.5, 10.0, 12.5]
+        low = sfx_events([0.0, 5.0, 10.0], ["hook", "fact", "outro"], shots, 15.0, {"sfx_density": "low", "transition": "glitch"})
+        high = sfx_events([0.0, 5.0, 10.0], ["hook", "fact", "outro"], shots, 15.0, {"sfx_density": "high", "transition": "glitch"})
+        self.assertGreater(len(high), len(low))
+        self.assertIn("glitch", [r for _, r, _ in high])
+        self.assertIn("riser", [r for _, r, _ in low])
+        self.assertEqual(low[0][1], "boom")
+
+    def test_snap_to_beats(self):
+        from video.audio_library import snap_to_beats
+        beats = [i * 0.5 for i in range(40)]
+        self.assertEqual(snap_to_beats([2.4, 4.9, 5.3], beats), [2.5, 5.0, 5.8])
+        self.assertEqual(snap_to_beats([2.4], []), [2.4])
+
+    def test_beat_times_on_click_track(self):
+        import tempfile
+        import soundfile
+        from video.audio_library import beat_times
+        sr = 22050
+        y = np.zeros(sr * 12, dtype=np.float32)
+        for k in range(int(12 / 0.5)):  # 120 BPM clicks
+            a = int(k * 0.5 * sr)
+            y[a:a + 400] = np.hanning(400) * 0.9
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "clicks.wav"
+            soundfile.write(path, y, sr)
+            beats = beat_times(path)
+        self.assertGreater(len(beats), 15)
+        gaps = np.diff(beats)
+        self.assertAlmostEqual(float(np.median(gaps)), 0.5, delta=0.05)

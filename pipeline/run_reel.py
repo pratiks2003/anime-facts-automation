@@ -221,6 +221,17 @@ def gate_decision(sf, content_id: str) -> tuple:
     return rows[0].get("Approval_Status__c") != "Auto-Approved", bool(rows[0].get("Publish_As_Trial__c"))
 
 
+def recent_music(sf, limit: int = 20) -> List[str]:
+    """Music_Choice__c of the last Reels ("title by creator - reason"): those tracks are not reused."""
+    try:
+        rows = sf.query("SELECT Music_Choice__c FROM Anime_Content__c WHERE Music_Choice__c != null "
+                        f"ORDER BY CreatedDate DESC LIMIT {int(limit)}") or []
+        return [r["Music_Choice__c"] for r in rows]
+    except Exception as exc:
+        log(f"warning: recent music unavailable ({exc})")
+        return []
+
+
 def music_picker_for(sf, script: dict, duration_hint: float = 40.0):
     """Music Supervisor agent (Salesforce) choosing among licensed candidates."""
     if isinstance(sf, NullSalesforce):
@@ -332,7 +343,7 @@ def generate(args, sf) -> int:
     for attempt in range(2):  # render -> QA -> (team repairs -> re-render) at most once
         # a trending sound is added by hand in the Instagram app, so the export carries voice + SFX only
         manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker,
-                          music=not trending_sound)
+                          music=not trending_sound, recent_music=recent_music(sf))
         errors = manifest["validation"]["errors"]
         if errors:
             raise RuntimeError("video failed validation: " + "; ".join(errors))

@@ -41,7 +41,13 @@ EXTRA_QUERIES = {
     "battle": ["action", "fight", "battle", "war drums", "intense", "heavy rock instrumental", "metal instrumental", "drums"],
     "mystery": ["mystery", "suspense", "dark", "tension", "thriller", "horror ambient", "noir"],
     "news": ["corporate", "upbeat", "happy electronic", "funk", "pop instrumental", "motivational"],
+    # the sound of anime edits: dark trap / drift phonk and big trailer builds
+    "phonk": ["phonk", "drift phonk", "trap beat", "hard trap beat", "dark trap", "808"],
+    "trailer": ["epic trailer", "trailer music", "cinematic trailer hybrid", "dramatic trailer", "action trailer"],
 }
+
+# Moods whose tracks mostly live on Freesound/ccMixter without the "music" category tag.
+UNCATEGORIZED = {"phonk"}
 
 SFX_QUERIES = {
     "whoosh": ["whoosh", "swoosh transition", "swipe whoosh"],
@@ -84,7 +90,7 @@ def collect(ov: Openverse, queries: dict, kind: str, per_key: int, out_dir: Path
         for q in qs:
             if picked >= per_key:
                 break
-            params = {"category": "music"} if kind == "music" else {"source": "freesound"}
+            params = ({} if key in UNCATEGORIZED else {"category": "music"}) if kind == "music" else {"source": "freesound"}
             try:
                 results = ov.search("audio", q, page_size=20, **params)
             except Exception as exc:

@@ -24,7 +24,7 @@ DEFAULT_STYLE: Dict[str, Any] = {
     "show_brand": False,
     "show_progress": False,
     "watermark": "SENPAI SECRETS",
-    "voice_speed": 1.3,           # Kokoro speed (1.3 ~ 185-195 words/min)
+    "voice_speed": 1.2,           # Kokoro speed (measured: 1.2 ~ 205 words/min, like top story Reels)
     "music_gain_db": -7.0,        # music bed relative to the voice in pauses (reference Reels sit ~ -7 dB)
     "sfx_density": "medium",      # low | medium | high
     "outro_cta": True,

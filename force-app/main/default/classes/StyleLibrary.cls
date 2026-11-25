@@ -16,13 +16,13 @@ public with sharing class StyleLibrary {
         List<Style__c> seeds = new List<Style__c>{
             seed('Cinematic Story', 'Active', 'Full-bleed anime shots every ~2.6s, dark grade, glitch cuts, one-word captions, fast voice. Modelled on top story Reels.',
                 new Map<String, Object>{ 'layout' => 'cinematic', 'image_interval' => 2.6, 'motion' => 0.7, 'grading' => 'dark', 'transition' => 'glitch',
-                    'caption_mode' => 'word', 'voice_speed' => 1.3, 'music_gain_db' => -7, 'target_seconds' => 45 }),
+                    'caption_mode' => 'word', 'voice_speed' => 1.2, 'music_gain_db' => -7, 'target_seconds' => 45 }),
             seed('Hype Montage', 'Testing', 'Rapid 1.6s cuts, vivid colour, white flashes, punchy voice. For battles, power rankings and news hype.',
                 new Map<String, Object>{ 'layout' => 'cinematic', 'image_interval' => 1.6, 'motion' => 0.9, 'grading' => 'vivid', 'transition' => 'flash',
-                    'caption_mode' => 'word', 'caption_size' => 128, 'voice_speed' => 1.35, 'music_gain_db' => -6, 'sfx_density' => 'high', 'target_seconds' => 35 }),
+                    'caption_mode' => 'word', 'caption_size' => 128, 'voice_speed' => 1.27, 'music_gain_db' => -6, 'sfx_density' => 'high', 'target_seconds' => 35 }),
             seed('Lore Slow-Burn', 'Testing', 'Longer 3.4s shots, slow push-ins, moody grade, 2-3 word captions. For backstories and theories.',
                 new Map<String, Object>{ 'layout' => 'cinematic', 'image_interval' => 3.4, 'motion' => 0.5, 'grading' => 'dark', 'transition' => 'cut',
-                    'caption_mode' => 'chunk', 'caption_size' => 100, 'voice_speed' => 1.18, 'music_gain_db' => -8, 'sfx_density' => 'low', 'target_seconds' => 60 }),
+                    'caption_mode' => 'chunk', 'caption_size' => 100, 'voice_speed' => 1.1, 'music_gain_db' => -8, 'sfx_density' => 'low', 'target_seconds' => 60 }),
             seed('Classic Cards', 'Retired', 'The original v1 look: headline cards, tags and a progress bar.',
                 new Map<String, Object>{ 'layout' => 'classic', 'voice_speed' => 1.1, 'show_headline' => true, 'show_tags' => true, 'show_brand' => true,
                     'show_progress' => true, 'target_seconds' => 40 })

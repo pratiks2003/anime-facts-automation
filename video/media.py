@@ -36,19 +36,19 @@ GENERIC_BLOCK = {
 }
 # What each format should sound like (used for search and given to the Music Supervisor).
 FORMAT_MUSIC = {
-    "Who Would Win": ("epic orchestral battle, taiko drums, cinematic rock", ["epic orchestral battle", "taiko drums", "cinematic action"]),
-    "Ranking": ("epic orchestral, building tension", ["epic orchestral", "cinematic build"]),
+    "Who Would Win": ("epic orchestral battle, taiko drums, cinematic rock, or a dark phonk / trap edit beat", ["epic orchestral battle", "taiko drums", "cinematic action"]),
+    "Ranking": ("epic orchestral or trailer build, phonk works for power rankings", ["epic orchestral", "cinematic build"]),
     "Backstory": ("emotional piano and strings", ["emotional piano", "sad strings", "melancholic cinematic"]),
     "Fan Theory": ("suspense, mystery, tension", ["mystery suspense", "dark ambient tension"]),
     "Hidden Details": ("mystery, curious, light suspense", ["mystery suspense", "curious investigation"]),
     "Quiz": ("playful suspense, ticking tension", ["quiz tension", "playful suspense"]),
     "What If": ("playful, quirky, adventurous", ["playful adventure", "quirky orchestral"]),
     "Behind the Scenes": ("warm cinematic documentary", ["inspiring cinematic", "documentary background"]),
-    "Fact": ("upbeat cinematic, adventurous", ["upbeat cinematic", "adventure orchestral"]),
+    "Fact": ("upbeat cinematic, adventurous, or dark phonk for edgy facts", ["upbeat cinematic", "adventure orchestral"]),
     "This Week's Drops": ("upbeat electronic, j-pop style instrumental", ["upbeat electronic", "energetic pop instrumental"]),
     "Why It's Trending": ("upbeat electronic, energetic", ["upbeat electronic", "energetic background"]),
-    "Hype Check": ("energetic rock, hype", ["energetic rock", "hype sport"]),
-    "Season Preview": ("epic trailer, rising energy", ["epic trailer", "cinematic rising"]),
+    "Hype Check": ("energetic rock, hype, phonk", ["energetic rock", "hype sport"]),
+    "Season Preview": ("epic trailer, rising energy, hybrid trailer", ["epic trailer", "cinematic rising"]),
     "Just Announced": ("breaking news energy, upbeat", ["upbeat electronic", "news intro energetic"]),
 }
 BANNED_MUSIC = ("trance", "club", "house", "dubstep", "techno", "remix", "vocal", "vocals", "lyrics", "rap", "christmas",

@@ -972,6 +972,89 @@
         "speed_medium",
         "upbeat"
       ]
+    },
+    {
+      "file": "music_phonk_c4edeacd02.mp3",
+      "kind": "music",
+      "key": "phonk",
+      "id": "e163fb78-ca6d-4ac2-847f-d2522a4b367d",
+      "title": "Alexi Action - Nightmare (Atmospheric Hip-Hop-Phonk)",
+      "creator": "Alexi Action",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=153500680",
+      "provider": "wikimedia_audio",
+      "duration": 157.1,
+      "tags": []
+    },
+    {
+      "file": "music_phonk_c03811e34f.mp3",
+      "kind": "music",
+      "key": "phonk",
+      "id": "94d78f6d-f158-4953-bdf4-c4d5be80f4b2",
+      "title": "KRSHMVRK1, Alexi Action - Krush Me (Phonk Krushfunk)",
+      "creator": "Alexi Action",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=153384837",
+      "provider": "wikimedia_audio",
+      "duration": 110.9,
+      "tags": []
+    },
+    {
+      "file": "music_phonk_40ba6399b5.mp3",
+      "kind": "music",
+      "key": "phonk",
+      "id": "717161b6-7aff-43e1-af4c-c5661022e5ba",
+      "title": "Alexi Action - Passion (Atmosphere Phonk)",
+      "creator": "Alexi Action",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=153500641",
+      "provider": "wikimedia_audio",
+      "duration": 172.0,
+      "tags": []
+    },
+    {
+      "file": "music_phonk_b1a9c9cdec.mp3",
+      "kind": "music",
+      "key": "phonk",
+      "id": "37887fab-734c-4092-bbc0-b14c72469c4c",
+      "title": "Alexi Action - Harry Spotter (Gym Phonk; midtempo bass music popularized by fitness Internet meme)",
+      "creator": "Alexi Action",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=153500592",
+      "provider": "wikimedia_audio",
+      "duration": 100.4,
+      "tags": []
+    },
+    {
+      "file": "music_phonk_782ae9094c.mp3",
+      "kind": "music",
+      "key": "phonk",
+      "id": "5ce197e5-58da-4137-b72d-fcc69dafe399",
+      "title": "Alexi Action - Ghost (Abstract Electronic Drift)",
+      "creator": "Alexi Action",
+      "license": "CC BY 3.0",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=153500741",
+      "provider": "wikimedia_audio",
+      "duration": 136.0,
+      "tags": []
+    },
+    {
+      "file": "music_phonk_237a573cd4.mp3",
+      "kind": "music",
+      "key": "phonk",
+      "id": "fc357041-077e-4e45-9926-2c10dcaaf6f6",
+      "title": "808 Is Still Alive",
+      "creator": "Andrey Avkhimovich",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/776867",
+      "provider": "jamendo",
+      "duration": 270.0,
+      "tags": [
+        "hangdrum",
+        "instrumental",
+        "percussion",
+        "speed_medium"
+      ]
     }
   ],
   "sfx": [

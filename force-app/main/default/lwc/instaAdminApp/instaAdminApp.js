@@ -8,6 +8,7 @@ const TABS = [
     { id: 'published', label: 'Published' },
     { id: 'comments', label: 'Comments' },
     { id: 'ideas', label: 'Ideas & Insights' },
+    { id: 'learn', label: 'Learn & Trends' },
     { id: 'settings', label: 'Settings' }
 ];
 const REFRESH_MS = 30000;
@@ -73,6 +74,9 @@ export default class InstaAdminApp extends LightningElement {
     }
     get isIdeas() {
         return this.activeTab === 'ideas';
+    }
+    get isLearn() {
+        return this.activeTab === 'learn';
     }
     get isSettings() {
         return this.activeTab === 'settings';

@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
@@ -82,7 +82,7 @@ def is_keyword(word: str, index: int, emphasis: set) -> bool:
 
 class CinematicRenderer:
     def __init__(self, script: dict, narration: Narration, style: dict, scene_images: List[List[str]],
-                 handle: str = ""):
+                 handle: str = "", beats: Optional[List[float]] = None):
         """scene_images: for every scene, the ordered list of image paths for its shots."""
         self.script, self.narration, self.style = script, narration, style
         self.theme = theme_for(script["anime"])
@@ -111,6 +111,14 @@ class CinematicRenderer:
                 end = scene.start + length * (k + 1) / count
                 self.shots.append(Shot(start, end, img, self.rng.random() < 0.6,
                                        (self.rng.uniform(-1, 1), self.rng.uniform(-0.6, 0.6))))
+        if beats and len(self.shots) > 1:  # land the cuts on the music's beat
+            from .audio_library import snap_to_beats
+
+            bounds = snap_to_beats([sh.start for sh in self.shots[1:]], beats)
+            for k, t in enumerate(bounds, start=1):
+                t = min(t, self.shots[k].end - 0.4, self.duration - 0.4)
+                self.shots[k].start = t
+                self.shots[k - 1].end = t
         self.words: List[Tuple[Word, bool]] = []
         for scene, spec in zip(narration.scenes, script["scenes"]):
             emphasis = {clean_text(e).upper().strip(".,!?") for e in spec.get("emphasis", [])}

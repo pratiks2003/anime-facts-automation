@@ -397,3 +397,18 @@ class CitationRepairTests(unittest.TestCase):
         attach_citations(script, facts)
         self.assertEqual([s["role"] for s in script["scenes"]], ["hook", "fact", "outro"])
         self.assertEqual(script["scenes"][1]["knowledge_ids"], ["OP-1"])
+
+
+class QualityGateTests(unittest.TestCase):
+    def _manifest(self, visual):
+        return {"validation": {"summary": {"duration": 35}}, "images": [], "visual_qa": visual}
+
+    def test_unchecked_reel_is_held_when_gemini_configured(self):
+        import os
+        from unittest import mock
+        from pipeline.run_reel import UNCHECKED, qa_review
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "x"}):
+            self.assertIn(UNCHECKED, qa_review(self._manifest({"status": "unavailable (Gemini busy)"}), {"scenes": []}, {}))
+            self.assertEqual(qa_review(self._manifest({"status": "checked", "issues": [], "up_to_mark": True}), {"scenes": []}, {}), [])
+            low = qa_review(self._manifest({"status": "checked", "issues": [], "up_to_mark": False, "edit_score": 5}), {"scenes": []}, {})
+            self.assertTrue(any("edit quality 5" in i for i in low))

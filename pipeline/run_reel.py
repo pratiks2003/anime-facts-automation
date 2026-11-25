@@ -153,6 +153,9 @@ def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_
     return result.media_id, result.permalink
 
 
+UNCHECKED = "quality checker (Gemini) unavailable: held for review instead of posting unchecked"
+
+
 def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
     """Post-render QA Editor (code checks). Any issue makes the quality gate hold the Reel."""
     issues: List[str] = []
@@ -167,6 +170,9 @@ def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
     if planned and missing > len(planned) / 2:
         issues.append(f"{missing} of {len(planned)} official images missing")
     visual = manifest.get("visual_qa") or {}
+    if os.environ.get("GEMINI_API_KEY") and visual.get("status") not in ("checked", "fixed (re-check unavailable)"):
+        # owner's rule: every Reel passes the quality checker; never post unchecked
+        issues.append(UNCHECKED)
     if visual.get("status") == "checked" and visual.get("issues"):
         issues.append("visual QA: " + "; ".join(visual["issues"])[:400])
     if visual.get("status") == "checked" and visual.get("up_to_mark") is False:
@@ -364,6 +370,8 @@ def generate(args, sf) -> int:
         if not qa_issues:
             break
         log("QA issues: " + "; ".join(qa_issues))
+        if qa_issues == [UNCHECKED]:
+            break  # nothing to repair in the script: hold until a check is possible
         if attempt == 1:
             break
         stage("Team fixing QA issues")

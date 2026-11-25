@@ -66,7 +66,7 @@ class Gemini:
         key = os.environ.get("GEMINI_API_KEY", "").strip()
         return cls(key) if key else None
 
-    def json(self, parts: list, temperature: float = 0.2, rounds: int = 4) -> Optional[dict]:
+    def json(self, parts: list, temperature: float = 0.2, rounds: int = 6) -> Optional[dict]:
         """Ask with model fallback + backoff (free tier is often busy). None if every model is unavailable."""
         safe = [{"text": SECRET_RE.sub("[redacted]", p["text"])} if "text" in p else p for p in parts]
         body = json.dumps({"contents": [{"parts": safe}],

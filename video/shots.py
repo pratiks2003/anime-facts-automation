@@ -87,6 +87,9 @@ class ShotSources:
             except Exception:
                 pass
         self._wiki: dict = {}
+        from .google_images import GoogleImages
+
+        self.google = GoogleImages.from_env()
         log(f"sources: fan wiki {self.wiki.subdomain + '.fandom.com' if self.wiki else 'none'}; AniList "
             f"{len(self.gallery['episodes'])} episode shots, {len(self.gallery['characters'])} characters, "
             f"trailer {'yes' if self.gallery['trailer'] else 'no'}")
@@ -107,6 +110,16 @@ class ShotSources:
                 path = self._download(url)
                 if path:
                     yield path
+
+    def for_scene(self, scene: str, subject: str = "") -> Iterator[str]:
+        """The exact moment a sentence describes: fan-wiki event pictures, then Google image search."""
+        if not scene:
+            return
+        if self.wiki:
+            yield from (str(x) for x in self.wiki.scene_images(scene, self.cache, limit=3))
+        if self.google:
+            query = f"{self.anime} {scene} anime screenshot"
+            yield from (str(x) for x in self.google.images(query, self.cache, limit=3))
 
     def general(self) -> Iterator[str]:
         """Pictures of the show itself: official-trailer stills, episode screenshots, main characters."""
@@ -190,7 +203,14 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
         plan = shot_plan(scene, script, count, characters)
         subjects = [s.get("subject") for s in plan if s.get("source", "wiki") in ("wiki", "official", "any", "")]
         subjects = [x for x in dict.fromkeys([*subjects, *characters, script["anime"], *reel_characters]) if x]
-        for subject in subjects:
+        for shot in plan:  # 1) the exact moment each sentence describes
+            if len(paths) >= still_target:
+                break
+            for path in sources.for_scene(str(shot.get("scene") or ""), shot.get("subject", "")):
+                if path not in paths and take(path, shot.get("subject", "")):
+                    paths.append(path)
+                    break  # one picture per described moment; the next shot gets its own
+        for subject in subjects:  # 2) the people / things named
             for path in sources.for_subject(subject):
                 if len(paths) >= still_target:
                     break

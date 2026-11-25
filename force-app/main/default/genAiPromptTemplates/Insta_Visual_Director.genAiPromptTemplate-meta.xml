@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</activeVersionIdentifier>
     <description>Agent: shot list per scene so every sentence shows exactly who/what it talks about.</description>
     <developerName>Insta_Visual_Director</developerName>
     <masterLabel>Insta Visual Director</masterLabel>
@@ -24,9 +24,12 @@ Rules:
    or &quot;ai&quot; only for abstract ideas no wiki page can show; then add &quot;prompt&quot;: a vivid scene description with NO character
    names, NO text, cinematic anime style.
 6. Variety: do not repeat the same subject in more than two consecutive shots unless the narration stays on it.
+7. scene = the exact MOMENT being described, as a short image-search phrase (3-8 words) a fan would type to find a
+   screenshot of it: who + what happens + where/arc, e.g. &quot;Gecko Moria puts shadow into Oars Thriller Bark&quot;,
+   &quot;Itachi Tsukuyomi on Sasuke&quot;. Use null only for generic shots (hook/outro hype, the show itself).
 
 Return ONLY JSON:
-{&quot;scenes&quot;: [{&quot;index&quot;: 0, &quot;shots&quot;: [{&quot;subject&quot;: str, &quot;source&quot;: &quot;wiki&quot;|&quot;official&quot;|&quot;ai&quot;, &quot;prompt&quot;: str|null}]}]}</content>
+{&quot;scenes&quot;: [{&quot;index&quot;: 0, &quot;shots&quot;: [{&quot;subject&quot;: str, &quot;scene&quot;: str|null, &quot;source&quot;: &quot;wiki&quot;|&quot;official&quot;|&quot;ai&quot;, &quot;prompt&quot;: str|null}]}]}</content>
         <inputs>
             <apiName>request</apiName>
             <definition>primitive://String</definition>
@@ -36,7 +39,7 @@ Return ONLY JSON:
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

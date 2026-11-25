@@ -132,6 +132,36 @@ class FandomWiki:
                 out.append(path)
         return out
 
+    def scene_images(self, scene: str, cache: Path, limit: int = 3, exclude: set = frozenset()) -> List[Path]:
+        """Pictures of a specific MOMENT: search the wiki for the scene phrase, prefer files whose names
+        share its words (e.g. "Oars Shadow Revival" for "Moria puts shadow into Oars")."""
+        words = [w for w in re.findall(r"[a-z0-9]+", scene.lower()) if len(w) > 3]
+        if not words:
+            return []
+        try:
+            hits = self._q(action="query", list="search", srsearch=scene, srlimit=3).get("query", {}).get("search", [])
+            candidates = []
+            for hit in hits[:2]:
+                candidates += self.page_images(hit["title"])
+        except Exception:
+            return []
+        scored = []
+        for c in candidates:
+            name = c["name"].lower()
+            matches = sum(w in name for w in words)
+            if matches:
+                scored.append((matches + min(c["width"] * c["height"], 2_000_000) / 4_000_000, c))
+        out: List[Path] = []
+        for _, c in sorted(scored, key=lambda x: x[0], reverse=True):
+            if len(out) >= limit:
+                break
+            if c["url"] in exclude:
+                continue
+            path = self._download(c["url"], cache)
+            if path and path not in out:
+                out.append(path)
+        return out
+
     def _download(self, url: str, cache: Path) -> Optional[Path]:
         from PIL import Image, ImageOps
 

@@ -11,7 +11,12 @@ const TOGGLES = [
     {
         key: 'twoReelsPerDay',
         label: '2 Reels per day',
-        help: 'Adds the Evening slot (news & hype formats) to the Morning slot.'
+        help: 'Adds the Evening slot to the Morning slot. Formats are chosen each time from what is trending.'
+    },
+    {
+        key: 'threeReelsPerDay',
+        label: '3 Reels per day',
+        help: 'Adds a Midday slot between Morning and Evening (needs 2 Reels per day).'
     },
     {
         key: 'autoApprove',
@@ -70,6 +75,10 @@ export default class InstaSettings extends LightningElement {
 
     get eveningDisabled() {
         return !this.values.twoReelsPerDay;
+    }
+
+    get middayDisabled() {
+        return !(this.values.twoReelsPerDay && this.values.threeReelsPerDay);
     }
 
     get goingLive() {

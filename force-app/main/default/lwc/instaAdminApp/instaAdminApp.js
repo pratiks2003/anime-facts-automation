@@ -89,7 +89,10 @@ export default class InstaAdminApp extends LightningElement {
         return this.settings.automationEnabled ? 'Automation ON' : 'Automation OFF';
     }
     get cadenceLabel() {
-        return this.settings.twoReelsPerDay ? '2 Reels / day' : '1 Reel / day';
+        if (!this.settings.twoReelsPerDay) {
+            return '1 Reel / day';
+        }
+        return this.settings.threeReelsPerDay ? '3 Reels / day' : '2 Reels / day';
     }
     get showDryRun() {
         return this.settings.dryRun;

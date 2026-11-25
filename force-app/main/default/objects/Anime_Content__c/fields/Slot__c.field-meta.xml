@@ -15,6 +15,11 @@
                 <label>Morning</label>
             </value>
             <value>
+                <fullName>Midday</fullName>
+                <default>false</default>
+                <label>Midday</label>
+            </value>
+            <value>
                 <fullName>Evening</fullName>
                 <default>false</default>
                 <label>Evening</label>

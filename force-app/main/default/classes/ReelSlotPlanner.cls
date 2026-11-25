@@ -5,7 +5,22 @@
  */
 public with sharing class ReelSlotPlanner {
     public static final String MORNING = 'Morning';
+    public static final String MIDDAY = 'Midday';
     public static final String EVENING = 'Evening';
+    /** Slot -> External Id suffix (R-yyyyMMdd-AM / -MD / -PM). */
+    public static final Map<String, String> SUFFIX = new Map<String, String>{ 'Morning' => 'AM', 'Midday' => 'MD', 'Evening' => 'PM' };
+
+    /** Slot name -> HH:mm (IST) for the enabled cadence: 1, 2 or 3 Reels a day. */
+    public static Map<String, String> enabledSlots(InstaAgent_Settings__c settings) {
+        Map<String, String> enabled = new Map<String, String>{ MORNING => settings.Morning_Slot_IST__c };
+        if (settings.Two_Reels_Per_Day__c) {
+            if (settings.Three_Reels_Per_Day__c == true) {
+                enabled.put(MIDDAY, String.isBlank(settings.Midday_Slot_IST__c) ? '13:30' : settings.Midday_Slot_IST__c);
+            }
+            enabled.put(EVENING, settings.Evening_Slot_IST__c);
+        }
+        return enabled;
+    }
     /** Dispatch this long before the slot so the Reel is rendered and posted on time. */
     public static final Integer LEAD_MINUTES = 60;
     /** Missed slots younger than this are still produced (e.g. scheduler outage). */
@@ -27,17 +42,14 @@ public with sharing class ReelSlotPlanner {
     /** Slots (today and tomorrow, IST) whose time falls inside [now - catch-up, now + lead]. */
     public static List<Slot> dueSlots(Datetime now, InstaAgent_Settings__c settings) {
         List<Slot> due = new List<Slot>();
-        Map<String, String> enabled = new Map<String, String>{ MORNING => settings.Morning_Slot_IST__c };
-        if (settings.Two_Reels_Per_Day__c) {
-            enabled.put(EVENING, settings.Evening_Slot_IST__c);
-        }
+        Map<String, String> enabled = enabledSlots(settings);
         Date todayIst = Date.valueOf(now.format('yyyy-MM-dd', InstaAgentConfig.TIMEZONE_ID));
         for (Date day : new List<Date>{ todayIst.addDays(-1), todayIst, todayIst.addDays(1) }) {
             for (String slotName : enabled.keySet()) {
                 Datetime at = istToGmt(day, enabled.get(slotName));
                 Long minutesUntil = (at.getTime() - now.getTime()) / 60000;
                 if (minutesUntil <= LEAD_MINUTES && minutesUntil >= -CATCH_UP_MINUTES) {
-                    String ext = 'R-' + at.format('yyyyMMdd', InstaAgentConfig.TIMEZONE_ID) + '-' + (slotName == MORNING ? 'AM' : 'PM');
+                    String ext = 'R-' + at.format('yyyyMMdd', InstaAgentConfig.TIMEZONE_ID) + '-' + SUFFIX.get(slotName);
                     due.add(new Slot(slotName, at, ext, at.format('EEE', InstaAgentConfig.TIMEZONE_ID)));
                 }
             }

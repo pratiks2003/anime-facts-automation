@@ -49,6 +49,8 @@ public with sharing class AdminPanelController {
                 new InstaAgent_Settings__c(
                     Automation_Enabled__c = (Boolean) values.get('automationEnabled'),
                     Two_Reels_Per_Day__c = (Boolean) values.get('twoReelsPerDay'),
+                    Three_Reels_Per_Day__c = values.get('threeReelsPerDay') == true,
+                    Midday_Slot_IST__c = (String) values.get('middaySlot'),
                     Auto_Approve__c = (Boolean) values.get('autoApprove'),
                     Dry_Run__c = (Boolean) values.get('dryRun'),
                     Morning_Slot_IST__c = (String) values.get('morningSlot'),
@@ -293,11 +295,9 @@ public with sharing class AdminPanelController {
         Date todayIst = Date.valueOf(now.format('yyyy-MM-dd', InstaAgentConfig.TIMEZONE_ID));
         for (Integer d = 0; d < 4 && result.size() < howMany; d++) {
             Date day = todayIst.addDays(d);
-            List<String> slots = s.Two_Reels_Per_Day__c
-                ? new List<String>{ ReelSlotPlanner.MORNING, ReelSlotPlanner.EVENING }
-                : new List<String>{ ReelSlotPlanner.MORNING };
-            for (String slot : slots) {
-                Datetime at = ReelSlotPlanner.istToGmt(day, slot == ReelSlotPlanner.MORNING ? s.Morning_Slot_IST__c : s.Evening_Slot_IST__c);
+            Map<String, String> slots = ReelSlotPlanner.enabledSlots(s);
+            for (String slot : slots.keySet()) {
+                Datetime at = ReelSlotPlanner.istToGmt(day, slots.get(slot));
                 if (at > now && result.size() < howMany) {
                     result.add(
                         new Map<String, Object>{
@@ -338,6 +338,8 @@ public with sharing class AdminPanelController {
         return new Map<String, Object>{
             'automationEnabled' => s.Automation_Enabled__c,
             'twoReelsPerDay' => s.Two_Reels_Per_Day__c,
+            'threeReelsPerDay' => s.Three_Reels_Per_Day__c,
+            'middaySlot' => s.Midday_Slot_IST__c,
             'autoApprove' => s.Auto_Approve__c,
             'dryRun' => s.Dry_Run__c,
             'morningSlot' => s.Morning_Slot_IST__c,

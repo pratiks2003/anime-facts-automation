@@ -65,4 +65,22 @@ private class ReelSlotPlannerTest {
             Assert.isTrue(e.getMessage().contains('HH:mm'));
         }
     }
+
+    @IsTest
+    static void threeReelsPerDayAddsMidday() {
+        InstaAgent_Settings__c s = InstaAgentTestUtil.settings(true, true);
+        s.Three_Reels_Per_Day__c = true;
+        s.Midday_Slot_IST__c = '13:30';
+        Map<String, String> slots = ReelSlotPlanner.enabledSlots(s);
+        Assert.areEqual(new List<String>{ 'Morning', 'Midday', 'Evening' }, new List<String>(slots.keySet()));
+        // 13:30 IST = 08:00 GMT; at 07:30 GMT the Midday slot is due with its own id
+        Datetime now = Datetime.newInstanceGmt(2026, 11, 26, 7, 30, 0);
+        Boolean found = false;
+        for (ReelSlotPlanner.Slot slot : ReelSlotPlanner.dueSlots(now, s)) {
+            found = found || (slot.name == 'Midday' && slot.externalId == 'R-20261126-MD');
+        }
+        Assert.isTrue(found, 'midday slot due');
+        s.Two_Reels_Per_Day__c = false;
+        Assert.areEqual(1, ReelSlotPlanner.enabledSlots(s).size(), 'three needs two');
+    }
 }

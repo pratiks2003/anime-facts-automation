@@ -25,9 +25,19 @@
 
         <section class="panel">
             <h2 class="panel-title">Posting times (IST)</h2>
-            <label class="label" for="morning">Morning slot · evergreen formats</label>
+            <label class="label" for="morning">Morning slot</label>
             <input id="morning" class="field" type="time" data-key="morningSlot" value={values.morningSlot} onchange={handleTime} />
-            <label class="label" for="evening">Evening slot · news &amp; hype (2 Reels/day only)</label>
+            <label class="label" for="midday">Midday slot (3 Reels/day only)</label>
+            <input
+                id="midday"
+                class="field"
+                type="time"
+                data-key="middaySlot"
+                value={values.middaySlot}
+                onchange={handleTime}
+                disabled={middayDisabled}
+            />
+            <label class="label" for="evening">Evening slot (2+ Reels/day)</label>
             <input
                 id="evening"
                 class="field"
@@ -37,7 +47,7 @@
                 onchange={handleTime}
                 disabled={eveningDisabled}
             />
-            <p class="muted small note">Reels are generated about 20 minutes before each slot and posted right after.</p>
+            <p class="muted small note">Each Reel is generated before its slot; its format is picked from that day's trends.</p>
             <p class="muted small note">Repository: {values.repository}</p>
         </section>
 

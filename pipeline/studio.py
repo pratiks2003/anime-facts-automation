@@ -61,12 +61,12 @@ def attach_citations(script: dict, facts: List[dict]) -> None:
 
 
 def format_choices(scheduled: str) -> List[dict]:
-    """Formats the Strategist may switch to: news slots stay news, evergreen slots stay evergreen."""
+    """Every format is allowed in every slot: the Strategist picks what today's trends call for.
+    (The weekly rotation's `scheduled` format is only a fallback / variety hint.)"""
     from .planner import NEWS_FORMATS
 
-    news = scheduled in NEWS_FORMATS
-    return [{"name": name, "about": guide.get("shape", "")[:220]} for name, guide in FORMAT_GUIDE.items()
-            if (name in NEWS_FORMATS) == news]
+    return [{"name": name, "about": guide.get("shape", "")[:220], "kind": "news" if name in NEWS_FORMATS else "evergreen"}
+            for name, guide in FORMAT_GUIDE.items()]
 
 
 def strategy(sf, content_id: str, scheduled_format: str, slot: str = "", anime_hint: str = "", topic_hint: str = "") -> dict:

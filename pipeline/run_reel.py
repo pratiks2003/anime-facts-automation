@@ -411,7 +411,7 @@ def generate(args, sf) -> int:
 
     hook = script["scenes"][0]["narration"].split(". ")[0][:250]
     fields = {
-        "Name": script["title"][:80], "Topic__c": script["title"][:255], "Hook__c": hook,
+        "Name": script["title"][:80], "Topic__c": script["title"][:255], "Hook__c": hook, "Format__c": args.format,
         "Script_JSON__c": json.dumps(script, ensure_ascii=False)[:131000],
         "Caption__c": manifest["caption"][:5000], "Hashtags__c": " ".join(script["hashtags"])[:255],
         "Knowledge_Ids__c": ",".join(manifest["knowledge_ids"])[:255], "Sources__c": (manifest.get("sources") or "")[:2000],

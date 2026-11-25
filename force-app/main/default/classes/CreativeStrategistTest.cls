@@ -100,4 +100,13 @@ private class CreativeStrategistTest {
         StrategyResource.run(); // no mock left -> 500 with an error body
         Assert.areEqual(500, RestContext.response.statusCode);
     }
+
+    @IsTest
+    static void formatIsDynamicButNeverRepeatsTheLastTwo() {
+        Map<String, Object> req = request('S-9');
+        Assert.areEqual('Backstory', CreativeStrategist.validFormat('Backstory', req), 'any allowed format');
+        Assert.areEqual('Fact', CreativeStrategist.validFormat('Dance', req), 'unknown -> rotation');
+        insert new Anime_Content__c(Name = 'R', External_Id__c = 'P-1', Format__c = 'Backstory', Status__c = 'Published');
+        Assert.areEqual('Fact', CreativeStrategist.validFormat('Backstory', req), 'repeat of a recent format -> rotation');
+    }
 }

@@ -126,18 +126,32 @@ public with sharing class CreativeStrategist {
         return styles[0];
     }
 
+    /** The agent's format if it is allowed and not one of the last 2 Reels' formats (variety); else the rotation's. */
+    @TestVisible
     private static String validFormat(Object proposed, Map<String, Object> request) {
         String scheduled = (String) request.get('scheduled_format');
         if (proposed == null || !(request.get('formats') instanceof List<Object>)) {
             return scheduled;
         }
+        Boolean allowed = false;
         for (Object f : (List<Object>) request.get('formats')) {
             Object name = f instanceof Map<String, Object> ? ((Map<String, Object>) f).get('name') : f;
-            if (String.valueOf(name) == String.valueOf(proposed)) {
-                return String.valueOf(proposed);
+            allowed = allowed || String.valueOf(name) == String.valueOf(proposed);
+        }
+        if (!allowed) {
+            return scheduled;
+        }
+        String contentId = (String) request.get('content_id');
+        for (Anime_Content__c c : [
+            SELECT Format__c FROM Anime_Content__c
+            WHERE Status__c IN ('Published', 'Rendered', 'Approved', 'Publishing') AND External_Id__c != :contentId
+            ORDER BY CreatedDate DESC LIMIT 2
+        ]) {
+            if (c.Format__c == String.valueOf(proposed)) {
+                return scheduled; // same format as one of the last 2 Reels: keep the feed varied
             }
         }
-        return scheduled;
+        return String.valueOf(proposed);
     }
 
     private static List<Object> recentReels() {

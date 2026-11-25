@@ -1,9 +1,10 @@
 name: Trend research
 
-# Daily at 00:37 UTC (06:07 IST), before the morning Reel is planned. Also manual.
+# Twice a day, before each Reel slot: 00:37 UTC (06:07 IST) and 12:37 UTC (18:07 IST). Also manual.
 on:
   schedule:
     - cron: "37 0 * * *"
+    - cron: "37 12 * * *"
   workflow_dispatch:
 
 permissions:

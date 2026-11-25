@@ -371,3 +371,15 @@ class OfficialSubjectTests(unittest.TestCase):
             {"image_source": "official", "image_subject": ""}]}
         enforce_official_subjects(script, "One Piece", [{"anime": "One Piece", "characters": ["Nico Robin"]}])
         self.assertEqual([s["image_source"] for s in script["scenes"]], ["official", "official", "ai", "ai"])
+
+
+class RoleRepairTests(unittest.TestCase):
+    def test_invented_roles_are_mapped(self):
+        from pipeline.writer import normalise
+        raw = {"title": "t", "caption": "c", "hashtags": [], "scenes": [
+            {"role": "intro", "headline": "a", "narration": "x"},
+            {"role": "build", "headline": "b", "narration": "y", "knowledge_ids": ["OP-1"]},
+            {"role": "payoff", "headline": "c", "narration": "z", "knowledge_ids": ["OP-2"]},
+            {"role": "cta", "headline": "d", "narration": "w"}]}
+        roles = [s["role"] for s in normalise(raw, "R-1", "One Piece", "Fact")["scenes"]]
+        self.assertEqual(roles, ["hook", "fact", "twist", "outro"])

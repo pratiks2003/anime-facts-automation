@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from typing import Dict, List, Optional
 
-from video.script import HEADLINE_MAX, validate_script
+from video.script import ROLES, HEADLINE_MAX, validate_script
 from video.visuals import clean_text
 
 FACT_ROLES = {"fact", "twist", "rank"}
@@ -133,7 +133,18 @@ def normalise(raw: dict, script_id: str, anime: str, format_name: str) -> dict:
     script["hashtags"] = tags[:5]
     script["caption"] = clean_text(script.get("caption", ""))
     previous_visual = None
-    for scene in script.get("scenes") or []:
+    scenes = script.get("scenes") or []
+    for i, scene in enumerate(scenes):  # agents sometimes invent roles ("build", "payoff", "cta"): map them, don't reject
+        if scene.get("role") not in ROLES:
+            if i == 0:
+                scene["role"] = "hook"
+            elif i == len(scenes) - 1:
+                scene["role"] = "outro"
+            elif scene.get("knowledge_ids"):
+                scene["role"] = "twist" if str(scene.get("role", "")).lower() in ("reveal", "payoff", "twist_reveal") else "fact"
+            else:
+                scene["role"] = "theory" if script.get("mode") == "theory" else "fact"
+    for scene in scenes:
         if scene.get("role") in ("hook", "outro"):
             scene.pop("tag", None)  # label pills are for body scenes only
         for key in ("headline", "narration", "tag"):

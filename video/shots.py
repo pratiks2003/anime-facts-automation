@@ -70,6 +70,9 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
     log(f"fan wiki: {wiki.subdomain + '.fandom.com' if wiki else 'none found'}")
     used: set = set()
     per_subject: dict = {}
+    reel_characters: List[str] = []  # everyone this Reel talks about: variety for hook/outro shots
+    for scene in script["scenes"]:
+        reel_characters += [c for c in record_characters(scene, extra_records) if c not in reel_characters]
     result: List[List[str]] = []
     for i, (scene, timing) in enumerate(zip(script["scenes"], narration.scenes)):
         count = max(1, round(max(0.5, timing.end - timing.start) / style["image_interval"]))
@@ -80,7 +83,7 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
         plan = shot_plan(scene, script, count, characters)
         # wiki subjects to try for this scene: the planned ones first, then cited characters, then the show
         subjects = [s.get("subject") for s in plan if s.get("source", "wiki") in ("wiki", "official", "any", "")]
-        subjects = [x for x in dict.fromkeys([*subjects, *characters, script["anime"]]) if x]
+        subjects = [x for x in dict.fromkeys([*subjects, *characters, script["anime"], *reel_characters]) if x]
         for subject in subjects if wiki else []:
             if len(paths) >= count:
                 break

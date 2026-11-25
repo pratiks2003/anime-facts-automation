@@ -7,6 +7,8 @@ covered by UI; right ~140 px has the action buttons).
 
 from __future__ import annotations
 
+import re
+
 import math
 import random
 from dataclasses import dataclass
@@ -64,14 +66,16 @@ def ease_out_back(x: float) -> float:
 
 
 _GLYPH_FIXES = str.maketrans({
-    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-", "\u2015": "-", "\u2212": "-",
+    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2015": "-", "\u2212": "-",
     "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u00a0": " ", "\u202f": " ",
 })
 
 
 def clean_text(text: str) -> str:
-    """Replace characters the bundled fonts don't have (fancy dashes/quotes/spaces)."""
-    return str(text).translate(_GLYPH_FIXES)
+    """Replace characters the bundled fonts don't have (fancy dashes/quotes/spaces).
+    An em dash is a spoken pause, so it becomes a comma (also keeps one-word captions clean)."""
+    text = re.sub(r"\s*\u2014\s*", ", ", str(text)).translate(_GLYPH_FIXES)
+    return re.sub(r",\s*([,.!?])", r"\1", text)
 
 
 def mix(a: RGB, b: RGB, t: float) -> RGB:

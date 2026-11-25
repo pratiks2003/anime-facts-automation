@@ -274,6 +274,7 @@ class AudioLibraryTests(unittest.TestCase):
         self.assertEqual(snap_to_beats([2.4, 4.9, 5.3], beats), [2.5, 5.0, 5.8])
         self.assertEqual(snap_to_beats([2.4], []), [2.4])
 
+    @unittest.skipUnless(shutil.which("ffmpeg"), "needs FFmpeg")
     def test_beat_times_on_click_track(self):
         import tempfile
         import soundfile

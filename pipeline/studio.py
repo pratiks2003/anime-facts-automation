@@ -12,6 +12,25 @@ class StudioError(RuntimeError):
     pass
 
 
+def enforce_official_subjects(script: dict, anime: str, facts: List[dict]) -> None:
+    """Official key art only exists for the series or a named character; anything else becomes AI art."""
+    import re
+
+    def norm(x: str) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", (x or "").casefold()).strip()
+
+    known = {norm(anime)} | {norm(f.get("anime", "")) for f in facts}
+    for f in facts:
+        known |= {norm(c) for c in f.get("characters") or []}
+    known.discard("")
+    for scene in script.get("scenes") or []:
+        if scene.get("image_source") != "official":
+            continue
+        subject = norm(scene.get("image_subject", ""))
+        if not subject or not any(subject == k or subject in k or k in subject for k in known):
+            scene["image_source"] = "ai"
+
+
 def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[dict], context: str = "",
                  topic: str = "", lessons: Optional[List[str]] = None) -> dict:
     """Return {"script", "quality", "production", "fact_check", "calls"} with a code-validated script."""
@@ -43,6 +62,7 @@ def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[
         script["music_energy"] = production["music_energy"]
     if production.get("music_keywords"):
         script["music_keywords"] = str(production["music_keywords"])[:80]
+    enforce_official_subjects(script, anime, facts)
     errors = check_script(script, {f["id"] for f in facts})
     if errors:
         raise StudioError("studio script failed code rules: " + "; ".join(errors))

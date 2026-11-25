@@ -359,3 +359,15 @@ class RepairAfterQATests(unittest.TestCase):
         self.assertEqual(SF.calls[0], ("insta/studio/revise", ["too long (52s; target 28-45s)"]))
         self.assertEqual(fixed["voice"], "am_fenrir")
         self.assertEqual(quality["quality"]["overall"], 8.6)
+
+
+class OfficialSubjectTests(unittest.TestCase):
+    def test_objects_become_ai_art(self):
+        from pipeline.studio import enforce_official_subjects
+        script = {"scenes": [
+            {"image_source": "official", "image_subject": "Nico Robin"},
+            {"image_source": "official", "image_subject": "One Piece"},
+            {"image_source": "official", "image_subject": "Alarm clock, moonlight, books"},
+            {"image_source": "official", "image_subject": ""}]}
+        enforce_official_subjects(script, "One Piece", [{"anime": "One Piece", "characters": ["Nico Robin"]}])
+        self.assertEqual([s["image_source"] for s in script["scenes"]], ["official", "official", "ai", "ai"])

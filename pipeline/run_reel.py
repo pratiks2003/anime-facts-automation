@@ -303,6 +303,11 @@ def generate(args, sf) -> int:
         idea = None
     plan = plan_reel(llm, args.format, anime_hint=anime_hint, topic=topic,
                      recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid, strict_anime=bool(args.anime))
+    strategist_anime = str(decision.get("anime") or "")
+    if angle and strategist_anime and strategist_anime.casefold() not in plan.anime.casefold() \
+            and plan.anime.casefold() not in strategist_anime.casefold():
+        log(f"strategist angle was about {strategist_anime}, but this Reel is about {plan.anime}; the writer picks its own angle")
+        angle = ""
     if anime_hint and plan.anime.casefold() != anime_hint.casefold() and not args.anime:
         log(f"{anime_hint} lacked verified facts; the team switched to {plan.anime}")
         idea, topic, angle = None, "", ""  # the idea stays in the backlog for when we know more about it

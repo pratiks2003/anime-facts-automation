@@ -113,7 +113,14 @@ class ShotSources:
         if self.gallery.get("trailer_id"):
             from .trailer_frames import trailer_frames
 
-            yield from (str(f) for f in trailer_frames(self.gallery["trailer_id"], self.cache))
+            frames = trailer_frames(self.gallery["trailer_id"], self.cache)
+            yield from (str(f) for f in frames)
+            if not frames:  # YouTube blocks downloads from cloud runners: its own frame thumbnails still work
+                tid = self.gallery["trailer_id"]
+                for n in ("maxres1", "maxres2", "maxres3"):
+                    path = self._download(f"https://i.ytimg.com/vi/{tid}/{n}.jpg")
+                    if path:
+                        yield path
         urls = list(self.gallery["episodes"])
         if self.gallery["trailer"]:
             urls.insert(0, self.gallery["trailer"])

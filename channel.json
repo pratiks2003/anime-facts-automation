@@ -8,5 +8,5 @@
   "random_voice": false,
   "fixed_voice": "am_fenrir",
   "use_clips": true,
-  "clip_accounts": ["crunchyroll"]
+  "clip_accounts": ["crunchyroll", "anioneasia", "aniplexusa", "vizmedia", "adultswim"]
 }

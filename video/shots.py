@@ -133,7 +133,7 @@ class ShotSources:
 
 def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[str]], cache: Path,
                   backup: List[str], extra_records: Optional[List[dict]] = None,
-                  last_resort: List[str] = (), inspector=None) -> List[List[str]]:
+                  last_resort: List[str] = (), inspector=None, clips: Optional[List[str]] = None) -> List[List[str]]:
     """Image paths per scene. Every picture is inspected before use and never repeated;
     when a scene runs out of distinct good pictures it gets fewer, longer shots instead."""
     from .image_check import Inspector
@@ -145,6 +145,8 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
         reel_characters += [c for c in record_characters(scene, extra_records) if c not in reel_characters]
     general = sources.general()
     rejections: List[str] = []
+    clip_pool = list(clips or [])  # each clip is used once
+    ratio = float(style.get("clip_ratio", 0.5))
 
     bad_paths: set = set()
 
@@ -177,18 +179,31 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
             ai = Path(primary[i]).name.startswith("ai_")
             if take(primary[i], scene.get("image_subject", ""), "scene" if ai else "anime", scene.get("image_prompt", "")):
                 paths.append(primary[i])
+        clip_slots = min(len(clip_pool), round(count * ratio))
+        if i == 0 and clip_pool and ratio > 0:
+            clip_slots = max(1, clip_slots)  # open on motion
+        if i == 0 and clip_slots:
+            paths.insert(0, clip_pool.pop(0))
+            clip_slots -= 1
+        still_target = count - clip_slots
         characters = record_characters(scene, extra_records)
         plan = shot_plan(scene, script, count, characters)
         subjects = [s.get("subject") for s in plan if s.get("source", "wiki") in ("wiki", "official", "any", "")]
         subjects = [x for x in dict.fromkeys([*subjects, *characters, script["anime"], *reel_characters]) if x]
         for subject in subjects:
             for path in sources.for_subject(subject):
-                if len(paths) >= count:
+                if len(paths) >= still_target:
                     break
                 if path not in paths and take(path, subject):
                     paths.append(path)
-            if len(paths) >= count:
+            if len(paths) >= still_target:
                 break
+        scenes_left = max(1, len(script["scenes"]) - i)
+        fair_share = max(clip_slots, -(-len(clip_pool) // scenes_left))  # spread clips over the whole Reel
+        added = 0
+        while len(paths) < count and clip_pool and added < fair_share:  # anime motion between the stills
+            paths.append(clip_pool.pop(0))
+            added += 1
         for path in general:  # the show's own screenshots / trailer / characters
             if len(paths) >= count:
                 break
@@ -212,7 +227,8 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
             if reuse:
                 paths.append(reuse[i % len(reuse)])
         result.append(paths)
-        log(f"scene {i + 1}: {len(paths)} distinct shot(s) ({count} wanted)")
+        n_clips = sum(1 for x in paths if Path(x).is_dir())
+        log(f"scene {i + 1}: {len(paths)} distinct shot(s) ({count} wanted, {n_clips} clips)")
     log(f"image inspector: {inspector.accepted} accepted, {len(rejections)} rejected")
     for r in rejections[:12]:
         log(f"  rejected {r}")

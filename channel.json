@@ -6,5 +6,6 @@
   "show_sources_on_video": false,
   "voice_provider": "kokoro",
   "random_voice": false,
-  "fixed_voice": "am_fenrir"
+  "fixed_voice": "am_fenrir",
+  "use_clips": true
 }

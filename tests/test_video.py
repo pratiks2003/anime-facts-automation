@@ -322,3 +322,33 @@ class ImageInspectorTests(unittest.TestCase):
         self.assertTrue(name_matches("Monkey D. Luffy", "Luffy Monkey"))
         self.assertTrue(name_matches("Rain", "Rain Garland"))
         self.assertFalse(name_matches("Roronoa Zoro", "Luffy Monkey"))
+
+
+class ClipTests(unittest.TestCase):
+    def test_mentions(self):
+        from video.clips import mentions
+        self.assertTrue(mentions("Carry on, Basen, nothing to see here", ["Basen"]))
+        self.assertTrue(mentions("The Apothecary Diaries S3 is here!", ["The Apothecary Diaries Season 3"]))
+        self.assertFalse(mentions("Beam appreciation post", ["Black Clover"]))
+
+    def test_renderer_plays_clip_frames(self):
+        import tempfile
+        from PIL import Image
+        from video.cinematic import CinematicRenderer
+        from video.style import resolve_style
+        from video.tts import Narration, SceneTiming, Word
+        with tempfile.TemporaryDirectory() as tmp:
+            clip = Path(tmp) / "clip_test"
+            clip.mkdir()
+            for k in range(36):
+                Image.new("RGB", (1080, 1920), (k * 7, 50, 90)).save(clip / f"{k:03d}.jpg")
+            still = Path(tmp) / "s.jpg"
+            Image.new("RGB", (1200, 1900), (10, 200, 10)).save(still)
+            scenes = [SceneTiming(0, "hook", "x", 0.0, 3.0, [Word("Hi", 0.1, 0.5)])]
+            narration = Narration(audio=np.zeros(3 * 24000), sample_rate=24000, scenes=scenes)
+            r = CinematicRenderer({"id": "C", "anime": "X", "scenes": [{}]}, narration,
+                                  resolve_style({"image_interval": 1.5}), [[str(clip), str(still)]])
+            self.assertIsNotNone(r.shots[0].clip)
+            early, late = r.frame(0.2), r.frame(1.0)
+            self.assertNotEqual(early.getpixel((540, 200))[0], late.getpixel((540, 200))[0])  # it moves
+            self.assertEqual(r.frame(2.5).size, (1080, 1920))

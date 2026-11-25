@@ -221,6 +221,15 @@ def gate_decision(sf, content_id: str) -> tuple:
     return rows[0].get("Approval_Status__c") != "Auto-Approved", bool(rows[0].get("Publish_As_Trial__c"))
 
 
+def clip_watchlist(sf) -> List[str]:
+    """Pages whose Reels may supply anime clips (the trend watchlist)."""
+    try:
+        config = sf.request("GET", "insta/research/brief", base="apexrest") or {}
+        return [str(n) for n in config.get("watchlist") or []] or ["crunchyroll"]
+    except Exception:
+        return ["crunchyroll"]
+
+
 def recent_music(sf, limit: int = 20) -> List[str]:
     """Music_Choice__c of the last Reels ("title by creator - reason"): those tracks are not reused."""
     try:
@@ -351,7 +360,7 @@ def generate(args, sf) -> int:
     for attempt in range(2):  # render -> QA -> (team repairs -> re-render) at most once
         # a trending sound is added by hand in the Instagram app, so the export carries voice + SFX only
         manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker,
-                          music=not trending_sound, recent_music=recent_music(sf))
+                          music=not trending_sound, recent_music=recent_music(sf), watchlist=clip_watchlist(sf))
         errors = manifest["validation"]["errors"]
         if errors:
             raise RuntimeError("video failed validation: " + "; ".join(errors))

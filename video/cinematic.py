@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
+from .clips import clip_frames, is_clip
 from .tts import Narration, Word
 from .visuals import H, W, base_background, clean_text, cover, font, pill, theme_for
 
@@ -26,9 +27,10 @@ STOPWORDS = {"the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "at",
 class Shot:
     start: float
     end: float
-    image: Image.Image          # graded, overscanned canvas
+    image: Optional[Image.Image]  # graded, overscanned canvas (None for clips)
     zoom_in: bool
-    pan: Tuple[float, float]    # direction of drift (-1..1)
+    pan: Tuple[float, float]      # direction of drift (-1..1)
+    clip: Optional[List[str]] = None  # 30 fps frames of a video clip (already 1080x1920 + graded)
 
 
 def grade(img: Image.Image, mode: str) -> Image.Image:
@@ -100,6 +102,7 @@ class CinematicRenderer:
         self.rng = random.Random(script.get("id", "reel"))
         self.fallback = base_background(self.theme)
         self.shots: List[Shot] = []
+        self._clip_cache: Tuple[Optional[str], Optional[Image.Image]] = (None, None)
         cache: Dict[str, Image.Image] = {}
         interval = style["image_interval"]
         for scene, paths in zip(narration.scenes, scene_images):
@@ -109,6 +112,14 @@ class CinematicRenderer:
                 count = min(count, len(paths))  # one shot per distinct picture: fewer, longer shots beat repeats
             for k in range(count):
                 path = paths[k] if paths else None
+                if path and is_clip(path):
+                    frames = [str(f) for f in clip_frames(path)]
+                    if frames:
+                        start = scene.start + length * k / count
+                        end = scene.start + length * (k + 1) / count
+                        self.shots.append(Shot(start, end, None, True, (0.0, 0.0), clip=frames))
+                        continue
+                    path = None
                 key = f"{path}|{style['grading']}"
                 if path and key not in cache:
                     try:
@@ -148,6 +159,9 @@ class CinematicRenderer:
         u = t - shot.start
         progress = min(1.0, max(0.0, u / max(0.1, shot.end - shot.start)))
         m = self.style["motion"]
+        if shot.clip:
+            img = self.clip_frame(shot, u, progress)
+            return self.finish(img, t, u, i, captions)
         big = shot.image
         span = 1.0 + (OVERSCAN - 1.0) * m * (1 - progress if shot.zoom_in else progress)
         cw, ch = int(W * span), int(H * span)
@@ -157,6 +171,25 @@ class CinematicRenderer:
         py = 0.5 + 0.45 * m * shot.pan[1] * (progress - 0.5)
         left, top = int(free_x * min(1, max(0, px))), int(free_y * min(1, max(0, py)))
         img = big.crop((left, top, left + cw, top + ch)).resize((W, H), Image.BILINEAR)
+        return self.finish(img, t, u, i, captions)
+
+    def clip_frame(self, shot: Shot, u: float, progress: float) -> Image.Image:
+        """Play the clip at its own speed; hold the last frame if the shot outlasts it. Gentle push-in."""
+        index = min(len(shot.clip) - 1, int(u * 30))
+        path = shot.clip[index]
+        if self._clip_cache[0] != path:
+            self._clip_cache = (path, Image.open(path).convert("RGB"))
+        img = self._clip_cache[1]
+        zoom = 1.0 + 0.06 * self.style["motion"] * progress
+        if zoom > 1.001:
+            cw, ch = int(W / zoom), int(H / zoom)
+            left, top = (W - cw) // 2, (H - ch) // 2
+            img = img.crop((left, top, left + cw, top + ch)).resize((W, H), Image.BILINEAR)
+        else:
+            img = img.copy()
+        return img
+
+    def finish(self, img: Image.Image, t: float, u: float, i: int, captions: bool = True) -> Image.Image:
         img = self.transition(img, u, i)
         d = ImageDraw.Draw(img)
         if self.style["watermark"]:

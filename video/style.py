@@ -29,6 +29,7 @@ DEFAULT_STYLE: Dict[str, Any] = {
     "sfx_density": "medium",      # low | medium | high
     "outro_cta": True,
     "target_seconds": 45,
+    "clip_ratio": 0.5,            # share of shots that are short anime video clips (when clips are available)
 }
 
 _CHOICES = {
@@ -46,6 +47,7 @@ _RANGES = {
     "voice_speed": (0.9, 1.5),
     "music_gain_db": (-20.0, -4.0),
     "target_seconds": (15, 90),
+    "clip_ratio": (0.0, 1.0),
 }
 _BOOLS = ("keyword_color", "show_headline", "show_tags", "show_brand", "show_progress", "outro_cta")
 

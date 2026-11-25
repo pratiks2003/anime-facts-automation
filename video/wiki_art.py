@@ -22,7 +22,9 @@ MIN_SIDE, MIN_LONG = 420, 700
 # merch, games, UI chrome: never good Reel shots
 SKIP = re.compile(r"(bounty rush|thousand storm|treasure cruise|pirate warriors|ultimate|storm \d|game|card|figure|"
                   r"merch|logo|icon|symbol|flag|signature|featured|wanted poster|jolly|button|banner ad|sprite|"
-                  r"\bvol(ume)?\b.*cover|box ?art|funko|chibi|emoji|\.svg|\.gif)", re.I)
+                  r"\bvol(ume)?\b.*cover|box ?art|funko|chibi|emoji|\.svg|\.gif|collab|coolish|promo|promotion|"
+                  r"advert|commercial|campaign|cafe|restaurant|package|packaging|product|toy|statue|event|ticket|"
+                  r"\bx\b)", re.I)
 PREFER = re.compile(r"(anime|manga|infobox|episode|chapter|color|colour|portrait|full body|appearance|post|pre)", re.I)
 _WIKI_CACHE: Dict[str, Optional[str]] = {}
 

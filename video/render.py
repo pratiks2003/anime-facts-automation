@@ -250,8 +250,8 @@ def run_visual_qa(script, narration, style, renderer, gemini, channel: dict, bea
     for attempt in range(rounds + 1):
         result = review(renderer, narration, script, gemini, [sh.source for sh in renderer.shots])
         if result is None:
-            if report.get("issues") and fixed:
-                # the exact pictures it flagged were banned and replaced; only the re-check could not run
+            if report.get("issues") and fixed and report.get("up_to_mark"):
+                # wrong shots were replaced on an edit that already met the bar; only the re-check could not run
                 report.update(status="fixed (re-check unavailable)", fixed_issues=report.pop("issues"), issues=[])
             report.setdefault("status", "unavailable (Gemini busy)")
             break

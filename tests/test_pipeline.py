@@ -412,3 +412,30 @@ class QualityGateTests(unittest.TestCase):
             self.assertEqual(qa_review(self._manifest({"status": "checked", "issues": [], "up_to_mark": True}), {"scenes": []}, {}), [])
             low = qa_review(self._manifest({"status": "checked", "issues": [], "up_to_mark": False, "edit_score": 5}), {"scenes": []}, {})
             self.assertTrue(any("edit quality 5" in i for i in low))
+
+
+class HotTopicRepeatTests(unittest.TestCase):
+    def test_covered_topic_moves_to_next_hottest(self):
+        import json as _json
+        from pipeline.run_reel import uncovered_hot_topic
+        brief = {"hot_topics": [
+            {"topic": "Elbaf mural's horned figure and Loki", "anime": "ONE PIECE", "heat": 10},
+            {"topic": "Imu's return and Blackbeard's move", "anime": "ONE PIECE", "heat": 9}]}
+        sf = type("SF", (), {"query": lambda self, q: [{"Brief_JSON__c": _json.dumps(brief)}]})()
+        covered = ["Did you spot the horned figure on Elbaf's mural? This could flip everything"]
+        got = uncovered_hot_topic(sf, brief["hot_topics"][0], covered)
+        self.assertIn("Imu", got["topic"])
+        self.assertIs(uncovered_hot_topic(sf, brief["hot_topics"][1], covered), brief["hot_topics"][1])
+
+
+class QualityLoopholeTests(unittest.TestCase):
+    def test_low_score_is_held_even_if_recheck_was_unavailable(self):
+        import os
+        from unittest import mock
+        from pipeline.run_reel import qa_review
+        manifest = {"validation": {"summary": {"duration": 40}}, "images": [],
+                    "visual_qa": {"status": "unavailable (Gemini busy)", "edit_score": 4.0, "up_to_mark": False,
+                                  "issues": [], "edit_notes": ["off-topic shots"]}}
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "x"}):
+            issues = qa_review(manifest, {"scenes": []}, {})
+        self.assertTrue(any("edit quality 4.0" in i for i in issues))

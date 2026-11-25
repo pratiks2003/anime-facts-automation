@@ -177,7 +177,8 @@ def qa_review(manifest: dict, script: dict, quality: dict) -> List[str]:
         issues.append(UNCHECKED)
     if visual.get("status") == "checked" and visual.get("issues"):
         issues.append("visual QA: " + "; ".join(visual["issues"])[:400])
-    if visual.get("status") == "checked" and visual.get("up_to_mark") is False:
+    if visual.get("up_to_mark") is False or (visual.get("edit_score") is not None and visual["edit_score"] < 7):
+        # the last real verdict counts - "re-check unavailable" never upgrades a below-bar edit
         issues.append(f"edit quality {visual.get('edit_score')}/10 (quality checker): " + "; ".join(visual.get("edit_notes") or [])[:300])
     fact_check = (quality or {}).get("fact_check") or {}
     if fact_check and not fact_check.get("pass", True):
@@ -232,6 +233,49 @@ def gate_decision(sf, content_id: str) -> tuple:
     if rows[0].get("Hold_Reason__c"):
         log(f"quality gate: {rows[0].get('Hold_Reason__c')}")
     return rows[0].get("Approval_Status__c") != "Auto-Approved", bool(rows[0].get("Publish_As_Trial__c"))
+
+
+TOPIC_STOP = {"anime", "about", "their", "there", "which", "could", "would", "every", "after", "before", "season",
+              "episode", "chapter", "new", "the", "and", "with", "from", "that", "this", "what", "when", "fans"}
+
+
+def topic_words(text: str, anime: str = "") -> set:
+    import re
+
+    skip = {w for w in re.findall(r"[a-z0-9]+", (anime or "").lower())}
+    return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) > 3 and w not in TOPIC_STOP and w not in skip}
+
+
+def recent_topics(sf, hours: int = 24) -> List[str]:
+    """Text of everything posted / rendered in the last `hours` (topic, hook, strategy)."""
+    try:
+        rows = sf.query("SELECT Topic__c, Hook__c, Strategy__c FROM Anime_Content__c WHERE Status__c IN "
+                        f"('Published', 'Rendered', 'Approved', 'Publishing') AND CreatedDate = LAST_N_DAYS:2 "
+                        "ORDER BY CreatedDate DESC LIMIT 12") or []
+    except Exception:
+        return []
+    return [" ".join(str(r.get(k) or "") for k in ("Topic__c", "Hook__c", "Strategy__c")) for r in rows]
+
+
+def uncovered_hot_topic(sf, hot: dict, covered: List[str]) -> Optional[dict]:
+    """The strategist's hot topic, or - if we already covered it in the last day - the next hottest uncovered one."""
+    def is_covered(t: dict) -> bool:
+        words = topic_words(f"{t.get('topic', '')} {t.get('headline') or ''}", t.get("anime", ""))
+        return bool(words) and any(len(words & topic_words(text)) >= min(2, len(words)) for text in covered)
+
+    if not is_covered(hot):
+        return hot
+    try:
+        rows = sf.query("SELECT Brief_JSON__c FROM Trend_Brief__c ORDER BY CreatedDate DESC LIMIT 1") or []
+        candidates = json.loads(rows[0]["Brief_JSON__c"]).get("hot_topics") or [] if rows else []
+    except Exception:
+        candidates = []
+    for t in sorted(candidates, key=lambda t: -(t.get("heat") or 0)):
+        if isinstance(t, dict) and t.get("anime") and not is_covered(t):
+            log(f"hot topic '{hot.get('topic')}' was covered in the last 24 h; next hottest: '{t.get('topic')}' (heat {t.get('heat')})")
+            return t
+    log(f"hot topic '{hot.get('topic')}' was covered in the last 24 h and no other hot topic is uncovered")
+    return None
 
 
 def recent_music(sf, limit: int = 20) -> List[str]:
@@ -308,6 +352,11 @@ def generate(args, sf) -> int:
     angle = str(decision.get("angle") or "")
     lessons, idea = learning_inputs(sf, args.format)
     hot_topic = decision.get("hot_topic") if isinstance(decision.get("hot_topic"), dict) else None
+    if hot_topic:  # enforced in code: never the same hot topic twice within 24 h
+        chosen = uncovered_hot_topic(sf, hot_topic, recent_topics(sf))
+        if chosen is not hot_topic:
+            angle = ""  # the strategist's angle was about the covered topic
+        hot_topic = chosen
     if hot_topic and not args.anime and not args.topic and hot_topic.get("anime"):
         anime_hint, topic = str(hot_topic["anime"]), str(hot_topic.get("topic") or "")
         log(f"hot topic (heat {hot_topic.get('heat')}{', breaking' if decision.get('breaking') else ''}): "

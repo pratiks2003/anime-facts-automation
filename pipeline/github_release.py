@@ -83,10 +83,14 @@ class ReleaseStore:
             except urllib.error.HTTPError as exc:
                 if exc.code != 422:
                     raise
-                # a retried upload whose first attempt already landed: use the asset that exists
+                # a retried upload whose first attempt already landed: use the asset that exists;
+                # a half-created (hidden) asset blocks the name: upload under a fresh name instead
                 asset = next((a for a in self.release().get("assets", []) if a["name"] == name), None)
                 if asset is None:
-                    raise
+                    stem, dot, ext = name.rpartition(".")
+                    fresh = f"{stem}-{int(time.time())}{dot}{ext}" if dot else f"{name}-{int(time.time())}"
+                    asset = self._req("POST", f"{UPLOADS}/repos/{self.repo}/releases/{rel['id']}/assets?name="
+                                      f"{urllib.parse.quote(fresh)}", Path(path).read_bytes(), ctype)
             urls[name] = asset["browser_download_url"]
         return urls
 

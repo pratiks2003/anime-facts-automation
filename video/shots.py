@@ -50,6 +50,18 @@ def record_characters(scene: dict, extra_records: Optional[List[dict]] = None) -
     return out
 
 
+def named_in(text: str, characters: List[str]) -> List[str]:
+    """Only characters the narration actually names (a fact about Robin's bounty also lists Doflamingo and
+    Kaido, but showing them while the voice talks about Robin is wrong)."""
+    words = {w for w in re.findall(r"[a-z0-9]+", (text or "").casefold())}
+    out = []
+    for c in characters:
+        parts = [w for w in re.findall(r"[a-z0-9]+", c.casefold()) if len(w) > 2 and w not in ("the", "von")]
+        if parts and any(w in words for w in parts):
+            out.append(c)
+    return out
+
+
 def shot_plan(scene: dict, script: dict, count: int, characters: List[str] = ()) -> List[dict]:
     """The Director's shots for a scene, padded/derived to `count` entries."""
     shots = [s for s in (scene.get("shots") or []) if isinstance(s, dict) and (s.get("subject") or s.get("prompt"))]
@@ -154,8 +166,10 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
     inspector = inspector or Inspector.create()
     sources = ShotSources(script, cache)
     reel_characters: List[str] = []  # everyone this Reel talks about: variety for hook/outro shots
+    all_narration = " ".join(sc.get("narration", "") for sc in script["scenes"])
     for scene in script["scenes"]:
-        reel_characters += [c for c in record_characters(scene, extra_records) if c not in reel_characters]
+        reel_characters += [c for c in named_in(all_narration, record_characters(scene, extra_records))
+                            if c not in reel_characters]
     general = sources.general()
     rejections: List[str] = []
     clip_pool = list(clips or [])  # each clip is used once
@@ -199,7 +213,7 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
             paths.insert(0, clip_pool.pop(0))
             clip_slots -= 1
         still_target = count - clip_slots
-        characters = record_characters(scene, extra_records)
+        characters = named_in(scene.get("narration", ""), record_characters(scene, extra_records))
         plan = shot_plan(scene, script, count, characters)
         subjects = [s.get("subject") for s in plan if s.get("source", "wiki") in ("wiki", "official", "any", "")]
         subjects = [x for x in dict.fromkeys([*subjects, *characters, script["anime"], *reel_characters]) if x]

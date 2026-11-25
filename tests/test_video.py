@@ -352,3 +352,11 @@ class ClipTests(unittest.TestCase):
             early, late = r.frame(0.2), r.frame(1.0)
             self.assertNotEqual(early.getpixel((540, 200))[0], late.getpixel((540, 200))[0])  # it moves
             self.assertEqual(r.frame(2.5).size, (1080, 1920))
+
+
+class NamedInTests(unittest.TestCase):
+    def test_only_characters_the_narration_names(self):
+        from video.shots import named_in
+        cast = ["Nico Robin", "Donquixote Doflamingo", "Kaido"]
+        self.assertEqual(named_in("Her bounty exploded after the Onigashima raid", cast), [])
+        self.assertEqual(named_in("Robin can sprout arms anywhere", cast), ["Nico Robin"])

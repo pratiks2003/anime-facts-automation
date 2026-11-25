@@ -110,6 +110,18 @@ class FandomWiki:
             if not title:
                 return []
             candidates = self.page_images(title)
+            if len(candidates) < limit * 2:  # character pages keep most pictures on subpages
+                seen = {c["url"] for c in candidates}
+                for sub in ("Gallery", "Abilities and Powers", "History", "Personality and Relationships"):
+                    try:
+                        for c in self.page_images(f"{title}/{sub}"):
+                            if c["url"] not in seen:
+                                seen.add(c["url"])
+                                candidates.append(c)
+                    except Exception:
+                        continue
+                    if len(candidates) >= limit * 3:
+                        break
         except Exception:
             return []
         words = [w for w in re.findall(r"\w+", subject.lower()) if len(w) > 2]

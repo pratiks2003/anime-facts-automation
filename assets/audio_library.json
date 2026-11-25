@@ -1,0 +1,1886 @@
+{
+  "music_release": "music-library",
+  "sfx_release": "sfx-library",
+  "music": [
+    {
+      "file": "music_hype_e0f6a27edc.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "48261aa3-5a69-445e-96ff-f973588fc056",
+      "title": "Magma Rock - Felipe RuizBRX11",
+      "creator": "eitabyte (ruizbrx11)",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1594046",
+      "provider": "jamendo",
+      "duration": 99.0,
+      "tags": [
+        "atmospheric",
+        "drums",
+        "electricbass",
+        "energetic",
+        "film",
+        "happy",
+        "instrumental",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_hype_1f1e758243.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "3f8b63ff-12ac-4a67-bd7c-59c8ce59356b",
+      "title": "Star Rock = Purple Star System - Felipe RuizBRX11",
+      "creator": "eitabyte (ruizbrx11)",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1594053",
+      "provider": "jamendo",
+      "duration": 209.0,
+      "tags": [
+        "atmospheric",
+        "bass",
+        "electricguitar",
+        "energetic",
+        "happy",
+        "instrumental",
+        "space",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_hype_b37da7b976.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "c6acf5d3-f2ce-43b3-a35d-407b7d5a6265",
+      "title": "In A Gadda New Eden ( Childhoods End ) Astro Rock",
+      "creator": "Lenny Wiles Lionstar GALAXY BANDSTAND",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1493966",
+      "provider": "jamendo",
+      "duration": 244.0,
+      "tags": [
+        "energetic",
+        "instrumental",
+        "neutral",
+        "rockelectronico",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_hype_6c840452ba.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "ede67d2c-735a-45da-9e79-a041277e0eeb",
+      "title": "Dark Moment - Dark Epic Trailer",
+      "creator": "E. Erkut",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1308699",
+      "provider": "jamendo",
+      "duration": 96.0,
+      "tags": [
+        "dark",
+        "epic",
+        "epicdrums",
+        "improvisation",
+        "instrumental",
+        "orchestra",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_hype_7eb3c65e7e.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "a9fd2e6b-2f78-4472-92ba-c09584707388",
+      "title": "Fusion - Dark Epic Trailer",
+      "creator": "E. Erkut",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1308697",
+      "provider": "jamendo",
+      "duration": 97.0,
+      "tags": [
+        "dark",
+        "epic",
+        "epicdrums",
+        "improvisation",
+        "instrumental",
+        "orchestra",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_hype_ffcc9b94b5.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "b451fe4b-b1c8-415f-baee-b8bb071617fc",
+      "title": "Heaviness - Dark Epic Trailer",
+      "creator": "E. Erkut",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1308698",
+      "provider": "jamendo",
+      "duration": 76.0,
+      "tags": [
+        "dark",
+        "epic",
+        "epicdrums",
+        "improvisation",
+        "instrumental",
+        "orchestra",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_hype_097a602253.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "5b5a0b0a-7c5f-45a5-8b84-4e2c32310b59",
+      "title": "Epic Trailer",
+      "creator": "Soundrider/Dope",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1670474",
+      "provider": "jamendo",
+      "duration": 115.0,
+      "tags": [
+        "atmospheric",
+        "dreamy",
+        "instrumental",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_hype_31cbb42d53.mp3",
+      "kind": "music",
+      "key": "hype",
+      "id": "17ceb6a5-0ac9-4b25-86d5-9af59bedb4f0",
+      "title": "High Voltage - FREE MUSIC",
+      "creator": "ANtarcticbreeze",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1210825",
+      "provider": "jamendo",
+      "duration": 272.0,
+      "tags": [
+        "adventure",
+        "energetic",
+        "free",
+        "instrumental",
+        "speed_medium",
+        "sport"
+      ]
+    },
+    {
+      "file": "music_emotional_cbe4cecd7a.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "8b18b336-5aa4-471d-9ad7-51683f13ff7d",
+      "title": "Emotional - Piano Instrumental",
+      "creator": "E. Erkut",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1320221",
+      "provider": "jamendo",
+      "duration": 82.0,
+      "tags": [
+        "instrumental",
+        "peaceful",
+        "piano",
+        "pianostrings",
+        "sad",
+        "speed_medium",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_emotional_8d581aa85e.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "249c0616-3749-42d5-a9b0-e511777562c7",
+      "title": "Disabled emotions suite - Part 1",
+      "creator": "zero-project",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/202926",
+      "provider": "jamendo",
+      "duration": 307.0,
+      "tags": [
+        "advertising",
+        "atmospheric",
+        "instrumental",
+        "neutral",
+        "piano",
+        "sonata",
+        "speed_medium",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_emotional_894ba1d57b.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "94fd1ed1-b1a8-4f0d-b170-5fed84038d07",
+      "title": "Prélude",
+      "creator": "Ehma",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1687390",
+      "provider": "jamendo",
+      "duration": 165.0,
+      "tags": [
+        "emotional",
+        "instrumental",
+        "neutral",
+        "piano",
+        "soft",
+        "speed_medium",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_emotional_7167f16a3c.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "166bdd39-1560-4389-87aa-116ef611558e",
+      "title": "Les jeux de plage (Listen)",
+      "creator": "Ehma",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1687330",
+      "provider": "jamendo",
+      "duration": 153.0,
+      "tags": [
+        "emotional",
+        "neutral",
+        "piano",
+        "speed_medium",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_emotional_4cd9174581.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "efb594bf-bc87-42b6-906a-660a413cdf9e",
+      "title": "Lady Ravenstein",
+      "creator": "Ehma",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1687398",
+      "provider": "jamendo",
+      "duration": 124.0,
+      "tags": [
+        "emotional",
+        "instrumental",
+        "neutral",
+        "piano",
+        "soft",
+        "speed_high",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_emotional_a9080ab149.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "8217e1c7-6a8c-4c59-9c9f-82fe9b760322",
+      "title": "Antigone et Créon",
+      "creator": "Ehma",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1687319",
+      "provider": "jamendo",
+      "duration": 160.0,
+      "tags": [
+        "cinematic",
+        "emotional",
+        "instrumental",
+        "neutral",
+        "piano",
+        "speed_high",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_emotional_84e7183c64.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "2cb29e99-07a1-46e0-bd1a-c499ab4b11a7",
+      "title": "Disabled emotions suite - Part 5",
+      "creator": "zero-project",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/202935",
+      "provider": "jamendo",
+      "duration": 256.0,
+      "tags": [
+        "glockenspiel",
+        "instrumental",
+        "melancholic",
+        "neutral",
+        "piano",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_emotional_34c5af1899.mp3",
+      "kind": "music",
+      "key": "emotional",
+      "id": "8904fb09-6083-4390-99bb-24dc705e37ca",
+      "title": "Everyone",
+      "creator": "Keffy Kay",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/710707",
+      "provider": "jamendo",
+      "duration": 195.0,
+      "tags": [
+        "emotional",
+        "instrumental",
+        "neutral",
+        "piano",
+        "speed_medium",
+        "strings"
+      ]
+    },
+    {
+      "file": "music_playful_9d62dc94a7.mp3",
+      "kind": "music",
+      "key": "playful",
+      "id": "b945edf0-6854-46ed-af2b-4c03fc3f4900",
+      "title": "Give Me Light",
+      "creator": "CHASMA",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1567944",
+      "provider": "jamendo",
+      "duration": 153.0,
+      "tags": [
+        "adventure",
+        "happy",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_playful_49585d7ff8.mp3",
+      "kind": "music",
+      "key": "playful",
+      "id": "abf05150-bf35-48ec-8bf4-e85031bfaa05",
+      "title": "close to your target (instrumental)",
+      "creator": "Spiral Island",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1525483",
+      "provider": "jamendo",
+      "duration": 208.0,
+      "tags": [
+        "happy",
+        "instrumental",
+        "melodica",
+        "speed_medium",
+        "trumpet",
+        "whimsical"
+      ]
+    },
+    {
+      "file": "music_epic_1a8455f756.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "1a767512-5d64-4486-b6a4-5e052b4f48f5",
+      "title": "Apocalypse",
+      "creator": "Hyperreal",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1076987",
+      "provider": "jamendo",
+      "duration": 173.0,
+      "tags": [
+        "instrumental",
+        "speed_medium",
+        "orchestra",
+        "film",
+        "cinematic",
+        "epic"
+      ]
+    },
+    {
+      "file": "music_epic_7dffb35d2f.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "c37c19bc-ebb1-42ab-94b5-12a8b566a36a",
+      "title": "Dawning of Darkness",
+      "creator": "Hyperreal",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1076982",
+      "provider": "jamendo",
+      "duration": 183.0,
+      "tags": [
+        "instrumental",
+        "speed_low",
+        "film",
+        "cinematic",
+        "epic",
+        "futuristic"
+      ]
+    },
+    {
+      "file": "music_epic_da03282f10.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "9c2a001e-31c0-44b4-8e7b-9c9fa03f2e4d",
+      "title": "Prologue",
+      "creator": "Hyperreal",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1076983",
+      "provider": "jamendo",
+      "duration": 96.0,
+      "tags": [
+        "instrumental",
+        "speed_medium",
+        "film",
+        "cinematic",
+        "epic"
+      ]
+    },
+    {
+      "file": "music_epic_5efdca61a0.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "c265ed6a-5100-4be9-b642-c60e9a2399c3",
+      "title": "Helios Tilt",
+      "creator": "CM ONNI",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1691780",
+      "provider": "jamendo",
+      "duration": 106.0,
+      "tags": [
+        "cinematic",
+        "contemporary",
+        "drums",
+        "energetic",
+        "epic",
+        "instrumental",
+        "sampler",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_epic_f48885ac65.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "5f49e44a-f2bb-478c-8405-d2135485873e",
+      "title": "The return of the king",
+      "creator": "zero-project",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1901345",
+      "provider": "jamendo",
+      "duration": 164.0,
+      "tags": [
+        "cinematic",
+        "dramatic",
+        "epic",
+        "orchestra",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_epic_04ae34ddb6.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "0421d01a-f212-4e10-af7a-211282a68f1c",
+      "title": "The age of the Empire",
+      "creator": "zero-project",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/2229209",
+      "provider": "jamendo",
+      "duration": 230.0,
+      "tags": [
+        "cinematic",
+        "epic",
+        "neutral",
+        "orchestra",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_epic_931ebc2b09.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "b4d37ec4-537c-4736-a9f8-2768c4b5e728",
+      "title": "The defeat of the Demon King",
+      "creator": "zero-project",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/2229211",
+      "provider": "jamendo",
+      "duration": 240.0,
+      "tags": [
+        "cinematic",
+        "epic",
+        "instrumental",
+        "neutral",
+        "orchestra",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_epic_2bbd6dc4ee.mp3",
+      "kind": "music",
+      "key": "epic",
+      "id": "5983fc6b-1cf0-4c32-af14-e951c8aab2d9",
+      "title": "The City",
+      "creator": "e s c p",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1608347",
+      "provider": "jamendo",
+      "duration": 190.0,
+      "tags": [
+        "abstract",
+        "cinematic",
+        "epic",
+        "instrumental",
+        "piano",
+        "speed_verylow",
+        "synthesizer"
+      ]
+    },
+    {
+      "file": "music_battle_ebde28b57f.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "3cddd6fd-381a-45ca-af31-6fd537e894fb",
+      "title": "today's special action - 'free salvation'",
+      "creator": "DJ heartbeat dancer",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/691123",
+      "provider": "jamendo",
+      "duration": 255.0,
+      "tags": [
+        "instrumental",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_battle_c6127d347a.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "a22225bd-0cd9-438c-b176-2709914d2714",
+      "title": "Action Scene 2019",
+      "creator": "Daniel Bautista",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1744496",
+      "provider": "jamendo",
+      "duration": 240.0,
+      "tags": [
+        "electroamplified",
+        "instrumental",
+        "neutral",
+        "speed_high",
+        "synthesizer"
+      ]
+    },
+    {
+      "file": "music_battle_82579c6ff6.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "fa5462af-d965-49bf-addf-79c1dc01c2b6",
+      "title": "Action Man",
+      "creator": "Edsith",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/257917",
+      "provider": "jamendo",
+      "duration": 361.0,
+      "tags": [
+        "instrumental",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_battle_8d927c05a1.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "2cf07e59-fd34-4456-9713-b2c8c2868efe",
+      "title": "Action Theme",
+      "creator": "Andrey Avkhimovich",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1108747",
+      "provider": "jamendo",
+      "duration": 93.0,
+      "tags": [
+        "instrumental",
+        "synthesizer"
+      ]
+    },
+    {
+      "file": "music_battle_bb12491729.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "a71de418-6a56-4e57-b0ef-db3ed5ca11e6",
+      "title": "Inter + Action",
+      "creator": "Ambient Samurai - Ichiro NAKAGAWA",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/849924",
+      "provider": "jamendo",
+      "duration": 175.0,
+      "tags": [
+        "instrumental",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_battle_3180c51f75.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "af03cb4e-5474-4875-8ce3-a22d49dd1c5c",
+      "title": "Taking Action",
+      "creator": "Mark Finnan",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/668406",
+      "provider": "jamendo",
+      "duration": 417.0,
+      "tags": [
+        "instrumental",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_battle_3c39777e05.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "3b92c6a8-a5c0-4ee8-9bb8-112a5167e815",
+      "title": "Action1",
+      "creator": "Flex Blur",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1036143",
+      "provider": "jamendo",
+      "duration": 123.0,
+      "tags": [
+        "action",
+        "emotional",
+        "instrumental",
+        "run",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_battle_5d14d1249c.mp3",
+      "kind": "music",
+      "key": "battle",
+      "id": "8742bb03-d57e-4ebc-801f-bc8efa545c5f",
+      "title": "The Power of Nature",
+      "creator": "REC",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1199522",
+      "provider": "jamendo",
+      "duration": 289.0,
+      "tags": [
+        "action",
+        "advertising",
+        "drums",
+        "energetic",
+        "exciting",
+        "instrumental",
+        "percussion",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_mystery_8e6d29b069.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "ac915628-fc57-47f8-9ac3-09fb83d5a44b",
+      "title": "The Mystery Of Haunted Avenue",
+      "creator": "Daniel Bautista",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/2126284",
+      "provider": "jamendo",
+      "duration": 220.0,
+      "tags": [
+        "electricguitar",
+        "electroamplified",
+        "energetic",
+        "instrumental",
+        "mystery",
+        "sad",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_mystery_d32e762fce.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "b2b3778c-fcd5-40ac-a678-fed1c495e6be",
+      "title": "Mysterious Ways 2019",
+      "creator": "Daniel Bautista",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1643265",
+      "provider": "jamendo",
+      "duration": 164.0,
+      "tags": [
+        "electroamplified",
+        "hammond",
+        "instrumental",
+        "melancholic",
+        "sad",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_mystery_4145cd1d21.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "251d3ce0-344e-4c2d-bdf5-eb00b97bf950",
+      "title": "Mystery",
+      "creator": "Yukikaze",
+      "license": "CC BY 2.0",
+      "source_url": "https://www.jamendo.com/track/675060",
+      "provider": "jamendo",
+      "duration": 60.0,
+      "tags": [
+        "instrumental",
+        "speed_low"
+      ]
+    },
+    {
+      "file": "music_mystery_d24dc16202.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "08c94f79-6450-41a8-a8e4-2edbee63566f",
+      "title": "3. Mystery of Ancient Egypt",
+      "creator": "Michał Jałochowski",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1991261",
+      "provider": "jamendo",
+      "duration": 310.0,
+      "tags": [
+        "drums",
+        "happy",
+        "instrumental",
+        "marimba",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_mystery_43083af363.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "b888fb4f-7ef2-41ae-a873-b8328adfb625",
+      "title": "Cosmic (Mystery Edit)",
+      "creator": "Master Chlag",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1389867",
+      "provider": "jamendo",
+      "duration": 341.0,
+      "tags": [
+        "bass",
+        "drumachine",
+        "instrumental",
+        "neutral",
+        "space",
+        "speed_medium",
+        "synthesizer"
+      ]
+    },
+    {
+      "file": "music_mystery_50efc5659d.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "76de491d-9b37-40d1-b693-82d87e1c06e9",
+      "title": "Mystery Awaits",
+      "creator": "SILVER AEROPLANE",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1215019",
+      "provider": "jamendo",
+      "duration": 201.0,
+      "tags": [
+        "instrumental",
+        "male",
+        "neutral",
+        "psycedelic",
+        "speed_medium"
+      ]
+    },
+    {
+      "file": "music_mystery_84f6760515.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "489ce910-964a-4513-b7fa-1ee403c58efe",
+      "title": "07. Rationale of the Feeble Mystery",
+      "creator": "Pgcd",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1266140",
+      "provider": "jamendo",
+      "duration": 277.0,
+      "tags": [
+        "instrumental",
+        "male",
+        "neutral",
+        "philosophy",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_mystery_94c1302e02.mp3",
+      "kind": "music",
+      "key": "mystery",
+      "id": "353289bb-36fd-4c40-a2de-d0bfca144f61",
+      "title": "Old Mystery Blues - Felipe RuizBRX11",
+      "creator": "eitabyte (ruizbrx11)",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1594068",
+      "provider": "jamendo",
+      "duration": 388.0,
+      "tags": [
+        "acousticbass",
+        "atmospheric",
+        "electricguitar",
+        "instrumental",
+        "neutral",
+        "speed_high",
+        "strange"
+      ]
+    },
+    {
+      "file": "music_news_2d52424cce.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "27bbb433-1b9c-40ee-a2ef-0087679b9118",
+      "title": "Ruslan Latypov - Corporate Music",
+      "creator": "Ruslan Latypov",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1693123",
+      "provider": "jamendo",
+      "duration": 147.0,
+      "tags": [
+        "happy",
+        "speed_medium",
+        "synthesizer",
+        "upbeat"
+      ]
+    },
+    {
+      "file": "music_news_5783b09a91.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "3b4580e1-1454-4b4c-a03a-e03bf4af0849",
+      "title": "Upbeat Corporate",
+      "creator": "Soundrider/Dope",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1670486",
+      "provider": "jamendo",
+      "duration": 100.0,
+      "tags": [
+        "atmospheric",
+        "commercial",
+        "instrumental",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_news_ce8b8fe0fa.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "394ae39d-127a-4989-8aee-9a1a78619c1b",
+      "title": "Inspiring Corporate",
+      "creator": "Soundrider/Dope",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1670484",
+      "provider": "jamendo",
+      "duration": 148.0,
+      "tags": [
+        "atmospheric",
+        "film",
+        "instrumental",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_news_eb27f0be71.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "031b2262-fb12-4742-b412-6d1c0cc63d0c",
+      "title": "The Corporate Upbeat",
+      "creator": "Soundrider/Dope",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1670594",
+      "provider": "jamendo",
+      "duration": 121.0,
+      "tags": [
+        "commercial",
+        "instrumental",
+        "soft",
+        "speed_high",
+        "strings",
+        "upbeat"
+      ]
+    },
+    {
+      "file": "music_news_fe0b644409.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "784e04b6-c23e-4d23-bebc-b801c07aa3d0",
+      "title": "Uplifting Corporate",
+      "creator": "Soundrider/Dope",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1670597",
+      "provider": "jamendo",
+      "duration": 82.0,
+      "tags": [
+        "atmospheric",
+        "commercial",
+        "instrumental",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_news_08017a0607.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "fb1328d9-b765-46bd-9895-da3dfd8c0d5b",
+      "title": "Upbeat Lounge Background",
+      "creator": "Soundrider/Dope",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1670563",
+      "provider": "jamendo",
+      "duration": 244.0,
+      "tags": [
+        "atmospheric",
+        "happy",
+        "instrumental",
+        "speed_high"
+      ]
+    },
+    {
+      "file": "music_news_6ebe329aa3.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "7fe500dd-343c-47bc-aa4c-061652bc1d3c",
+      "title": "Motionless Land (Instrumental Version)",
+      "creator": "Josh Woodward (Instrumental Versions)",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/764950",
+      "provider": "jamendo",
+      "duration": 211.0,
+      "tags": [
+        "acousticguitar",
+        "instrumental",
+        "speed_medium",
+        "strings",
+        "upbeat"
+      ]
+    },
+    {
+      "file": "music_news_c431cf80ac.mp3",
+      "kind": "music",
+      "key": "news",
+      "id": "311ba94a-3222-4289-80a3-97edc841ebda",
+      "title": "Little Tomcat (Instrumental Version)",
+      "creator": "Josh Woodward (Instrumental Versions)",
+      "license": "CC BY 3.0",
+      "source_url": "https://www.jamendo.com/track/1000095",
+      "provider": "jamendo",
+      "duration": 197.0,
+      "tags": [
+        "acousticguitar",
+        "instrumental",
+        "neutral",
+        "peaceful",
+        "speed_medium",
+        "upbeat"
+      ]
+    }
+  ],
+  "sfx": [
+    {
+      "file": "sfx_whoosh_9ae1020b90.mp3",
+      "kind": "sfx",
+      "key": "whoosh",
+      "id": "eab8a6e2-0ac8-4615-9e0d-ebde30523783",
+      "title": "Deep Whoosh #1",
+      "creator": "Kinoton",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Kinoton/sounds/351256",
+      "provider": "freesound",
+      "duration": 3.2,
+      "tags": [
+        "air",
+        "sfx",
+        "sound-design",
+        "soundeffect",
+        "sweeping",
+        "swish",
+        "swoosh",
+        "swosh"
+      ]
+    },
+    {
+      "file": "sfx_whoosh_f442493083.mp3",
+      "kind": "sfx",
+      "key": "whoosh",
+      "id": "f1dc6045-7965-41de-87f8-4731d2583fd2",
+      "title": "Swosh swoosh whoosh air sound, free, high quality",
+      "creator": "qubodup",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/qubodup/sounds/60026",
+      "provider": "freesound",
+      "duration": 0.5,
+      "tags": [
+        "air",
+        "attack",
+        "bamboo",
+        "cut",
+        "domain",
+        "flup",
+        "h2",
+        "luft"
+      ]
+    },
+    {
+      "file": "sfx_whoosh_e06b8b51eb.mp3",
+      "kind": "sfx",
+      "key": "whoosh",
+      "id": "b7ae7822-8ec5-4a82-b6f8-d539b51caa61",
+      "title": "Swipe Whoosh",
+      "creator": "qubodup",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/qubodup/sounds/60007",
+      "provider": "freesound",
+      "duration": 0.4,
+      "tags": [
+        "air",
+        "attack",
+        "bamboo",
+        "cut",
+        "domain",
+        "flup",
+        "h2",
+        "luft"
+      ]
+    },
+    {
+      "file": "sfx_whoosh_d48f37872b.mp3",
+      "kind": "sfx",
+      "key": "whoosh",
+      "id": "0453066f-9cb0-426e-b51f-539f0b2acabb",
+      "title": "Cartoony whooshes",
+      "creator": "BranRainey",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/BranRainey/sounds/142348",
+      "provider": "freesound",
+      "duration": 2.3,
+      "tags": [
+        "cartoon",
+        "smack",
+        "swish",
+        "whip",
+        "whoosh"
+      ]
+    },
+    {
+      "file": "sfx_whoosh_c77d4e538f.mp3",
+      "kind": "sfx",
+      "key": "whoosh",
+      "id": "86d2b266-79f3-4fa0-97e2-3a49860c8e6d",
+      "title": "processed swish, swoosh, whoosh",
+      "creator": "MadMaxSFX",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/MadMaxSFX/sounds/327990",
+      "provider": "freesound",
+      "duration": 5.8,
+      "tags": [
+        "swish",
+        "swoosh",
+        "swosh",
+        "whoosh",
+        "woosh"
+      ]
+    },
+    {
+      "file": "sfx_whoosh_68cdb0be24.mp3",
+      "kind": "sfx",
+      "key": "whoosh",
+      "id": "416a411f-c8e5-4279-a985-466c19f21794",
+      "title": "13th Whoosh Swing Sound",
+      "creator": "qubodup",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/qubodup/sounds/60000",
+      "provider": "freesound",
+      "duration": 0.5,
+      "tags": [
+        "air",
+        "attack",
+        "bamboo",
+        "cut",
+        "domain",
+        "flup",
+        "h2",
+        "luft"
+      ]
+    },
+    {
+      "file": "sfx_impact_da69abe975.mp3",
+      "kind": "sfx",
+      "key": "impact",
+      "id": "10342426-5513-47bd-9c73-635b2e2db687",
+      "title": "Soft Cinematic Impact",
+      "creator": "Rizzard",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Rizzard/sounds/560156",
+      "provider": "freesound",
+      "duration": 6.0,
+      "tags": [
+        "boom",
+        "cinema",
+        "cinematic",
+        "dark",
+        "drama",
+        "dramatic",
+        "film",
+        "filmscore"
+      ]
+    },
+    {
+      "file": "sfx_impact_785543c819.mp3",
+      "kind": "sfx",
+      "key": "impact",
+      "id": "2e291c8c-cde5-4f35-bffe-1fc00c45e23d",
+      "title": "Cinematic Impact",
+      "creator": "Rizzard",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Rizzard/sounds/559387",
+      "provider": "freesound",
+      "duration": 4.0,
+      "tags": [
+        "cinematic",
+        "drama",
+        "dramatic",
+        "effect",
+        "effects",
+        "film",
+        "film-trailer",
+        "fx"
+      ]
+    },
+    {
+      "file": "sfx_impact_9690bc4223.mp3",
+      "kind": "sfx",
+      "key": "impact",
+      "id": "b7744130-50d3-47df-bc27-24d3c3f51c00",
+      "title": "PUNCH-BOXING-01.wav",
+      "creator": "newagesoup",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/newagesoup/sounds/348244",
+      "provider": "freesound",
+      "duration": 4.0,
+      "tags": [
+        "bang",
+        "bass",
+        "bass-drum",
+        "big",
+        "boom",
+        "boosh",
+        "cinematic",
+        "drop"
+      ]
+    },
+    {
+      "file": "sfx_impact_003105b71a.mp3",
+      "kind": "sfx",
+      "key": "impact",
+      "id": "bc316ab4-0cff-41d4-9510-5bee79de2f64",
+      "title": "PUNCH-BOXING-04.wav",
+      "creator": "newagesoup",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/newagesoup/sounds/348241",
+      "provider": "freesound",
+      "duration": 4.0,
+      "tags": [
+        "bang",
+        "bass",
+        "bass-drum",
+        "big",
+        "boom",
+        "boosh",
+        "cinematic",
+        "drop"
+      ]
+    },
+    {
+      "file": "sfx_impact_54a387f954.mp3",
+      "kind": "sfx",
+      "key": "impact",
+      "id": "7f3dc6f7-0aca-436c-828c-11670ee8b47f",
+      "title": "Hit Impact",
+      "creator": "Mrguff",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Mrguff/sounds/369711",
+      "provider": "freesound",
+      "duration": 0.4,
+      "tags": [
+        "Boom",
+        "Crash",
+        "Hit",
+        "Impact",
+        "Knock",
+        "Wood",
+        "Woodent"
+      ]
+    },
+    {
+      "file": "sfx_impact_c3518b228f.mp3",
+      "kind": "sfx",
+      "key": "impact",
+      "id": "3c27fa96-eaf7-440f-9d1c-d14db5e381ae",
+      "title": "Hit Impact Sword 3",
+      "creator": "CogFireStudios",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/CogFireStudios/sounds/547042",
+      "provider": "freesound",
+      "duration": 1.3,
+      "tags": [
+        "big-sword",
+        "blade",
+        "blood-hit",
+        "cut-flesh",
+        "game",
+        "game-fx",
+        "gore",
+        "heavy-hit"
+      ]
+    },
+    {
+      "file": "sfx_boom_9957f07f20.mp3",
+      "kind": "sfx",
+      "key": "boom",
+      "id": "e567288e-f223-4dc3-a586-6a86cad6626b",
+      "title": "BOOM - 1.wav",
+      "creator": "zgump",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/zgump/sounds/86330",
+      "provider": "freesound",
+      "duration": 0.4,
+      "tags": [
+        "boom"
+      ]
+    },
+    {
+      "file": "sfx_boom_a03c10ca0e.mp3",
+      "kind": "sfx",
+      "key": "boom",
+      "id": "4c99d7d3-4987-46f3-9637-bfd9b4cc66b9",
+      "title": "BOOM IMPACT 2",
+      "creator": "XHALE303",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/XHALE303/sounds/535592",
+      "provider": "freesound",
+      "duration": 2.0,
+      "tags": [
+        "boom",
+        "dark",
+        "design",
+        "explosion",
+        "gamescore",
+        "impact"
+      ]
+    },
+    {
+      "file": "sfx_boom_8a979f2ce8.mp3",
+      "kind": "sfx",
+      "key": "boom",
+      "id": "25d495a6-9f5f-4de6-86c4-abf1dd368ca7",
+      "title": "Low Pitched Boom Noise",
+      "creator": "soapybubl",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/soapybubl/sounds/423458",
+      "provider": "freesound",
+      "duration": 5.0,
+      "tags": [
+        "big",
+        "boom",
+        "boomy",
+        "design",
+        "low",
+        "reverb"
+      ]
+    },
+    {
+      "file": "sfx_boom_e87f5f5262.mp3",
+      "kind": "sfx",
+      "key": "boom",
+      "id": "0aecd0c4-9cdc-48ca-82c0-f6b50545c2d4",
+      "title": "Orch 001 boom+crash.wav",
+      "creator": "Karma-Ron",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Karma-Ron/sounds/151813",
+      "provider": "freesound",
+      "duration": 2.0,
+      "tags": [
+        "1-shot",
+        "bang",
+        "base",
+        "base-drum",
+        "bass",
+        "bass-drum",
+        "boom",
+        "crash"
+      ]
+    },
+    {
+      "file": "sfx_boom_119d342a9c.mp3",
+      "kind": "sfx",
+      "key": "boom",
+      "id": "a48224d6-135b-4a8f-8ee3-dacf515238cf",
+      "title": "Low impact.wav",
+      "creator": "AudioPapkin",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/AudioPapkin/sounds/430978",
+      "provider": "freesound",
+      "duration": 5.2,
+      "tags": [
+        "boom",
+        "cinematic",
+        "design",
+        "effect",
+        "explosion",
+        "game",
+        "games",
+        "hit"
+      ]
+    },
+    {
+      "file": "sfx_boom_0845afc82e.mp3",
+      "kind": "sfx",
+      "key": "boom",
+      "id": "4f866dd5-ded4-4d76-85fe-5e1e77cc2595",
+      "title": "sub bass 4 secondsssss.wav",
+      "creator": "uzerx",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/uzerx/sounds/59540",
+      "provider": "freesound",
+      "duration": 2.4,
+      "tags": [
+        "bass",
+        "bomb",
+        "boom",
+        "drop",
+        "hit",
+        "sub"
+      ]
+    },
+    {
+      "file": "sfx_riser_d389f64d3b.mp3",
+      "kind": "sfx",
+      "key": "riser",
+      "id": "96a9062b-be8d-42ae-aacc-f64d3a34294a",
+      "title": "Riser",
+      "creator": "Rizzard",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Rizzard/sounds/561207",
+      "provider": "freesound",
+      "duration": 2.0,
+      "tags": [
+        "FX",
+        "abstract",
+        "effect",
+        "fx",
+        "movement",
+        "riser",
+        "sfx",
+        "sound"
+      ]
+    },
+    {
+      "file": "sfx_riser_ce2169d29b.mp3",
+      "kind": "sfx",
+      "key": "riser",
+      "id": "dd07153a-ca3d-4693-a6c8-fbe1338bce06",
+      "title": "Energy Riser",
+      "creator": "magnuswaker",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/magnuswaker/sounds/522095",
+      "provider": "freesound",
+      "duration": 1.9,
+      "tags": [
+        "alien",
+        "sci-fi",
+        "sfx",
+        "hit",
+        "energy",
+        "riser"
+      ]
+    },
+    {
+      "file": "sfx_riser_9e507a6e03.mp3",
+      "kind": "sfx",
+      "key": "riser",
+      "id": "d3fe6653-475d-44f3-9e5b-64558f87901c",
+      "title": "Inhale with glass.wav",
+      "creator": "guitargeorge-2",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/guitargeorge-2/sounds/608217",
+      "provider": "freesound",
+      "duration": 1.8,
+      "tags": [
+        "air",
+        "breath",
+        "breathe",
+        "breathing",
+        "build",
+        "build-up",
+        "gasp",
+        "inhale"
+      ]
+    },
+    {
+      "file": "sfx_drop_c2ae0f89a4.mp3",
+      "kind": "sfx",
+      "key": "drop",
+      "id": "b888b202-23af-403c-a25e-1bee7cace08b",
+      "title": "Bass Drop - Nasty 001",
+      "creator": "GnoteSoundz",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/GnoteSoundz/sounds/169713",
+      "provider": "freesound",
+      "duration": 5.1,
+      "tags": [
+        "Bass",
+        "Creative",
+        "Crispy",
+        "Drop"
+      ]
+    },
+    {
+      "file": "sfx_drop_505dea3f8a.mp3",
+      "kind": "sfx",
+      "key": "drop",
+      "id": "af807b88-5d74-48e6-9a8d-cb579aac9ecd",
+      "title": "Bass Drop",
+      "creator": "qubodup",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/qubodup/sounds/212768",
+      "provider": "freesound",
+      "duration": 4.8,
+      "tags": [
+        "BASS",
+        "DROP",
+        "sub"
+      ]
+    },
+    {
+      "file": "sfx_drop_1a079f12e3.mp3",
+      "kind": "sfx",
+      "key": "drop",
+      "id": "c145d17b-395c-471b-969c-6da9b5f9a7ef",
+      "title": "Bass Drop 1.wav",
+      "creator": "DozyPilchard",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/DozyPilchard/sounds/518232",
+      "provider": "freesound",
+      "duration": 5.4,
+      "tags": [
+        "Bass",
+        "Beat",
+        "Drop",
+        "Dubstep",
+        "Low"
+      ]
+    },
+    {
+      "file": "sfx_drop_7ba75e17a2.mp3",
+      "kind": "sfx",
+      "key": "drop",
+      "id": "ec82fc40-0841-4efb-950c-2c247a7f34a6",
+      "title": "Sine Bass Drop",
+      "creator": "josheb_policarpio",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/josheb_policarpio/sounds/612930",
+      "provider": "freesound",
+      "duration": 2.4,
+      "tags": [
+        "bass-drop",
+        "sine-bass-drop",
+        "sound-FX",
+        "sound-effect"
+      ]
+    },
+    {
+      "file": "sfx_drop_dfb08af3da.mp3",
+      "kind": "sfx",
+      "key": "drop",
+      "id": "244b0713-eed9-4dc1-8b05-cc3df10da93c",
+      "title": "SUB A# 2 secs.wav",
+      "creator": "uzerx",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/uzerx/sounds/63138",
+      "provider": "freesound",
+      "duration": 2.0,
+      "tags": [
+        "a",
+        "bass",
+        "drop",
+        "sharp",
+        "sub"
+      ]
+    },
+    {
+      "file": "sfx_drop_d5c014020f.mp3",
+      "kind": "sfx",
+      "key": "drop",
+      "id": "aa4e0e1d-0b7a-4803-87bf-fd34c4e17b0e",
+      "title": "SUB OCEANO C.wav",
+      "creator": "uzerx",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/uzerx/sounds/81147",
+      "provider": "freesound",
+      "duration": 2.3,
+      "tags": [
+        "bass",
+        "c",
+        "drop",
+        "hit",
+        "sub"
+      ]
+    },
+    {
+      "file": "sfx_sparkle_371f202683.mp3",
+      "kind": "sfx",
+      "key": "sparkle",
+      "id": "7acc1f3b-157e-4b1d-865b-4ac7894698d0",
+      "title": "sparkle loop.wav",
+      "creator": "DiamondSoul",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/DiamondSoul/sounds/165834",
+      "provider": "freesound",
+      "duration": 3.4,
+      "tags": [
+        "bell",
+        "loop",
+        "sparkle",
+        "synth"
+      ]
+    },
+    {
+      "file": "sfx_sparkle_10e8c3483c.mp3",
+      "kind": "sfx",
+      "key": "sparkle",
+      "id": "e464d107-8861-4efd-b260-c8ce53c3078e",
+      "title": "Sparkling Star 01.wav",
+      "creator": "MATRIXXX_",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/MATRIXXX_/sounds/462095",
+      "provider": "freesound",
+      "duration": 2.8,
+      "tags": [
+        "Fairy",
+        "Fantasy",
+        "Flash",
+        "Gem",
+        "Gems",
+        "Magic",
+        "Saga",
+        "Shining"
+      ]
+    },
+    {
+      "file": "sfx_sparkle_c22bac997a.mp3",
+      "kind": "sfx",
+      "key": "sparkle",
+      "id": "a5669426-0e23-48d4-b796-a0e085bcb27f",
+      "title": "Sparkling Star 04.wav",
+      "creator": "MATRIXXX_",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/MATRIXXX_/sounds/462092",
+      "provider": "freesound",
+      "duration": 4.0,
+      "tags": [
+        "Fairy",
+        "Fantasy",
+        "Flash",
+        "Gem",
+        "Gems",
+        "Magic",
+        "Saga",
+        "Shining"
+      ]
+    },
+    {
+      "file": "sfx_sparkle_7dcaf5c9de.mp3",
+      "kind": "sfx",
+      "key": "sparkle",
+      "id": "04c3cf85-a8e4-4204-8a94-f73324a4ad14",
+      "title": "Sparkling Star 05.wav",
+      "creator": "MATRIXXX_",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/MATRIXXX_/sounds/462096",
+      "provider": "freesound",
+      "duration": 4.5,
+      "tags": [
+        "Fairy",
+        "Fantasy",
+        "Flash",
+        "Gem",
+        "Gems",
+        "Magic",
+        "Saga",
+        "Shining"
+      ]
+    },
+    {
+      "file": "sfx_sparkle_20a8a9cecd.mp3",
+      "kind": "sfx",
+      "key": "sparkle",
+      "id": "902413ba-7b93-4fe7-82e5-b6a5054fb725",
+      "title": "Sparkle",
+      "creator": "nomiqbomi",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/nomiqbomi/sounds/578803",
+      "provider": "freesound",
+      "duration": 2.8,
+      "tags": [
+        "cute",
+        "digital",
+        "effect",
+        "electronic",
+        "fx",
+        "magic",
+        "melodic",
+        "music"
+      ]
+    },
+    {
+      "file": "sfx_sparkle_1f30af7d10.mp3",
+      "kind": "sfx",
+      "key": "sparkle",
+      "id": "eb7572f4-06d3-4d01-9869-68094b735ed4",
+      "title": "Shimmery.wav",
+      "creator": "opticaillusions",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/opticaillusions/sounds/521886",
+      "provider": "freesound",
+      "duration": 5.0,
+      "tags": [
+        "airy",
+        "chimes",
+        "ethereal",
+        "fairy",
+        "glitter",
+        "magic",
+        "sparkle"
+      ]
+    },
+    {
+      "file": "sfx_glitch_867796d054.mp3",
+      "kind": "sfx",
+      "key": "glitch",
+      "id": "52980dee-2005-4339-bae5-a4973947b054",
+      "title": "Glitch 01",
+      "creator": "JacksonMiller0",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/JacksonMiller0/sounds/237607",
+      "provider": "freesound",
+      "duration": 0.4,
+      "tags": [
+        "Massive",
+        "glitch",
+        "glitched",
+        "glitchy",
+        "harsh",
+        "sample",
+        "technologic-noise"
+      ]
+    },
+    {
+      "file": "sfx_glitch_fc73bdebca.mp3",
+      "kind": "sfx",
+      "key": "glitch",
+      "id": "632037d6-c1fd-47ae-91bc-67d60723feb8",
+      "title": "VHS Glitch",
+      "creator": "Sassaby",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Sassaby/sounds/264935",
+      "provider": "freesound",
+      "duration": 1.2,
+      "tags": [
+        "electrical",
+        "glitch",
+        "machine",
+        "tape",
+        "vhs",
+        "video"
+      ]
+    },
+    {
+      "file": "sfx_glitch_48dbfe1348.mp3",
+      "kind": "sfx",
+      "key": "glitch",
+      "id": "cf912290-c563-49b4-827a-6d577cf4b69d",
+      "title": "Glitch Corruption",
+      "creator": "dotY21",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/dotY21/sounds/348585",
+      "provider": "freesound",
+      "duration": 1.3,
+      "tags": [
+        "abstract",
+        "computer",
+        "corruption",
+        "digital",
+        "electric",
+        "electronic",
+        "error",
+        "freaky"
+      ]
+    },
+    {
+      "file": "sfx_glitch_2d451387b3.mp3",
+      "kind": "sfx",
+      "key": "glitch",
+      "id": "631d365d-eb16-4474-a804-30c56ae3deb4",
+      "title": "glitched sound 1.wav",
+      "creator": "Elnosos",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Elnosos/sounds/424375",
+      "provider": "freesound",
+      "duration": 0.6,
+      "tags": [
+        "drumloops",
+        "glitch",
+        "idm"
+      ]
+    },
+    {
+      "file": "sfx_glitch_c269c005b2.mp3",
+      "kind": "sfx",
+      "key": "glitch",
+      "id": "023b0513-d7a2-4329-8778-cdbdce712604",
+      "title": "Glitch Noise 1 - (Electrical, Transmission, Perturbation...)",
+      "creator": "Flying_Deer_Fx",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/Flying_Deer_Fx/sounds/369145",
+      "provider": "freesound",
+      "duration": 1.6,
+      "tags": [
+        "Disturbed",
+        "Electrical",
+        "Electronic",
+        "Glitch",
+        "Glitches",
+        "Magnetic",
+        "Noise",
+        "Noises"
+      ]
+    },
+    {
+      "file": "sfx_glitch_708564fdad.mp3",
+      "kind": "sfx",
+      "key": "glitch",
+      "id": "6613f626-3adf-4a07-9694-e000f693ed52",
+      "title": "Odd glitch .wav",
+      "creator": "JacksonMiller0",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/JacksonMiller0/sounds/371603",
+      "provider": "freesound",
+      "duration": 2.7,
+      "tags": [
+        "computer-glitch",
+        "digital",
+        "error",
+        "glitch",
+        "noise",
+        "remixed",
+        "sound-design"
+      ]
+    },
+    {
+      "file": "sfx_ding_6abe8053a3.mp3",
+      "kind": "sfx",
+      "key": "ding",
+      "id": "b3ccac7f-af65-4a18-8e1b-fad401935e25",
+      "title": "Ding Dong",
+      "creator": "MatthewWong",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/MatthewWong/sounds/361564",
+      "provider": "freesound",
+      "duration": 2.8,
+      "tags": [
+        "Bell",
+        "Ding",
+        "Dong"
+      ]
+    },
+    {
+      "file": "sfx_ding_23fb531508.mp3",
+      "kind": "sfx",
+      "key": "ding",
+      "id": "c78d2cd0-20ba-4b48-a7eb-f1fa716aca1d",
+      "title": "Ding 1",
+      "creator": "greenvwbeetle",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/greenvwbeetle/sounds/241288",
+      "provider": "freesound",
+      "duration": 0.5,
+      "tags": [
+        "ding",
+        "ring",
+        "coin"
+      ]
+    },
+    {
+      "file": "sfx_ding_6d6e1c7555.mp3",
+      "kind": "sfx",
+      "key": "ding",
+      "id": "1b80d969-4bbc-4475-b683-865e45ddd46a",
+      "title": "Elevator Ding",
+      "creator": "collierhs_colinlib",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/collierhs_colinlib/sounds/588718",
+      "provider": "freesound",
+      "duration": 0.7,
+      "tags": [
+        "ding",
+        "elevator",
+        "everyday",
+        "life"
+      ]
+    },
+    {
+      "file": "sfx_ding_e27c9b2214.mp3",
+      "kind": "sfx",
+      "key": "ding",
+      "id": "d474438d-04ac-41d6-8951-f2456719d9dc",
+      "title": "Bell ding",
+      "creator": "jmayoff",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/jmayoff/sounds/255156",
+      "provider": "freesound",
+      "duration": 2.9,
+      "tags": [
+        "bell",
+        "ding",
+        "dong",
+        "ring"
+      ]
+    },
+    {
+      "file": "sfx_ding_3fcf915390.mp3",
+      "kind": "sfx",
+      "key": "ding",
+      "id": "8e30b688-e42b-4e26-9202-96541ed81972",
+      "title": "Ding Effect.wav",
+      "creator": "JulesV4",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/JulesV4/sounds/615949",
+      "provider": "freesound",
+      "duration": 1.5,
+      "tags": [
+        "bell",
+        "ding",
+        "timer"
+      ]
+    },
+    {
+      "file": "sfx_ding_5546ce6a6d.mp3",
+      "kind": "sfx",
+      "key": "ding",
+      "id": "252fc88e-d89d-4a19-99c7-e3e8bb5e7b6a",
+      "title": "bell ding 1.wav",
+      "creator": "5ro4",
+      "license": "CC0",
+      "source_url": "https://freesound.org/people/5ro4/sounds/611113",
+      "provider": "freesound",
+      "duration": 2.5,
+      "tags": [
+        "bell",
+        "chime",
+        "desktop-bell",
+        "ding",
+        "ping",
+        "ring"
+      ]
+    }
+  ]
+}

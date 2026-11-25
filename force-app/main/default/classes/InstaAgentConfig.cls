@@ -45,11 +45,31 @@ public with sharing class InstaAgentConfig {
         if (String.isNotBlank(changes.Evening_Slot_IST__c)) {
             current.Evening_Slot_IST__c = validTime(changes.Evening_Slot_IST__c);
         }
+        if (changes.Watchlist__c != null) {
+            current.Watchlist__c = cleanWatchlist(changes.Watchlist__c);
+        }
         if (current.Quality_Threshold__c == null) {
             current.Quality_Threshold__c = 8;
         }
         upsert current;
         cached = current;
+    }
+
+    /** "@a, b\nc" -> "a,b,c": lower-case Instagram usernames, de-duplicated, max 255 chars. */
+    public static String cleanWatchlist(String raw) {
+        List<String> names = new List<String>();
+        for (String part : raw.replace('\n', ',').replace(' ', ',').split(',')) {
+            String name = part.trim().removeStart('@').toLowerCase();
+            if (Pattern.matches('[a-z0-9._]{1,30}', name) && !names.contains(name)) {
+                names.add(name);
+            }
+        }
+        return String.join(names, ',').abbreviate(255);
+    }
+
+    public static List<String> watchlist() {
+        String raw = get().Watchlist__c;
+        return String.isBlank(raw) ? new List<String>() : raw.split(',');
     }
 
     public static String repository() {

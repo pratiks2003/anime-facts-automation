@@ -54,7 +54,8 @@ public with sharing class AdminPanelController {
                     Morning_Slot_IST__c = (String) values.get('morningSlot'),
                     Evening_Slot_IST__c = (String) values.get('eveningSlot'),
                     Trial_Reels_Enabled__c = values.get('trialReels') == true,
-                    Auto_Reply_Comments__c = values.get('autoReply') != false
+                    Auto_Reply_Comments__c = values.get('autoReply') != false,
+                    Watchlist__c = values.get('watchlist') == null ? null : String.valueOf(values.get('watchlist'))
                 )
             );
             if ((Boolean) values.get('automationEnabled')) {
@@ -211,6 +212,69 @@ public with sharing class AdminPanelController {
         }
     }
 
+    // ------------------------------------------------------------------ research: learn, styles, trends
+
+    /** "Learn from a Reel": queue a public Reel link for download + analysis on GitHub. */
+    @AuraEnabled
+    public static Id addReference(String url, String notes) {
+        try {
+            if (!ReferenceReels.validUrl(url)) {
+                throw new InstaAgentConfig.InstaAgentException('Paste a public Instagram Reel, YouTube Shorts or TikTok link.');
+            }
+            Reference_Reel__c r = new Reference_Reel__c(Name = url.trim().abbreviate(80), URL__c = url.trim(),
+                Notes__c = notes == null ? null : notes.abbreviate(2000), Status__c = 'Queued');
+            insert as user r;
+            return r.Id;
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
+    @AuraEnabled
+    public static Map<String, Object> getResearch() {
+        try {
+            return new Map<String, Object>{
+                'references' => [
+                    SELECT Id, Name, URL__c, Status__c, Notes__c, Lessons__c, Error__c, Analyzed_At__c, Style__r.Name, CreatedDate
+                    FROM Reference_Reel__c
+                    WITH USER_MODE
+                    ORDER BY CreatedDate DESC
+                    LIMIT 30
+                ],
+                'styles' => [
+                    SELECT Id, Name, Status__c, Origin__c, Description__c, Reels__c, Avg_Views__c, Avg_Watch_Seconds__c,
+                        Performance_Score__c, Last_Used__c
+                    FROM Style__c
+                    WITH USER_MODE
+                    ORDER BY Status__c, Performance_Score__c DESC NULLS LAST
+                    LIMIT 50
+                ],
+                'brief' => [
+                    SELECT Name, Brief_Date__c, Summary__c, Brief_JSON__c, Needs_Trending_Sound__c
+                    FROM Trend_Brief__c
+                    WITH USER_MODE
+                    ORDER BY Brief_Date__c DESC, CreatedDate DESC
+                    LIMIT 1
+                ]
+            };
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
+    /** Admin override of the style lifecycle (Active / Testing / Retired). */
+    @AuraEnabled
+    public static void setStyleStatus(Id styleId, String status) {
+        try {
+            if (status != 'Active' && status != 'Testing' && status != 'Retired') {
+                throw new InstaAgentConfig.InstaAgentException('Status must be Active, Testing or Retired');
+            }
+            update as user new Style__c(Id = styleId, Status__c = status);
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
     @AuraEnabled
     public static List<String> getFormats() {
         List<String> values = new List<String>();
@@ -280,7 +344,8 @@ public with sharing class AdminPanelController {
             'eveningSlot' => s.Evening_Slot_IST__c,
             'repository' => s.GitHub_Repository__c,
             'trialReels' => s.Trial_Reels_Enabled__c,
-            'autoReply' => s.Auto_Reply_Comments__c
+            'autoReply' => s.Auto_Reply_Comments__c,
+            'watchlist' => s.Watchlist__c
         };
     }
 

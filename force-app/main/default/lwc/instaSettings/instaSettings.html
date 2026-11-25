@@ -40,6 +40,13 @@
             <p class="muted small note">Reels are generated about 20 minutes before each slot and posted right after.</p>
             <p class="muted small note">Repository: {values.repository}</p>
         </section>
+
+        <section class="panel">
+            <h2 class="panel-title">Trend watchlist</h2>
+            <label class="label" for="watchlist">Public anime pages the research team watches daily (Instagram usernames, comma separated)</label>
+            <textarea id="watchlist" class="field" rows="3" data-key="watchlist" value={values.watchlist} onchange={handleTime}></textarea>
+            <p class="muted small note">Must be Business or Creator accounts. Pages of Reels you teach us with are good picks.</p>
+        </section>
     </div>
 
     <template lwc:if={goingLive}>

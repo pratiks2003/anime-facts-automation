@@ -25,6 +25,11 @@
                 <label>Public Vote</label>
             </value>
             <value>
+                <fullName>Trends</fullName>
+                <default>false</default>
+                <label>Trends</label>
+            </value>
+            <value>
                 <fullName>Admin</fullName>
                 <default>false</default>
                 <label>Admin</label>

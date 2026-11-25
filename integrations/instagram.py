@@ -346,6 +346,17 @@ class InstagramClient:
             out.append({"id": c.get("id"), "text": c.get("text", ""), "likes": c.get("like_count", 0), "at": c.get("timestamp")})
         return out
 
+    def discover(self, username: str, posts: int = 25) -> dict:
+        """business_discovery: public profile + recent posts of another Business/Creator account (no video URLs)."""
+        fields = (f"business_discovery.username({username}){{username,followers_count,media_count,"
+                  f"media.limit({posts}){{caption,like_count,comments_count,timestamp,media_product_type,permalink}}}}")
+        data = self._request("GET", self.user_id, {"fields": fields}).get("business_discovery") or {}
+        return {"username": data.get("username", username), "followers": data.get("followers_count"),
+                "posts": [{"caption": (m.get("caption") or "")[:400], "likes": m.get("like_count") or 0,
+                           "comments": m.get("comments_count") or 0, "at": m.get("timestamp"),
+                           "type": m.get("media_product_type"), "permalink": m.get("permalink")}
+                          for m in (data.get("media") or {}).get("data", [])]}
+
     def reply_to_comment(self, comment_id: str, message: str) -> str:
         """POST /{comment-id}/replies -> id of the new reply."""
         if not message.strip():

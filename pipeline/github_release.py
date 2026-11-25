@@ -77,8 +77,16 @@ class ReleaseStore:
             if name in existing:
                 self._req("DELETE", f"{API}/repos/{self.repo}/releases/assets/{existing[name]}")
             ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
-            asset = self._req("POST", f"{UPLOADS}/repos/{self.repo}/releases/{rel['id']}/assets?name={urllib.parse.quote(name)}",
-                              Path(path).read_bytes(), ctype)
+            try:
+                asset = self._req("POST", f"{UPLOADS}/repos/{self.repo}/releases/{rel['id']}/assets?name={urllib.parse.quote(name)}",
+                                  Path(path).read_bytes(), ctype)
+            except urllib.error.HTTPError as exc:
+                if exc.code != 422:
+                    raise
+                # a retried upload whose first attempt already landed: use the asset that exists
+                asset = next((a for a in self.release().get("assets", []) if a["name"] == name), None)
+                if asset is None:
+                    raise
             urls[name] = asset["browser_download_url"]
         return urls
 

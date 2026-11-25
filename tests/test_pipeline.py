@@ -383,3 +383,17 @@ class RoleRepairTests(unittest.TestCase):
             {"role": "cta", "headline": "d", "narration": "w"}]}
         roles = [s["role"] for s in normalise(raw, "R-1", "One Piece", "Fact")["scenes"]]
         self.assertEqual(roles, ["hook", "fact", "twist", "outro"])
+
+
+class CitationRepairTests(unittest.TestCase):
+    def test_attach_or_drop(self):
+        from pipeline.studio import attach_citations
+        facts = [{"id": "OP-1", "title": "Luffy swim", "content": "Devil Fruit users like Luffy cannot swim in the ocean."}]
+        script = {"scenes": [
+            {"role": "hook", "narration": "Wait for it"},
+            {"role": "fact", "narration": "Luffy cannot swim because of his Devil Fruit."},
+            {"role": "twist", "narration": "Zoro secretly owns a bakery in Wano."},
+            {"role": "outro", "narration": "Follow"}]}
+        attach_citations(script, facts)
+        self.assertEqual([s["role"] for s in script["scenes"]], ["hook", "fact", "outro"])
+        self.assertEqual(script["scenes"][1]["knowledge_ids"], ["OP-1"])

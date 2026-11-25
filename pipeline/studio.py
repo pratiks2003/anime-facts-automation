@@ -31,6 +31,35 @@ def enforce_official_subjects(script: dict, anime: str, facts: List[dict]) -> No
             scene["image_source"] = "ai"
 
 
+def attach_citations(script: dict, facts: List[dict]) -> None:
+    """Fact scenes must cite a verified fact. When the agents forgot the id, attach the fact the sentence
+    clearly restates (word overlap); a claim no fact supports is dropped instead of failing the whole script."""
+    import re
+
+    from .writer import FACT_ROLES
+
+    def words(text: str) -> set:
+        return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) > 3}
+
+    kept = []
+    scenes = script.get("scenes") or []
+    for i, scene in enumerate(scenes):
+        if scene.get("role") in FACT_ROLES and not scene.get("knowledge_ids"):
+            said = words(scene.get("narration", ""))
+            best, score = None, 0.0
+            for f in facts:
+                fw = words(f.get("content", "")) | words(f.get("title", ""))
+                overlap = len(said & fw) / max(1, min(len(said), 12))
+                if overlap > score:
+                    best, score = f, overlap
+            if best is not None and score >= 0.3:
+                scene["knowledge_ids"] = [best["id"]]
+            elif 0 < i < len(scenes) - 1 and len(scenes) > 3:
+                continue  # unsupported claim: cut it
+        kept.append(scene)
+    script["scenes"] = kept
+
+
 def format_choices(scheduled: str) -> List[dict]:
     """Formats the Strategist may switch to: news slots stay news, evergreen slots stay evergreen."""
     from .planner import NEWS_FORMATS
@@ -96,6 +125,7 @@ def agent_script(sf, content_id: str, format_name: str, anime: str, facts: List[
     if production.get("music_keywords"):
         script["music_keywords"] = str(production["music_keywords"])[:80]
     enforce_official_subjects(script, anime, facts)
+    attach_citations(script, facts)
     errors = check_script(script, {f["id"] for f in facts})
     if errors:
         raise StudioError("studio script failed code rules: " + "; ".join(errors))

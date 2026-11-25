@@ -30,6 +30,10 @@ DEFAULT_STYLE: Dict[str, Any] = {
     "outro_cta": True,
     "target_seconds": 45,
     "clip_ratio": 0.5,            # share of shots that are short anime video clips (when clips are available)
+    "parallax": 0.0,              # 2.5D depth parallax: experimental, OFF (depth on flat anime art tears limbs/faces)
+    "beat_punch": 0.6,            # zoom-punch on the music beat (0 = off)
+    "shake": 0.5,                 # camera shake when a highlighted word lands (0 = off)
+    "speed_lines": True,          # anime action lines on action words
 }
 
 _CHOICES = {
@@ -48,8 +52,11 @@ _RANGES = {
     "music_gain_db": (-20.0, -4.0),
     "target_seconds": (15, 90),
     "clip_ratio": (0.0, 1.0),
+    "parallax": (0.0, 0.0),       # locked off until the layer split is reliable on anime drawings
+    "beat_punch": (0.0, 1.0),
+    "shake": (0.0, 1.0),
 }
-_BOOLS = ("keyword_color", "show_headline", "show_tags", "show_brand", "show_progress", "outro_cta")
+_BOOLS = ("keyword_color", "show_headline", "show_tags", "show_brand", "show_progress", "outro_cta", "speed_lines")
 
 
 def resolve_style(spec: Any) -> Dict[str, Any]:

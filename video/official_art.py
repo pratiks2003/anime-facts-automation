@@ -12,6 +12,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import urllib.parse
 import urllib.request
 from io import BytesIO
@@ -95,19 +96,34 @@ def character_art(name: str, anime: str, cache: Path, opener: Callable = urllib.
 
 
 GALLERY = """query ($search: String) { Media(search: $search, type: ANIME, isAdult: false) {
-  trailer { id site } streamingEpisodes { title thumbnail }
+  trailer { id site } streamingEpisodes { title thumbnail } externalLinks { site url }
   characters(sort: [ROLE, FAVOURITES_DESC], perPage: 12) { nodes { name { full alternative } image { large } } } } }"""
+
+
+def official_instagram(links: list) -> list:
+    """The show's official Instagram handles from AniList external links; English / international first
+    (other-language accounts often burn in subtitles)."""
+    handles = []
+    for link in links:
+        if (link.get("site") or "") != "Instagram":
+            continue
+        m = re.search(r"instagram\.com/([A-Za-z0-9._]+)", link.get("url") or "")
+        if m and m.group(1).lower() not in handles:
+            handles.append(m.group(1).lower())
+    lang = re.compile(r"[._](it|es|fr|de|pt|br|la|jp|kr|tw|th|id|ar|ru)$")
+    return sorted(handles, key=lambda h: (bool(lang.search(h)), not h.endswith("_en")))[:3]
 
 
 def anilist_gallery(title: str, opener: Callable = urllib.request.urlopen) -> dict:
     """Image URLs for a show beyond the poster: episode screenshots, main-character portraits, trailer frame.
     {"episodes": [url], "characters": [(name, [aliases], url)], "trailer": url|None}"""
-    out: dict = {"episodes": [], "characters": [], "trailer": None}
+    out: dict = {"episodes": [], "characters": [], "trailer": None, "instagram": []}
     try:
         media = _graphql(GALLERY, {"search": title}, opener).get("Media") or {}
     except Exception:
         return out
     out["episodes"] = [e["thumbnail"] for e in media.get("streamingEpisodes") or [] if e.get("thumbnail")][:40]
+    out["instagram"] = official_instagram(media.get("externalLinks") or [])
     for node in (media.get("characters") or {}).get("nodes") or []:
         url = (node.get("image") or {}).get("large")
         if url and "/default." not in url:

@@ -42,7 +42,7 @@ BAD_LABELS = {  # kind -> prompts (probabilities are summed per kind)
              "an anime frame covered with Japanese captions, credits or a price sign", "a logo with stars and katakana"],
     "logo": ["a logo or title text on a plain background"],
     "merch": ["a toy figure or merchandise product photo"],
-    "game": ["a video game user interface screenshot"],
+    "game": ["a video game user interface screenshot", "a 3D video game character render", "a Fortnite skin"],
     "nsfw": ["explicit sexual or nude content"],
 }
 UPSCALE_FULL = 1.6  # a picture may be enlarged at most this much when shown full-screen

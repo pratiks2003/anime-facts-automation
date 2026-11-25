@@ -52,8 +52,16 @@ def mentions(caption: str, names: Sequence[str]) -> bool:
     return False
 
 
-def instagram_sources(names: Sequence[str], watchlist: Sequence[str], limit: int = 4) -> List[str]:
-    """Permalinks of recent Reels on watchlist pages whose caption mentions the show / its characters."""
+# Official accounts also post ads, collabs and merch: those Reels are not story footage.
+PROMO = re.compile(r"\b(fortnite|collab|collaboration|game|gaming|playstation|xbox|nintendo|merch|figure|figurine|"
+                   r"pre-?order|shop|store|sale|giveaway|sponsored|ad\b|available now on|tickets?|concert|cafe|"
+                   r"live[- ]action|netflix series|event|booth|convention|expo)", re.I)
+
+
+def instagram_sources(names: Sequence[str], watchlist: Sequence[str], limit: int = 4,
+                      require_mention: bool = True) -> List[str]:
+    """Permalinks of recent Reels on official pages. Distributor pages (Crunchyroll...) post about many
+    shows, so their captions must mention this one; a show's OWN account (require_mention=False) is all on-topic."""
     try:
         from integrations.instagram import client_from_env
 
@@ -68,7 +76,10 @@ def instagram_sources(names: Sequence[str], watchlist: Sequence[str], limit: int
         except Exception:
             continue
         for p in posts:
-            if p.get("type") == "REELS" and p.get("permalink") and mentions(p.get("caption", ""), names):
+            caption = p.get("caption", "")
+            if PROMO.search(caption):
+                continue
+            if p.get("type") == "REELS" and p.get("permalink") and (not require_mention or mentions(caption, names)):
                 out.append(p["permalink"])
         if len(out) >= limit:
             break
@@ -151,7 +162,8 @@ def collect_clips(urls: Iterable[str], cache: Path, grading: str, inspector=None
             if not video:
                 continue
             trailer = "youtube" in url
-            for start, length in segments(video, 3.0 if trailer else 0.4, 8.0 if trailer else 1.2, per_video):
+            per = per_video if trailer else max(4, per_video // 2)  # several sources: take a few cuts from each
+            for start, length in segments(video, 3.0 if trailer else 0.4, 8.0 if trailer else 1.2, per):
                 if len(clips) >= max_clips:
                     break
                 folder = cut(video, start, length, cache, grading)
@@ -172,8 +184,13 @@ def collect_clips(urls: Iterable[str], cache: Path, grading: str, inspector=None
 
 
 def find_clips(anime: str, cache: Path, grading: str, inspector=None, watchlist: Sequence[str] = (),
-               trailer_id: Optional[str] = None, names: Sequence[str] = (), max_clips: int = 16) -> List[str]:
+               trailer_id: Optional[str] = None, names: Sequence[str] = (), max_clips: int = 16,
+               show_accounts: Sequence[str] = ()) -> List[str]:
     urls: List[str] = []
+    if show_accounts:  # the show's own official Instagram (from AniList): every Reel is on-topic
+        own = instagram_sources([anime, *names], show_accounts, limit=6, require_mention=False)
+        log(f"official show accounts {list(show_accounts)}: {len(own)} Reels")
+        urls += own
     if trailer_id:
         urls.append(f"https://www.youtube.com/watch?v={trailer_id}")
     urls += instagram_sources([anime, *names], watchlist)

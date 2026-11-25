@@ -241,7 +241,8 @@ def gather_clips(script: dict, cache: Path, style: dict, inspector, accounts) ->
         names = [n for n, _, _ in gallery.get("characters", [])][:8]
         wanted = int(sum(1 for _ in script["scenes"]) * 3 * style["clip_ratio"]) + 2
         return find_clips(script["anime"], cache / "clips", style["grading"], inspector, list(accounts or []),
-                          gallery.get("trailer_id"), names, max_clips=min(20, wanted))
+                          gallery.get("trailer_id"), names, max_clips=min(20, wanted),
+                          show_accounts=gallery.get("instagram", []))
     except Exception as exc:
         log(f"warning: clips unavailable ({type(exc).__name__}: {str(exc)[:160]})")
         return []

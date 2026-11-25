@@ -6,6 +6,7 @@ Every visual choice comes from the Style Spec (video/style.py); this module only
 
 from __future__ import annotations
 
+import math
 import random
 import re
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
+from . import motion
 from .clips import clip_frames, is_clip
 from .tts import Narration, Word
 from .visuals import H, W, base_background, clean_text, cover, font, pill, theme_for
@@ -31,6 +33,7 @@ class Shot:
     zoom_in: bool
     pan: Tuple[float, float]      # direction of drift (-1..1)
     clip: Optional[List[str]] = None  # 30 fps frames of a video clip (already 1080x1920 + graded)
+    layers: Optional[Tuple[Image.Image, Image.Image]] = None  # 2.5D parallax: (background, subject RGBA)
 
 
 def grade(img: Image.Image, mode: str) -> Image.Image:
@@ -104,6 +107,7 @@ class CinematicRenderer:
         self.shots: List[Shot] = []
         self._clip_cache: Tuple[Optional[str], Optional[Image.Image]] = (None, None)
         cache: Dict[str, Image.Image] = {}
+        layer_cache: Dict[str, Optional[Tuple[Image.Image, Image.Image]]] = {}
         interval = style["image_interval"]
         for scene, paths in zip(narration.scenes, scene_images):
             length = max(0.5, scene.end - scene.start)
@@ -127,10 +131,16 @@ class CinematicRenderer:
                     except Exception:
                         path = None
                 img = cache.get(key) if path else prepare(self.fallback, style["grading"])
+                layers = None
+                if path and style.get("parallax", 0) > 0:
+                    if key not in layer_cache:
+                        depth = motion.Depth.get()
+                        layer_cache[key] = motion.split_layers(img, depth(img)) if depth else None
+                    layers = layer_cache[key]
                 start = scene.start + length * k / count
                 end = scene.start + length * (k + 1) / count
                 self.shots.append(Shot(start, end, img, self.rng.random() < 0.6,
-                                       (self.rng.uniform(-1, 1), self.rng.uniform(-0.6, 0.6))))
+                                       (self.rng.uniform(-1, 1), self.rng.uniform(-0.6, 0.6)), layers=layers))
         if beats and len(self.shots) > 1:  # land the cuts on the music's beat
             from .audio_library import snap_to_beats
 
@@ -145,6 +155,11 @@ class CinematicRenderer:
             for i, w in enumerate(scene.words):
                 self.words.append((w, style["keyword_color"] and is_keyword(w.text, i, emphasis)))
         self.font = font("Anton-Regular.ttf", int(style["caption_size"]))
+        self.punch_beats = (beats or [])[::2] if style.get("beat_punch", 0) < 0.8 else list(beats or [])
+        self.shake_times = sorted({round(w.start, 2) for w, key in self.words if key} |
+                                  {round(sc.start, 2) for sc in narration.scenes[1:]})
+        self.line_times = [w.start for w, _ in self.words if re.sub(r"[^a-z]", "", w.text.lower()) in motion.ACTION_WORDS]
+        self.lines_img = motion.speed_lines((W, H), seed=len(self.words)) if style.get("speed_lines") else None
 
     # -------------------------------------------------------------- frame
 
@@ -170,7 +185,19 @@ class CinematicRenderer:
         px = 0.5 + 0.45 * m * shot.pan[0] * (progress - 0.5)
         py = 0.5 + 0.45 * m * shot.pan[1] * (progress - 0.5)
         left, top = int(free_x * min(1, max(0, px))), int(free_y * min(1, max(0, py)))
-        img = big.crop((left, top, left + cw, top + ch)).resize((W, H), Image.BILINEAR)
+        if shot.layers is None:
+            img = big.crop((left, top, left + cw, top + ch)).resize((W, H), Image.BILINEAR)
+            return self.finish(img, t, u, i, captions)
+        # 2.5D: background follows the camera; the subject drifts further and grows a little
+        bg, fg = shot.layers
+        img = bg.crop((left, top, left + cw, top + ch)).resize((W, H), Image.BILINEAR)
+        par = self.style["parallax"]
+        grow = 1.0 + 0.03 * par * (progress if shot.zoom_in else 1 - progress)
+        fw, fh = int(cw / grow), int(ch / grow)
+        dx = int(0.035 * par * cw * (progress - 0.5) * (1 if shot.pan[0] >= 0 else -1))
+        fl, ft = left + (cw - fw) // 2 - dx, top + (ch - fh) // 2
+        layer = fg.crop((fl, ft, fl + fw, ft + fh)).resize((W, H), Image.BILINEAR)
+        img.paste(layer, (0, 0), layer)
         return self.finish(img, t, u, i, captions)
 
     def clip_frame(self, shot: Shot, u: float, progress: float) -> Image.Image:
@@ -189,7 +216,36 @@ class CinematicRenderer:
             img = img.copy()
         return img
 
+    def effects(self, img: Image.Image, t: float) -> Image.Image:
+        """Beat punch + shake (one crop) and speed lines."""
+        zoom, ox, oy = 1.0, 0.0, 0.0
+        strength = self.style.get("beat_punch", 0)
+        if strength and self.punch_beats:
+            b = max((x for x in self.punch_beats if x <= t), default=None)
+            if b is not None and t - b < 0.2:
+                zoom += 0.055 * strength * (1 - motion.ease((t - b) / 0.2))
+        amp = 18 * self.style.get("shake", 0)
+        if amp:
+            hit = max((x for x in self.shake_times if x <= t), default=None)
+            if hit is not None and t - hit < 0.25:
+                fade = 1 - (t - hit) / 0.25
+                ox, oy = amp * fade * math.sin(t * 90), amp * fade * math.cos(t * 70)
+                zoom = max(zoom, 1.03)
+        if zoom > 1.001:
+            cw, ch = W / zoom, H / zoom
+            left = min(W - cw, max(0.0, (W - cw) / 2 + ox))
+            top = min(H - ch, max(0.0, (H - ch) / 2 + oy))
+            img = img.crop((int(left), int(top), int(left + cw), int(top + ch))).resize((W, H), Image.BILINEAR)
+        if self.style.get("speed_lines") and self.line_times:
+            hit = max((x for x in self.line_times if x <= t), default=None)
+            if hit is not None and t - hit < 0.4:
+                lines = self.lines_img.copy()
+                lines.putalpha(lines.getchannel("A").point(lambda v, f=0.75 * (1 - (t - hit) / 0.4): int(v * f)))
+                img.paste(lines, (0, 0), lines)
+        return img
+
     def finish(self, img: Image.Image, t: float, u: float, i: int, captions: bool = True) -> Image.Image:
+        img = self.effects(img, t)
         img = self.transition(img, u, i)
         d = ImageDraw.Draw(img)
         if self.style["watermark"]:

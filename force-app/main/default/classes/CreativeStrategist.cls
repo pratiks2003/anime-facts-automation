@@ -46,8 +46,11 @@ public with sharing class CreativeStrategist {
         Map<String, Object> out = PromptRunner.runJson(TEMPLATE, agentReq);
 
         Style__c chosen = pickStyle(out, styles, mode);
+        Boolean hot = request.get('slot') == 'Morning' || out.get('breaking') == true;
         Map<String, Object> decision = new Map<String, Object>{
-            'format' => validFormat(out.get('format'), request),
+            'format' => hot ? allowedFormat(out.get('format'), request) : validFormat(out.get('format'), request),
+            'hot_topic' => out.get('hot_topic'),
+            'breaking' => out.get('breaking') == true,
             'angle' => out.get('angle'),
             'topic' => out.get('topic'),
             'anime' => out.get('anime'),
@@ -126,6 +129,20 @@ public with sharing class CreativeStrategist {
         return styles[0];
     }
 
+    /** Hot Reels (morning / breaking news): any allowed format, the topic decides; no variety rule. */
+    @TestVisible
+    private static String allowedFormat(Object proposed, Map<String, Object> request) {
+        if (proposed != null && request.get('formats') instanceof List<Object>) {
+            for (Object f : (List<Object>) request.get('formats')) {
+                Object name = f instanceof Map<String, Object> ? ((Map<String, Object>) f).get('name') : f;
+                if (String.valueOf(name) == String.valueOf(proposed)) {
+                    return String.valueOf(proposed);
+                }
+            }
+        }
+        return (String) request.get('scheduled_format');
+    }
+
     /** The agent's format if it is allowed and not one of the last 2 Reels' formats (variety); else the rotation's. */
     @TestVisible
     private static String validFormat(Object proposed, Map<String, Object> request) {
@@ -157,7 +174,7 @@ public with sharing class CreativeStrategist {
     private static List<Object> recentReels() {
         List<Object> rows = new List<Object>();
         for (Anime_Content__c c : [
-            SELECT Format__c, Anime__r.Name, Hook__c, Quality_Score__c, Style__r.Name, Topic__c,
+            SELECT Format__c, Anime__r.Name, Hook__c, Quality_Score__c, Style__r.Name, Topic__c, Slot__c, CreatedDate, Strategy__c,
                 (SELECT Views__c, Avg_Watch_Time_Ms__c, Shares__c, Saves__c FROM Social_Posts__r LIMIT 1)
             FROM Anime_Content__c
             WHERE Status__c IN ('Published', 'Rendered', 'Approved')
@@ -166,7 +183,9 @@ public with sharing class CreativeStrategist {
         ]) {
             Map<String, Object> row = new Map<String, Object>{
                 'format' => c.Format__c, 'anime' => c.Anime__r == null ? null : c.Anime__r.Name, 'hook' => c.Hook__c,
-                'topic' => c.Topic__c, 'style' => c.Style__r == null ? null : c.Style__r.Name, 'score' => c.Quality_Score__c
+                'topic' => c.Topic__c, 'style' => c.Style__r == null ? null : c.Style__r.Name, 'score' => c.Quality_Score__c,
+                'slot' => c.Slot__c, 'created' => c.CreatedDate,
+                'hot' => c.Strategy__c != null && c.Strategy__c.contains('"hot_topic":{')
             };
             if (!c.Social_Posts__r.isEmpty()) {
                 Social_Post__c p = c.Social_Posts__r[0];

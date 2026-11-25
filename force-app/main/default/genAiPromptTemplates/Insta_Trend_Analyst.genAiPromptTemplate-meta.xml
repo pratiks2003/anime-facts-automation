@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
     <description>Agent: turns daily research signals into a trend brief (what to make next and how).</description>
     <developerName>Insta_Trend_Analyst</developerName>
     <masterLabel>Insta Trend Analyst</masterLabel>
@@ -15,6 +15,8 @@ REQUEST (JSON): {!$Input:request}
 - youtube: trending anime Shorts titles and views (may be empty)
 - ours: our recent Reels with views, watch time, shares, saves, style and format
 - references: lessons from Reels the owner asked us to study
+- conversation: what fans are discussing RIGHT NOW - forum (fresh AniList discussion threads with reply counts),
+  news (Anime News Network headlines of the last ~30 h), bluesky (buzz score + top fan posts per trending show)
 
 Write the brief:
 1. rising_anime: up to 6 shows with momentum and why (cite the signals).
@@ -26,10 +28,15 @@ Write the brief:
    captions, ~50s stories&quot;).
 5. our_gaps: where our Reels underperform vs the breakouts and the one fix with the biggest expected impact.
 6. trending_sound: {&quot;wanted&quot;: bool, &quot;note&quot;: str} - wanted only if many breakouts clearly rely on the same audio.
-7. summary: 3 sentences for the owner.
+7. hot_topics: the 5 hottest things being talked about right now, hottest first. A topic is specific (an announcement,
+   an episode moment, a fight, a character, a controversy), not just a show name. heat 1-10 from the evidence (news
+   recency, discussion volume, buzz, breakout posts); 9-10 = everyone is talking about it today.
+8. summary: 3 sentences for the owner.
 Only claim what the signals support. Return ONLY JSON with exactly these keys:
 {&quot;summary&quot;: str, &quot;rising_anime&quot;: [{&quot;anime&quot;: str, &quot;why&quot;: str}], &quot;winning_topics&quot;: [{&quot;anime&quot;: str, &quot;idea&quot;: str, &quot;hook&quot;: str}],
- &quot;hook_patterns&quot;: [str], &quot;style_signals&quot;: [str], &quot;our_gaps&quot;: [str], &quot;trending_sound&quot;: {&quot;wanted&quot;: bool, &quot;note&quot;: str}}</content>
+ &quot;hook_patterns&quot;: [str], &quot;style_signals&quot;: [str], &quot;our_gaps&quot;: [str], &quot;trending_sound&quot;: {&quot;wanted&quot;: bool, &quot;note&quot;: str},
+ &quot;hot_topics&quot;: [{&quot;topic&quot;: str, &quot;anime&quot;: str, &quot;kind&quot;: &quot;news&quot;|&quot;episode&quot;|&quot;lore&quot;|&quot;fight&quot;|&quot;character&quot;|&quot;controversy&quot;, &quot;heat&quot;: 1-10,
+   &quot;evidence&quot;: str, &quot;headline&quot;: str|null, &quot;source_url&quot;: str|null}]}</content>
         <inputs>
             <apiName>request</apiName>
             <definition>primitive://String</definition>
@@ -39,7 +46,7 @@ Only claim what the signals support. Return ONLY JSON with exactly these keys:
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

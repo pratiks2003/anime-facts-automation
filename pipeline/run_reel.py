@@ -307,15 +307,24 @@ def generate(args, sf) -> int:
     style = decision.get("style") or resolve_style(None)
     angle = str(decision.get("angle") or "")
     lessons, idea = learning_inputs(sf, args.format)
-    if not anime_hint and not topic and decision.get("anime"):
+    hot_topic = decision.get("hot_topic") if isinstance(decision.get("hot_topic"), dict) else None
+    if hot_topic and not args.anime and not args.topic and hot_topic.get("anime"):
+        anime_hint, topic = str(hot_topic["anime"]), str(hot_topic.get("topic") or "")
+        log(f"hot topic (heat {hot_topic.get('heat')}{', breaking' if decision.get('breaking') else ''}): "
+            f"{topic} - {anime_hint}")
+    elif not anime_hint and not topic and decision.get("anime"):
         anime_hint, topic = str(decision["anime"]), str(decision.get("topic") or "")
-    if idea and not anime_hint and not topic and args.format not in ("This Week's Drops", "Why It's Trending", "Hype Check", "Season Preview", "Just Announced"):
+    if idea and not hot_topic and not anime_hint and not topic and args.format not in ("This Week's Drops", "Why It's Trending", "Hype Check", "Season Preview", "Just Announced"):
         anime_hint, topic = idea.get("Anime__c") or "", idea["Name"]
         log(f"using backlog idea: {idea['Name']} ({anime_hint})")
     else:
         idea = None
     plan = plan_reel(llm, args.format, anime_hint=anime_hint, topic=topic,
-                     recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid, strict_anime=bool(args.anime))
+                     recent_ids=recent_ids, recent_anime=recent_anime, slot_seed=cid, strict_anime=bool(args.anime),
+                     hot_topic=hot_topic)
+    if plan.format != args.format:
+        log(f"format changed by the planner: {args.format} -> {plan.format}")
+        args.format = plan.format
     strategist_anime = str(decision.get("anime") or "")
     if angle and strategist_anime and strategist_anime.casefold() not in plan.anime.casefold() \
             and plan.anime.casefold() not in strategist_anime.casefold():

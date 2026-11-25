@@ -109,4 +109,26 @@ private class CreativeStrategistTest {
         insert new Anime_Content__c(Name = 'R', External_Id__c = 'P-1', Format__c = 'Backstory', Status__c = 'Published');
         Assert.areEqual('Fact', CreativeStrategist.validFormat('Backstory', req), 'repeat of a recent format -> rotation');
     }
+
+    @IsTest
+    static void morningAndBreakingSkipTheVarietyRule() {
+        insert new Anime_Content__c(Name = 'R', External_Id__c = 'P-2', Format__c = 'Backstory', Status__c = 'Published');
+        CreativeStrategist.roll = 0.9;
+        PromptRunner.mock = new Map<String, List<String>>{
+            CreativeStrategist.TEMPLATE => new List<String>{
+                '{"format":"Backstory","breaking":false,"hot_topic":{"topic":"Gear 5 returns","anime":"One Piece","heat":9}}',
+                '{"format":"Backstory","breaking":true,"hot_topic":{"topic":"Season 2 announced","anime":"Bocchi","heat":9}}',
+                '{"format":"Backstory","breaking":false}'
+            }
+        };
+        Map<String, Object> morning = request(null);
+        morning.put('slot', 'Morning');
+        Assert.areEqual('Backstory', CreativeStrategist.decide(morning).get('format'), 'morning hot topic: format follows the topic');
+        Map<String, Object> evening = request(null);
+        evening.put('slot', 'Evening');
+        Map<String, Object> d = CreativeStrategist.decide(evening);
+        Assert.areEqual('Backstory', d.get('format'), 'breaking news allowed');
+        Assert.isTrue((Boolean) d.get('breaking'));
+        Assert.areEqual('Fact', CreativeStrategist.decide(evening.clone()).get('format'), 'ordinary slot keeps variety');
+    }
 }

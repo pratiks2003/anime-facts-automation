@@ -37,7 +37,7 @@ global with sharing class TrendBriefResource {
         }
         Map<String, Object> request = new Map<String, Object>{
             'watchlist' => signals.get('watchlist'), 'anilist' => signals.get('anilist'), 'youtube' => signals.get('youtube'),
-            'ours' => signals.get('ours'), 'references' => references
+            'ours' => signals.get('ours'), 'references' => references, 'conversation' => signals.get('conversation')
         };
         Map<String, Object> out = PromptRunner.runJson(TEMPLATE, request);
         Boolean soundWanted = false;

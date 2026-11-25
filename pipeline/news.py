@@ -170,6 +170,26 @@ def news_facts(format_name: str, opener: Callable = urllib.request.urlopen,
             "media": shows}
 
 
+TOPIC_QUERY = """query ($search: String) { Media(search: $search, type: ANIME, isAdult: false) { %s } }""" % MEDIA_FIELDS
+
+
+def topic_facts(anime: str, headline: str = "", summary: str = "", source_url: str = "",
+                opener: Callable = urllib.request.urlopen) -> Dict[str, object]:
+    """News facts about the day's hot topic: the reported headline (sourced) + live AniList facts for that show."""
+    media = (_post(TOPIC_QUERY, {"search": anime}, opener) or {}).get("Media")
+    if not media:
+        raise RuntimeError(f"AniList has no show matching {anime!r}")
+    facts: List[dict] = []
+    if headline:
+        record = _record(1, media, headline[:120], clean_description(f"{headline}. {summary}", 360), "news")
+        if source_url:
+            record.update(source_url=source_url, source_type="news")
+        facts.append(record)
+    facts += media_facts(media, len(facts) + 1)
+    context = f"Today's hot topic: {headline or anime}. Fans are talking about it right now."
+    return {"headline_context": context, "facts": facts, "shows": [title_of(media)], "media": [media]}
+
+
 SEARCH_QUERY = """query ($search: String) { Media(search: $search, type: ANIME, isAdult: false) {
     id title { romaji english } synonyms siteUrl popularity
     characters(sort: [FAVOURITES_DESC], perPage: 10) { nodes { name { full alternative } } } } }"""

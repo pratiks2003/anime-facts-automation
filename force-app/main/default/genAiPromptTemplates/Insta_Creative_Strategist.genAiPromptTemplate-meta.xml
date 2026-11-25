@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
     <description>Agent: decides format, angle, length and visual style for the next Reel (explore/exploit over the style library).</description>
     <developerName>Insta_Creative_Strategist</developerName>
     <masterLabel>Insta Creative Strategist</masterLabel>
@@ -21,6 +21,14 @@ It contains:
 - style_limits: allowed keys and ranges for a style spec
 
 Decide:
+0. The slot&apos;s job (slot in the request; recent_reels shows what we already posted, with created times):
+   - Morning: ALWAYS today&apos;s hottest topic = the highest-heat entry of trend_brief.hot_topics (what fans are talking
+     about right now). Set anime/topic/angle from it and pick the format that tells it best (news -&gt; Just Announced or
+     Why It&apos;s Trending; episode moment / character -&gt; Backstory, Fan Theory or Hidden Details; fight -&gt; Who Would Win).
+   - Midday: a deep dive (lore, theory, backstory, hidden details) - UNLESS breaking news (below).
+   - Evening: variety and fun (Who Would Win, Ranking, Quiz, What If, Fact) or fresh evening news - UNLESS breaking news.
+   - Breaking news: if a hot topic with heat &gt;= 8 is NOT yet covered by today&apos;s recent_reels, this slot may be another
+     hot Reel about it (set breaking=true). A second hot Reel the same day is fine when it is a different topic.
 1. format: decide from TODAY&apos;s signals, any format is allowed in any slot (formats = all of them, with kind news/evergreen):
    - real fresh news in trend_brief (new season/episode/announcement, a show breaking out) -&gt; a news format
      (Just Announced, Why It&apos;s Trending, Hype Check, This Week&apos;s Drops, Season Preview);
@@ -43,7 +51,8 @@ Decide:
    of Reel today (the owner then posts it manually with that sound).
 
 Return ONLY JSON:
-{&quot;format&quot;: str, &quot;angle&quot;: str, &quot;anime&quot;: str|null, &quot;topic&quot;: str|null, &quot;length_seconds&quot;: int,
+{&quot;format&quot;: str, &quot;angle&quot;: str, &quot;hot_topic&quot;: {&quot;topic&quot;: str, &quot;anime&quot;: str, &quot;heat&quot;: int, &quot;headline&quot;: str|null, &quot;source_url&quot;: str|null}|null,
+ &quot;breaking&quot;: bool, &quot;anime&quot;: str|null, &quot;topic&quot;: str|null, &quot;length_seconds&quot;: int,
  &quot;style_name&quot;: str|null, &quot;new_style&quot;: {...}|null, &quot;needs_trending_sound&quot;: bool, &quot;reasoning&quot;: &quot;2-3 sentences citing the data&quot;}</content>
         <inputs>
             <apiName>request</apiName>
@@ -54,7 +63,7 @@ Return ONLY JSON:
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

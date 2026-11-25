@@ -128,10 +128,23 @@ def top_up(llm, store: KnowledgeStore, anime: dict, entry: dict, opener: Callabl
     return totals
 
 
+def hot_news_plan(format_name: str, hot_topic: dict, opener: Callable) -> Plan:
+    from .news import topic_facts
+
+    news = topic_facts(str(hot_topic.get("anime")), str(hot_topic.get("headline") or hot_topic.get("topic") or ""),
+                       str(hot_topic.get("evidence") or ""), str(hot_topic.get("source_url") or ""), opener)
+    return Plan(format_name, news["shows"][0], (news["media"][0] or {}).get("id"), news["facts"], news["headline_context"],
+                extra_records=news["facts"], media=news["media"])
+
+
 def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", recent_ids: Optional[Set[str]] = None,
               recent_anime: Optional[List[str]] = None, slot_seed: str = "", store: Optional[KnowledgeStore] = None,
-              opener: Callable = urllib.request.urlopen, strict_anime: bool = True) -> Plan:
+              opener: Callable = urllib.request.urlopen, strict_anime: bool = True,
+              hot_topic: Optional[dict] = None) -> Plan:
     recent_ids = recent_ids or set()
+    hot_anime = str((hot_topic or {}).get("anime") or "").strip()
+    if hot_anime and format_name in NEWS_FORMATS:
+        return hot_news_plan(format_name, hot_topic, opener)
     if format_name in NEWS_FORMATS:
         news = news_facts(format_name, opener)
         if not news["facts"]:
@@ -154,6 +167,11 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
             ingested = {"error": 1}
             print(f"[planner] knowledge top-up skipped: {type(exc).__name__}: {str(exc)[:160]}")
         facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
+    if len(facts) < 3 and hot_anime:
+        # the hot topic is about a show we don't know well yet: tell it as news (live, sourced facts)
+        # instead of switching to another show - the topic is the point of this Reel
+        print(f"[planner] only {len(facts)} verified facts for {entry['name']}; telling the hot topic as news")
+        return hot_news_plan("Why It's Trending", hot_topic, opener)
     if len(facts) < 3 and (not anime_hint or not strict_anime):
         # Couldn't learn enough about the trending / suggested pick: fall back to the best-covered show we know.
         # (Only an anime the owner asked for explicitly is strict.)

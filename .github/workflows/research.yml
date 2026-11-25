@@ -1,9 +1,10 @@
 name: Trend research
 
-# Twice a day, before each Reel slot: 00:37 UTC (06:07 IST) and 12:37 UTC (18:07 IST). Also manual.
+# Before every Reel slot: 06:07, 13:07 and 18:07 IST (00:37, 07:37, 12:37 UTC). Also manual.
 on:
   schedule:
     - cron: "37 0 * * *"
+    - cron: "37 7 * * *"
     - cron: "37 12 * * *"
   workflow_dispatch:
 

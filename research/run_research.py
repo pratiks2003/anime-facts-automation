@@ -113,6 +113,15 @@ def collect(sf, ig, yt_key: Optional[str]) -> dict:
     if ig is not None:
         signals["watchlist"], problems = watchlist_signals(ig, watchlist(sf))
         signals["problems"] += problems
+    try:  # what fans are discussing right now: forum threads, news headlines, Bluesky buzz
+        from research.conversation import collect as conversation
+
+        trending = [t["title"] for t in anilist_signals()][:8]
+        talk = conversation(trending)
+        signals["problems"] += talk.pop("problems", [])
+        signals["conversation"] = talk
+    except Exception as exc:
+        signals["problems"].append(f"conversation: {str(exc)[:160]}")
     for key, fn in (("anilist", anilist_signals), ("ours", lambda: our_signals(sf)),
                     ("youtube", (lambda: youtube_signals(yt_key)) if yt_key else None)):
         if fn is None:
@@ -140,6 +149,9 @@ def main(argv=None) -> int:
         log(f"Instagram unavailable ({exc}); skipping the watchlist")
         ig = None
     signals = collect(sf, ig, os.environ.get("YT_API_KEY"))
+    talk = signals.get("conversation") or {}
+    log(f"conversation: {len(talk.get('forum', []))} threads, {len(talk.get('news', []))} headlines, "
+        f"{len(talk.get('bluesky', []))} shows on Bluesky")
     log(f"signals: {len(signals.get('watchlist', []))} pages, {len(signals.get('anilist', []))} trending shows, "
         f"{len(signals.get('youtube', []))} shorts, {len(signals.get('ours', []))} of ours; problems: {signals['problems']}")
     if args.dry_run:

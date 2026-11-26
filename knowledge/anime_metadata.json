@@ -137,6 +137,22 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "The World's Strongest Witch",
+      "aliases": [
+        "Sekai Saikyou no Majo, Hajimemashita",
+        "Sekai Saikyou no Majo, Hajimemashita: Watashi dake \"Kouryaku Site\" wo Mireru Sekai de Jiyuu ni Ikimasu",
+        "Sekamajo",
+        "せかまじょ",
+        "世界最強の魔女、始めました　～私だけ『攻略サイト』を見れる世界で自由に生きます～"
+      ],
+      "anilist_id": 211778,
+      "knowledge_file": "the_world_s_strongest_witch.jsonl",
+      "id_prefix": "TWSS",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

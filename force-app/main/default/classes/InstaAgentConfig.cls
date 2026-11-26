@@ -22,6 +22,9 @@ public with sharing class InstaAgentConfig {
                     Evening_Slot_IST__c = '19:00',
                     Midday_Slot_IST__c = '13:30',
                     Three_Reels_Per_Day__c = false,
+                    Post_Limit_Enabled__c = true,
+                    Daily_Post_Limit__c = 6,
+                    Min_Post_Gap_Minutes__c = 90,
                     GitHub_Repository__c = 'pratiks2003/anime-facts-automation',
                     Generate_Workflow__c = 'reel.yml',
                     Quality_Threshold__c = 8,
@@ -51,6 +54,15 @@ public with sharing class InstaAgentConfig {
         if (String.isNotBlank(changes.Evening_Slot_IST__c)) {
             current.Evening_Slot_IST__c = validTime(changes.Evening_Slot_IST__c);
         }
+        if (changes.Post_Limit_Enabled__c != null) {
+            current.Post_Limit_Enabled__c = changes.Post_Limit_Enabled__c;
+        }
+        if (changes.Daily_Post_Limit__c != null) {
+            current.Daily_Post_Limit__c = Math.max(1, Math.min(25, changes.Daily_Post_Limit__c.intValue()));
+        }
+        if (changes.Min_Post_Gap_Minutes__c != null) {
+            current.Min_Post_Gap_Minutes__c = Math.max(0, Math.min(720, changes.Min_Post_Gap_Minutes__c.intValue()));
+        }
         if (changes.Watchlist__c != null) {
             current.Watchlist__c = cleanWatchlist(changes.Watchlist__c);
         }
@@ -71,6 +83,19 @@ public with sharing class InstaAgentConfig {
             }
         }
         return String.join(names, ',').abbreviate(255);
+    }
+
+    /** Publishing guard settings + posts in the last 24 h (read by the GitHub publish step and the admin site). */
+    public static Map<String, Object> postingPolicy() {
+        InstaAgent_Settings__c s = get();
+        Datetime since = Datetime.now().addHours(-24);
+        Integer recent = [SELECT COUNT() FROM Social_Post__c WHERE Status__c = 'Published' AND Published_At__c >= :since];
+        return new Map<String, Object>{
+            'enabled' => s.Post_Limit_Enabled__c != false,
+            'max_per_day' => s.Daily_Post_Limit__c == null ? 6 : s.Daily_Post_Limit__c.intValue(),
+            'min_gap_minutes' => s.Min_Post_Gap_Minutes__c == null ? 90 : s.Min_Post_Gap_Minutes__c.intValue(),
+            'posts_last_24h' => recent
+        };
     }
 
     public static List<String> watchlist() {

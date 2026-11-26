@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import time
 import os
 import sys
@@ -139,12 +139,27 @@ class SpacingHold(RuntimeError):
     pass
 
 
-def wait_for_posting_window(sf, sleep=time.sleep) -> None:
+def posting_policy(sf) -> dict:
+    """Admin-site Settings: post limit on/off, max per 24 h, minimum gap (defaults if unreachable)."""
+    policy = {"enabled": True, "max_per_day": MAX_POSTS_PER_DAY, "min_gap_minutes": MIN_GAP_MINUTES}
+    try:
+        policy.update((sf.request("GET", "insta/research/brief", base="apexrest") or {}).get("posting") or {})
+    except Exception as exc:
+        log(f"warning: posting policy unavailable ({exc}); using defaults")
+    return policy
+
+
+def wait_for_posting_window(sf, sleep=time.sleep, policy: Optional[dict] = None) -> None:
     """Enforce post spacing (from Social_Post__c). Waits briefly if needed, else raises SpacingHold."""
     if isinstance(sf, NullSalesforce):
         return
+    policy = policy or posting_policy(sf)
+    if not policy.get("enabled", True):
+        return
+    max_per_day = int(policy.get("max_per_day") or MAX_POSTS_PER_DAY)
+    min_gap = int(policy.get("min_gap_minutes") if policy.get("min_gap_minutes") is not None else MIN_GAP_MINUTES)
     rows = sf.query("SELECT Published_At__c FROM Social_Post__c WHERE Status__c = 'Published' AND "
-                    "Published_At__c = LAST_N_DAYS:1 ORDER BY Published_At__c DESC LIMIT 10") or []
+                    "Published_At__c = LAST_N_DAYS:1 ORDER BY Published_At__c DESC LIMIT 30") or []
     now = datetime.now(timezone.utc)
     times = []
     for r in rows:
@@ -153,12 +168,14 @@ def wait_for_posting_window(sf, sleep=time.sleep) -> None:
         except (KeyError, ValueError):
             continue
     recent = [t for t in times if (now - t).total_seconds() < 86400]
-    if len(recent) >= MAX_POSTS_PER_DAY:
-        raise SpacingHold(f"{len(recent)} posts in the last 24 h (limit {MAX_POSTS_PER_DAY})")
-    if recent:
-        wait = MIN_GAP_MINUTES * 60 - (now - max(recent)).total_seconds()
+    if len(recent) >= max_per_day:
+        frees = min(recent) + timedelta(hours=24)
+        raise SpacingHold(f"{len(recent)} posts in the last 24 h (limit {max_per_day}); next free slot about "
+                          f"{frees.astimezone(timezone(timedelta(hours=5, minutes=30))).strftime('%H:%M')} IST")
+    if recent and min_gap:
+        wait = min_gap * 60 - (now - max(recent)).total_seconds()
         if wait > MAX_WAIT_MINUTES * 60:
-            raise SpacingHold(f"last post was {int((now - max(recent)).total_seconds() // 60)} min ago (minimum gap {MIN_GAP_MINUTES} min)")
+            raise SpacingHold(f"last post was {int((now - max(recent)).total_seconds() // 60)} min ago (minimum gap {min_gap} min)")
         if wait > 0:
             log(f"spacing: waiting {int(wait // 60) + 1} min after the previous post")
             sleep(wait + 5)
@@ -553,7 +570,7 @@ def generate(args, sf) -> int:
     try:
         wait_for_posting_window(sf)
     except SpacingHold as exc:
-        reason = f"Spacing guard: {exc}. Approve it on the admin site later to post."
+        reason = f"Posting limit: {exc}. Approve it on the admin site later, or switch the limit off in Settings."
         sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Hold_Reason__c=reason)
         sf.job_update(job, Status__c="Succeeded", Stage__c="Held: post spacing", Completed_At__c=now_iso())
         log(reason)
@@ -596,7 +613,14 @@ def publish(args, sf) -> int:
         sf.reel_update(cid, Status__c="Rendered", Error_Message__c="Dry run: approved but not posted.")
         sf.job_update(job, Status__c="Succeeded", Stage__c="Dry run complete", Completed_At__c=now_iso())
         return 0
-    wait_for_posting_window(sf)  # owner-approved posts still respect the spacing (raises with a clear reason)
+    try:  # owner-approved posts still respect the posting limit - held (not failed) when over it
+        wait_for_posting_window(sf)
+    except SpacingHold as exc:
+        reason = f"Posting limit: {exc}. Approve again later, or switch the limit off in Settings."
+        sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Hold_Reason__c=reason)
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Held: posting limit", Completed_At__c=now_iso())
+        log(reason)
+        return 0
     sf.job_update(job, Stage__c="Publishing to Instagram")
     media_id, permalink = publish_to_instagram(video, rows[0]["Caption__c"] or "", 900, rows[0].get("Video_URL__c"),
                                                cover_url=rows[0].get("Cover_URL__c"))

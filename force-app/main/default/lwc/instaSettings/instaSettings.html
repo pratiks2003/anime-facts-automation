@@ -52,6 +52,18 @@
         </section>
 
         <section class="panel">
+            <h2 class="panel-title">Posting limit</h2>
+            <p class={postsUsedClass}>{postsUsedLabel}</p>
+            <label class="label" for="dailyLimit">Max posts per 24 hours</label>
+            <input id="dailyLimit" class="field" type="number" min="1" max="25" data-key="dailyPostLimit"
+                value={values.dailyPostLimit} onchange={handleNumber} disabled={limitDisabled} />
+            <label class="label" for="minGap">Minimum minutes between posts</label>
+            <input id="minGap" class="field" type="number" min="0" max="720" data-key="minPostGap"
+                value={values.minPostGap} onchange={handleNumber} disabled={limitDisabled} />
+            <p class="muted small note">Reels over the limit are held (not failed) and can be approved again later.</p>
+        </section>
+
+        <section class="panel">
             <h2 class="panel-title">Trend watchlist</h2>
             <label class="label" for="watchlist">Public anime pages the research team watches daily (Instagram usernames, comma separated)</label>
             <textarea id="watchlist" class="field" rows="3" data-key="watchlist" value={values.watchlist} onchange={handleTime}></textarea>

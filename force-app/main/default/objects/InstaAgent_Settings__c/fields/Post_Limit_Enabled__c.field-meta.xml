@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Post_Limit_Enabled__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When on, posts respect the daily limit and minimum gap (protects against Meta "unusual activity" blocks).</description>
+    <label>Post Limit Enabled</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

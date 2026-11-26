@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Daily_Post_Limit__c</fullName>
+    <defaultValue>6</defaultValue>
+    <description>Maximum Instagram posts in any rolling 24 hours (spacing guard).</description>
+    <label>Daily Post Limit</label>
+    <precision>4</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

@@ -35,5 +35,11 @@ private class TrendBriefResourceTest {
         RestContext.response = new RestResponse();
         TrendBriefResource.config();
         Assert.isTrue(RestContext.response.responseBody.toString().contains('toonami'));
+        Assert.isTrue(RestContext.response.responseBody.toString().contains('max_per_day'));
+        values.putAll(new Map<String, Object>{ 'postLimitEnabled' => false, 'dailyPostLimit' => 99, 'minPostGap' => 30 });
+        Map<String, Object> saved = AdminPanelController.saveSettings(values);
+        Assert.areEqual(false, saved.get('postLimitEnabled'));
+        Assert.areEqual(25, saved.get('dailyPostLimit'), 'clamped');
+        Assert.areEqual(30, saved.get('minPostGap'));
     }
 }

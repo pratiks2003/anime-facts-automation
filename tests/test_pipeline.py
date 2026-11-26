@@ -450,6 +450,9 @@ class SpacingTests(unittest.TestCase):
 
     def test_spacing_rules(self):
         from pipeline.run_reel import SpacingHold, wait_for_posting_window
+        default = {"enabled": True, "max_per_day": 6, "min_gap_minutes": 90}
+        orig = wait_for_posting_window
+        wait_for_posting_window = lambda sf, sleep, policy=default: orig(sf, sleep=sleep, policy=policy)  # noqa: E731
         waited = []
         wait_for_posting_window(self._sf([300]), sleep=waited.append)        # long ago: post now
         self.assertEqual(waited, [])
@@ -459,3 +462,16 @@ class SpacingTests(unittest.TestCase):
             wait_for_posting_window(self._sf([10]), sleep=waited.append)     # too soon: hold
         with self.assertRaises(SpacingHold):
             wait_for_posting_window(self._sf([200, 400, 600, 800, 900, 1000]), sleep=waited.append)  # 6 today: hold
+
+
+class PostingLimitSettingTests(unittest.TestCase):
+    def test_limit_can_be_switched_off_or_changed(self):
+        from datetime import datetime, timedelta, timezone
+        from pipeline.run_reel import SpacingHold, wait_for_posting_window
+        now = datetime.now(timezone.utc)
+        rows = [{"Published_At__c": (now - timedelta(minutes=m)).isoformat()} for m in (100, 300, 500)]
+        sf = type("SF", (), {"query": lambda self, q: rows})()
+        wait_for_posting_window(sf, sleep=lambda s: None, policy={"enabled": False})              # off: always ok
+        with self.assertRaises(SpacingHold):
+            wait_for_posting_window(sf, sleep=lambda s: None, policy={"enabled": True, "max_per_day": 3, "min_gap_minutes": 90})
+        wait_for_posting_window(sf, sleep=lambda s: None, policy={"enabled": True, "max_per_day": 4, "min_gap_minutes": 60})

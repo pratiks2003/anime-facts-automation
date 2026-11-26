@@ -11,7 +11,8 @@ global with sharing class TrendBriefResource {
         RestResponse res = RestContext.response;
         res.addHeader('Content-Type', 'application/json');
         res.statusCode = 200;
-        res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{ 'watchlist' => InstaAgentConfig.watchlist() }));
+        res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'watchlist' => InstaAgentConfig.watchlist(), 'posting' => InstaAgentConfig.postingPolicy() }));
     }
 
     @HttpPost

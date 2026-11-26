@@ -34,6 +34,11 @@ const TOGGLES = [
         help: 'Reels scoring 7-8 go to non-followers first and reach followers only if they perform (needs Instagram eligibility).'
     },
     {
+        key: 'postLimitEnabled',
+        label: 'Post limit',
+        help: 'Keeps posting at a safe pace (max posts per 24 h + minimum gap) so Meta does not flag "unusual activity". Turn off e.g. the day after testing.'
+    },
+    {
         key: 'dryRun',
         label: 'Dry run',
         help: 'Render everything but never post to Instagram. Turn off to go live.'
@@ -71,6 +76,26 @@ export default class InstaSettings extends LightningElement {
 
     get saveDisabled() {
         return this.saving || !this.dirty;
+    }
+
+    get limitDisabled() {
+        return !this.values.postLimitEnabled;
+    }
+
+    get postsUsedLabel() {
+        const used = this.values.postsLast24h || 0;
+        const max = this.values.dailyPostLimit || 6;
+        return `${used} of ${max} posts used in the last 24 hours`;
+    }
+
+    get postsUsedClass() {
+        return (this.values.postsLast24h || 0) >= (this.values.dailyPostLimit || 6) ? 'error small' : 'muted small';
+    }
+
+    handleNumber(event) {
+        const value = parseInt(event.target.value, 10);
+        this.values = { ...this.values, [event.target.dataset.key]: Number.isNaN(value) ? null : value };
+        this.message = undefined;
     }
 
     get eveningDisabled() {

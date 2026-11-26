@@ -57,7 +57,10 @@ public with sharing class AdminPanelController {
                     Evening_Slot_IST__c = (String) values.get('eveningSlot'),
                     Trial_Reels_Enabled__c = values.get('trialReels') == true,
                     Auto_Reply_Comments__c = values.get('autoReply') != false,
-                    Watchlist__c = values.get('watchlist') == null ? null : String.valueOf(values.get('watchlist'))
+                    Watchlist__c = values.get('watchlist') == null ? null : String.valueOf(values.get('watchlist')),
+                    Post_Limit_Enabled__c = values.get('postLimitEnabled') != false,
+                    Daily_Post_Limit__c = values.get('dailyPostLimit') == null ? null : Decimal.valueOf(String.valueOf(values.get('dailyPostLimit'))),
+                    Min_Post_Gap_Minutes__c = values.get('minPostGap') == null ? null : Decimal.valueOf(String.valueOf(values.get('minPostGap')))
                 )
             );
             if ((Boolean) values.get('automationEnabled')) {
@@ -347,7 +350,11 @@ public with sharing class AdminPanelController {
             'repository' => s.GitHub_Repository__c,
             'trialReels' => s.Trial_Reels_Enabled__c,
             'autoReply' => s.Auto_Reply_Comments__c,
-            'watchlist' => s.Watchlist__c
+            'watchlist' => s.Watchlist__c,
+            'postLimitEnabled' => s.Post_Limit_Enabled__c != false,
+            'dailyPostLimit' => s.Daily_Post_Limit__c == null ? 6 : s.Daily_Post_Limit__c.intValue(),
+            'minPostGap' => s.Min_Post_Gap_Minutes__c == null ? 90 : s.Min_Post_Gap_Minutes__c.intValue(),
+            'postsLast24h' => InstaAgentConfig.postingPolicy().get('posts_last_24h')
         };
     }
 

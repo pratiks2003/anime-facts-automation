@@ -401,3 +401,13 @@ class CoverTests(unittest.TestCase):
             self.assertEqual(cover.size, (1080, 1920))
             self.assertEqual(grid_view(cover).size, (1080, GRID_BOTTOM - GRID_TOP))
             self.assertEqual(info["source"], str(pic))
+
+
+class WrongCharacterTests(unittest.TestCase):
+    def test_name_comparison(self):
+        from video.visual_qa import wrong_character
+        script = {"anime": "One Piece"}
+        self.assertIn("Doflamingo", wrong_character("Nico Robin can sprout arms", "Donquixote Doflamingo", script))
+        self.assertIsNone(wrong_character("Nico Robin can sprout arms", "Nico Robin smiling", script))
+        self.assertIsNone(wrong_character("Her bounty exploded", "Donquixote Doflamingo", script))  # nobody named
+        self.assertIsNone(wrong_character("Robin reads in the library", "a library interior", script))  # object shot

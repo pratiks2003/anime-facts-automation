@@ -202,8 +202,10 @@ class VisionChecker:
         question = (f'This image will be used in an Instagram Reel about "{subject}". Answer ONLY JSON: '
                     '{"anime_art": true/false (is it anime/manga artwork), "matches": true/false (plausibly official art for that subject), '
                     '"safe": true/false (no nudity, no sexualised poses, no gore), "mostly_text": true/false}')
-        data = self._run({"messages": [{"role": "user", "content": question}],
-                          "image": base64.b64encode(buf.getvalue()).decode(), "max_tokens": 120})
+        image_url = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+        data = self._run({"messages": [{"role": "user", "content": [
+            {"type": "text", "text": question}, {"type": "image_url", "image_url": {"url": image_url}}]}],
+            "max_tokens": 120})
         text = str((data.get("result") or {}).get("response") or "")
         start, end = text.find("{"), text.rfind("}")
         verdict = json.loads(text[start:end + 1]) if start != -1 and end != -1 else {}

@@ -191,3 +191,86 @@ def approve_clips(gemini: Gemini, clip_dirs: List[str], scene_texts: List[str], 
             approved[clip_dirs[idx]] = scene if scene is None or 0 <= scene < len(scene_texts) else None
     log(f"clip editor approved {len(approved)}/{len(clip_dirs)} clips")
     return approved
+
+
+class CloudflareVision:
+    """Backup eyes when Gemini is busy: Llama 3.2 Vision on Cloudflare Workers AI (one image per call)."""
+    MODEL = "@cf/meta/llama-3.2-11b-vision-instruct"
+
+    def __init__(self, account: str, token: str, opener=urllib.request.urlopen):
+        self.url = f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{self.MODEL}"
+        self.token, self.opener = token, opener
+        self.calls = 0
+
+    @classmethod
+    def from_env(cls) -> Optional["CloudflareVision"]:
+        a, t = os.environ.get("CF_ACCOUNT_ID"), os.environ.get("CF_API_TOKEN")
+        return cls(a, t) if a and t else None
+
+    def ask(self, img, question: str) -> Optional[dict]:
+        part = jpeg_part(img, width=448)["inline_data"]["data"]
+        body = {"messages": [{"role": "user", "content": [
+            {"type": "text", "text": question},
+            {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + part}}]}], "max_tokens": 160}
+        req = urllib.request.Request(self.url, data=json.dumps(body).encode(),
+                                     headers={"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"})
+        try:
+            self.calls += 1
+            with self.opener(req, timeout=90) as resp:
+                answer = (json.loads(resp.read().decode()).get("result") or {}).get("response")
+            if isinstance(answer, dict):  # Workers AI often returns the JSON already parsed
+                return answer
+            text = str(answer or "")
+            return json.loads(text[text.find("{"): text.rfind("}") + 1])
+        except Exception:
+            return None
+
+
+SHOT_QUESTION = """This is one shot of an anime Instagram Reel about {anime}. While it is on screen the narrator says:
+"{sentence}". Ignore the big caption words in the middle (they are ours).
+Answer ONLY JSON: {{"on_screen": "who/what is shown (name the character if you know them)", "matches": true/false
+(does the picture fit what is being said; a named character must be the one shown), "problem": "watermark / text card /
+sketch / ad / wrong show / wrong character / unsafe, or null"}}"""
+
+
+NAME_STOP = {"this", "that", "they", "their", "what", "when", "with", "from", "even", "could", "would", "every",
+             "anime", "manga", "season", "episode", "chapter", "fans", "real", "world", "berries", "million"}
+
+
+def wrong_character(sentence: str, on_screen: str, script: dict) -> Optional[str]:
+    """If the sentence names a character and a DIFFERENT named character is on screen, say so."""
+    anime_words = set(re.findall(r"[a-z]+", str(script.get("anime", "")).lower()))
+    named = {w.lower() for w in re.findall(r"\b[A-Z][a-z]{3,}\b", sentence)} - NAME_STOP - anime_words
+    seen = {w for w in re.findall(r"[a-z]+", on_screen.lower()) if len(w) > 3}
+    if not named or not seen or seen & named or not re.search(r"[A-Z][a-z]+", on_screen):
+        return None  # nobody named, nothing recognised, a match, or a scene/object on screen
+    return f"wrong character: shows {on_screen} while the narration is about {', '.join(sorted(named)).title()}"
+
+
+def review_with_cloudflare(renderer, narration, script: dict, cf: CloudflareVision, shot_sources) -> Optional[dict]:
+    """Per-shot check (backup for Gemini). Edit score = share of shots that match, on a 10-point scale."""
+    shots = renderer.shots
+    bad, issues, checked, matched = [], [], 0, 0
+    for i, shot in enumerate(shots):
+        mid = (shot.start + shot.end) / 2
+        verdict = cf.ask(renderer.frame(mid, captions=False),
+                         SHOT_QUESTION.format(anime=script["anime"], sentence=sentence_at(narration, shot.start, shot.end)))
+        if verdict is None:
+            continue
+        checked += 1
+        sentence = sentence_at(narration, shot.start, shot.end)
+        wrong = wrong_character(sentence, str(verdict.get("on_screen") or ""), script)
+        if wrong:  # this model sees well but rarely says "no" - the code compares names itself
+            verdict["problem"] = wrong
+        ok = verdict.get("matches") is not False and not verdict.get("problem")
+        matched += ok
+        if not ok and verdict.get("problem"):
+            bad.append(i)
+            issues.append(f"shot {i + 1}: {verdict.get('problem')} (on screen: {verdict.get('on_screen')})")
+    if checked < max(1, len(shots) // 2):
+        return None  # too few answers to judge the Reel
+    score = round(10 * matched / checked, 1)
+    log(f"Cloudflare vision checked {checked}/{len(shots)} shots: {matched} match")
+    return {"bad": bad, "issues": issues, "summary": f"backup check by Cloudflare vision: {matched}/{checked} shots match",
+            "edit_score": score, "up_to_mark": score >= 7, "edit_notes": [], "weak": [],
+            "bad_sources": [shot_sources[i] for i in bad if i < len(shot_sources) and shot_sources[i]], "checker": "cloudflare"}

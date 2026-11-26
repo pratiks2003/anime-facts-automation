@@ -240,8 +240,9 @@ def reset(inspector):
 
 def run_visual_qa(script, narration, style, renderer, gemini, channel: dict, beats, repick, rounds: int = 2) -> dict:
     """Visual QA agent: watch -> ban wrong shots -> re-pick -> watch again. Returns the report (+ final renderer)."""
-    from .visual_qa import review
+    from .visual_qa import CloudflareVision, review
 
+    backup = CloudflareVision.from_env()
     if gemini is None:
         return {"status": "skipped (no GEMINI_API_KEY)"}
     banned: set = set()
@@ -249,6 +250,10 @@ def run_visual_qa(script, narration, style, renderer, gemini, channel: dict, bea
     fixed = 0
     for attempt in range(rounds + 1):
         result = review(renderer, narration, script, gemini, [sh.source for sh in renderer.shots])
+        if result is None and backup is not None:  # Gemini busy: Cloudflare vision checks shot by shot
+            from .visual_qa import review_with_cloudflare
+
+            result = review_with_cloudflare(renderer, narration, script, backup, [sh.source for sh in renderer.shots])
         if result is None:
             if report.get("issues") and fixed and report.get("up_to_mark"):
                 # wrong shots were replaced on an edit that already met the bar; only the re-check could not run

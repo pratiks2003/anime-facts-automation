@@ -153,6 +153,23 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "Reincarnated as a Sword Season 2",
+      "aliases": [
+        "I Became the Sword by Transmigrating 2",
+        "Reincarnated as a Sword II",
+        "TENKEN - Reincarnato in una spada",
+        "TenKen 2",
+        "Tensei Shitara Ken Deshita 2nd Season",
+        "ซวยเหลือหลาย เกิดใหม่กลายเป็นดาบ ภาค 2"
+      ],
+      "anilist_id": 159042,
+      "knowledge_file": "reincarnated_as_a_sword_season_2.jsonl",
+      "id_prefix": "RAAS",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

@@ -439,3 +439,23 @@ class QualityLoopholeTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "x"}):
             issues = qa_review(manifest, {"scenes": []}, {})
         self.assertTrue(any("edit quality 4.0" in i for i in issues))
+
+
+class SpacingTests(unittest.TestCase):
+    def _sf(self, minutes_ago):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        rows = [{"Published_At__c": (now - timedelta(minutes=m)).isoformat()} for m in minutes_ago]
+        return type("SF", (), {"query": lambda self, q: rows})()
+
+    def test_spacing_rules(self):
+        from pipeline.run_reel import SpacingHold, wait_for_posting_window
+        waited = []
+        wait_for_posting_window(self._sf([300]), sleep=waited.append)        # long ago: post now
+        self.assertEqual(waited, [])
+        wait_for_posting_window(self._sf([70]), sleep=waited.append)         # 20 min short: wait
+        self.assertTrue(waited and 1100 < waited[0] < 1300)
+        with self.assertRaises(SpacingHold):
+            wait_for_posting_window(self._sf([10]), sleep=waited.append)     # too soon: hold
+        with self.assertRaises(SpacingHold):
+            wait_for_posting_window(self._sf([200, 400, 600, 800, 900, 1000]), sleep=waited.append)  # 6 today: hold

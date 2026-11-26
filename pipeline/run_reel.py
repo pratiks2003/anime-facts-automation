@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
+import time
 import os
 import sys
 import traceback
@@ -126,6 +128,40 @@ def sync_facts(sf, facts: List[dict], anilist_id: Optional[int]) -> None:
 
 class TrialNotAvailable(RuntimeError):
     pass
+
+
+MIN_GAP_MINUTES = 90      # never two posts closer than this (bursts look like "unusual activity" to Meta)
+MAX_POSTS_PER_DAY = 6     # rolling 24 h (3 scheduled + room for breaking news / approvals)
+MAX_WAIT_MINUTES = 35     # how long a job may wait for the gap before handing over
+
+
+class SpacingHold(RuntimeError):
+    pass
+
+
+def wait_for_posting_window(sf, sleep=time.sleep) -> None:
+    """Enforce post spacing (from Social_Post__c). Waits briefly if needed, else raises SpacingHold."""
+    if isinstance(sf, NullSalesforce):
+        return
+    rows = sf.query("SELECT Published_At__c FROM Social_Post__c WHERE Status__c = 'Published' AND "
+                    "Published_At__c = LAST_N_DAYS:1 ORDER BY Published_At__c DESC LIMIT 10") or []
+    now = datetime.now(timezone.utc)
+    times = []
+    for r in rows:
+        try:
+            times.append(datetime.fromisoformat(str(r["Published_At__c"]).replace("Z", "+00:00").replace("+0000", "+00:00")))
+        except (KeyError, ValueError):
+            continue
+    recent = [t for t in times if (now - t).total_seconds() < 86400]
+    if len(recent) >= MAX_POSTS_PER_DAY:
+        raise SpacingHold(f"{len(recent)} posts in the last 24 h (limit {MAX_POSTS_PER_DAY})")
+    if recent:
+        wait = MIN_GAP_MINUTES * 60 - (now - max(recent)).total_seconds()
+        if wait > MAX_WAIT_MINUTES * 60:
+            raise SpacingHold(f"last post was {int((now - max(recent)).total_seconds() // 60)} min ago (minimum gap {MIN_GAP_MINUTES} min)")
+        if wait > 0:
+            log(f"spacing: waiting {int(wait // 60) + 1} min after the previous post")
+            sleep(wait + 5)
 
 
 def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_url: Optional[str] = None,
@@ -514,6 +550,14 @@ def generate(args, sf) -> int:
         sf.job_update(job, Status__c="Succeeded", Stage__c="Held for review by the quality gate", Completed_At__c=now_iso())
         log("held for review by the Salesforce quality gate")
         return 0
+    try:
+        wait_for_posting_window(sf)
+    except SpacingHold as exc:
+        reason = f"Spacing guard: {exc}. Approve it on the admin site later to post."
+        sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Hold_Reason__c=reason)
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Held: post spacing", Completed_At__c=now_iso())
+        log(reason)
+        return 0
     stage("Publishing to Instagram" + (" as a Trial Reel" if trial else ""))
     sf.reel_update(cid, Status__c="Publishing")
     try:
@@ -552,6 +596,7 @@ def publish(args, sf) -> int:
         sf.reel_update(cid, Status__c="Rendered", Error_Message__c="Dry run: approved but not posted.")
         sf.job_update(job, Status__c="Succeeded", Stage__c="Dry run complete", Completed_At__c=now_iso())
         return 0
+    wait_for_posting_window(sf)  # owner-approved posts still respect the spacing (raises with a clear reason)
     sf.job_update(job, Stage__c="Publishing to Instagram")
     media_id, permalink = publish_to_instagram(video, rows[0]["Caption__c"] or "", 900, rows[0].get("Video_URL__c"),
                                                cover_url=rows[0].get("Cover_URL__c"))

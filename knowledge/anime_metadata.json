@@ -170,6 +170,16 @@
       "genres": [],
       "active": true,
       "image_block_terms": []
+    },
+    {
+      "name": "Fool Night",
+      "aliases": [],
+      "anilist_id": 213457,
+      "knowledge_file": "fool_night.jsonl",
+      "id_prefix": "FN",
+      "genres": [],
+      "active": true,
+      "image_block_terms": []
     }
   ]
 }

@@ -752,6 +752,11 @@ def generate(args, sf) -> int:
             assets = {f"{cid}.mp4": Path(manifest["video"]), f"{cid}.jpg": Path(manifest["cover"])}
             if voice_cut:
                 assets[f"{cid}-voice.mp4"] = voice_cut
+            from pipeline.growth import story_teaser_cut
+
+            teaser = Path(manifest["video"]).parent / "story.mp4"
+            if story_teaser_cut(manifest["video"], str(teaser)):
+                assets[f"{cid}-story.mp4"] = teaser
             urls = store.upload(assets)
             store.prune()
         except Exception as exc:  # no preview link: Instagram still gets the file by direct upload
@@ -842,8 +847,12 @@ def generate(args, sf) -> int:
     sf.reel_update(cid, Status__c="Published", **({"Music_Choice__c": (f"Instagram trending audio: {trending.get('title')} - "
                                                                        f"{trending.get('artist')} [{trending['audio_id']}]")[:255]}
                                                     if audio_used else {}))
-    from pipeline.growth import first_comment
+    from pipeline.growth import first_comment, post_story_teaser
     post_first_comment(media_id, first_comment(script, args.format))
+    post_story_teaser(urls.get(f"{cid}-story.mp4"))
+    from integrations.facebook import cross_post_reel
+
+    cross_post_reel(urls.get(f"{cid}.mp4"), manifest["caption"])  # off unless FB_PAGE_ID is configured
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     log(f"published: {permalink}")
     return 0
@@ -895,6 +904,13 @@ def publish(args, sf) -> int:
         post_first_comment(media_id, first_comment(json.loads(rows[0].get("Script_JSON__c") or "{}"), rows[0].get("Format__c") or ""))
     except ValueError:
         pass
+    from pipeline.growth import post_story_teaser
+
+    main_url = rows[0].get("Video_URL__c") or ""
+    post_story_teaser(main_url.replace(f"{cid}.mp4", f"{cid}-story.mp4") if main_url.endswith(f"{cid}.mp4") else None)
+    from integrations.facebook import cross_post_reel
+
+    cross_post_reel(main_url, rows[0]["Caption__c"] or "")  # off unless FB_PAGE_ID is configured
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     return 0
 

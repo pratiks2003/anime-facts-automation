@@ -327,6 +327,17 @@ class InstagramClient:
             params["search_query"] = query
         return list(self._request("GET", "ig_audio", params).get("audio") or [])
 
+    def publish_story(self, video_url: str) -> str:
+        """A Story from a public video (e.g. the Reel's hook as a teaser). Returns the story media id."""
+        if not video_url.startswith("https://"):
+            raise ValueError("video_url must be a public https:// URL")
+        data = self._request("POST", f"{self.user_id}/media", {"media_type": "STORIES", "video_url": video_url})
+        container = str(data.get("id") or "")
+        if not container:
+            raise InstagramAPIError(f"story container returned no id: {data}")
+        self.wait_for_container(container, interval=15.0, timeout=300.0)
+        return self.publish_container(container)
+
     def comment(self, media_id: str, message: str) -> str:
         """Post a comment on our own media (first-comment question)."""
         return str(self._request("POST", f"{media_id}/comments", {"message": message[:2200]}).get("id") or "")

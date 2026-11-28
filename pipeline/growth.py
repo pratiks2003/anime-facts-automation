@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import random
 import re
 import sys
@@ -128,6 +129,45 @@ def search_caption(caption: str, anime: str) -> str:
     if anime and anime.lower() not in first.lower():
         first = f"{first.rstrip()} | {anime}" if len(first) + len(anime) < 120 else f"{anime}: {first}"
     return first + ("\n" + rest if rest else "")
+
+
+def story_teaser_cut(video: str, out: str, seconds: float = 8.0) -> bool:
+    """First seconds of the Reel (the hook) as a Story teaser, with a 'NEW REEL' banner."""
+    import subprocess
+
+    from PIL import Image, ImageDraw, ImageFont
+
+    font = Path(__file__).resolve().parent.parent / "assets" / "fonts" / "Anton-Regular.ttf"
+    banner_png = str(Path(out).with_suffix(".banner.png"))
+    try:  # the banner is drawn with PIL (ffmpeg builds without drawtext are common) and overlaid
+        img = Image.new("RGBA", (1080, 170), (0, 0, 0, 165))
+        d = ImageDraw.Draw(img)
+        f = ImageFont.truetype(str(font), 76) if font.exists() else ImageFont.load_default()
+        d.text((540, 85), "NEW REEL  •  TAP OUR PROFILE", font=f, fill=(255, 255, 255), anchor="mm")
+        img.save(banner_png)
+        subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", video, "-i", banner_png, "-t", f"{seconds:.1f}",
+                        "-filter_complex", "[0:v]scale=1080:1920[m];[m][1:v]overlay=0:1500[v]",
+                        "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+                        "-c:a", "aac", "-b:a", "128k", out], check=True, timeout=180)
+        return True
+    except Exception as exc:
+        log(f"story teaser cut failed ({exc})")
+        return False
+
+
+def post_story_teaser(video_url: Optional[str]) -> Optional[str]:
+    """Never fails the Reel."""
+    if not video_url:
+        return None
+    try:
+        from integrations.instagram import client_from_env
+
+        story_id = client_from_env().publish_story(video_url)
+        log(f"story teaser posted ({story_id})")
+        return story_id
+    except Exception as exc:
+        log(f"story teaser skipped ({type(exc).__name__}: {str(exc)[:160]})")
+        return None
 
 
 def main(argv=None) -> int:

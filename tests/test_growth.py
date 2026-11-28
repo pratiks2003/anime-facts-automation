@@ -60,3 +60,19 @@ class GrowthTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FacebookTests(unittest.TestCase):
+    def test_off_without_page_and_never_raises(self):
+        import os
+        from integrations.facebook import cross_post_reel
+        os.environ.pop("FB_PAGE_ID", None)
+        self.assertIsNone(cross_post_reel("https://x/v.mp4", "cap"))
+        os.environ["FB_PAGE_ID"] = "123"; os.environ["IG_ACCESS_TOKEN"] = "t"
+        def boom(*a, **k):
+            raise OSError("no network")
+        try:
+            self.assertIsNone(cross_post_reel("https://x/v.mp4", "cap", opener=boom))
+        finally:
+            os.environ.pop("FB_PAGE_ID", None)
+            os.environ.pop("IG_ACCESS_TOKEN", None)

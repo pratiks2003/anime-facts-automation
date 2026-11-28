@@ -182,6 +182,14 @@ def main(argv=None) -> int:
     if sf is None:
         log("Salesforce not configured")
         return 0
+    current = _get(sf, "trending_audio") or {}
+    try:
+        age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(current["fetched_at"])).total_seconds() / 3600
+    except (KeyError, TypeError, ValueError):
+        age_h = None
+    if age_h is not None and age_h < 20 and "--force" not in argv:
+        log(f"trending audio is {age_h:.0f} h old; no refresh needed")
+        return 0
     ig = client_from_env()
     try:
         sync_trending_audio(ig, sf)

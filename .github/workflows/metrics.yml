@@ -33,8 +33,8 @@ jobs:
           python-version: "3.12"
       - name: Sync metrics to Salesforce
         run: python -m pipeline.metrics --days 30
-      - name: Growth data - trending Instagram audio + audience hours (once a day)
-        if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '47 1 * * *')
+      - name: Growth data - trending Instagram audio + audience hours (refreshes when older than 20 h)
+        if: always()
         run: python -m pipeline.growth daily
       - name: Early warning (Instagram token / API access) - once a day
         if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '47 1 * * *')

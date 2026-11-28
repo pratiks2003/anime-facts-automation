@@ -1,7 +1,7 @@
 """Daily early-warning check (runs on GitHub Actions only - never call Meta from a laptop).
 
-- Instagram token: still valid? when does it expire? (Meta debug_token)
-- Instagram account: can we read it? (catches "API access blocked" before a Reel fails)
+- Instagram account: can we read it? One plain GET per day - catches an expired / revoked token or
+  "API access blocked" before a Reel fails. (token_problem() handles debug_token data if an app token is ever added.)
 
 Problems become an owner note (Agent_Activity__c, Needs_Owner) on the admin site, with exactly what to do.
 
@@ -43,23 +43,7 @@ def token_problem(debug: dict, now: Optional[float] = None) -> Optional[Tuple[st
 
 def check() -> List[Tuple[str, str]]:
     problems: List[Tuple[str, str]] = []
-    ig = client_from_env()
-    try:
-        debug = ig._request("GET", "debug_token", {"input_token": ig._token})
-        p = token_problem(debug)
-        if p:
-            problems.append(p)
-        else:
-            exp = int((debug.get("data") or {}).get("expires_at") or 0)
-            log("token ok, " + ("never expires" if not exp else f"expires in {(exp - time.time()) / 86400:.0f} days"))
-    except InstagramAPIError as exc:
-        if exc.code == 190:
-            problems.append(("critical", "The Instagram access token was rejected (expired or revoked). Generate a new "
-                                         "system-user token and update the IG_ACCESS_TOKEN GitHub secret."))
-        else:
-            # system-user tokens cannot inspect themselves without the app secret; the account check below
-            # still catches an expired / revoked / blocked token the same day
-            log("token expiry not readable with this token type; relying on the daily account check")
+    ig = client_from_env()  # one plain read per day; no token introspection (Meta rejects it for this token type)
     try:
         ig.account()
         log("Instagram account reachable")
@@ -67,7 +51,10 @@ def check() -> List[Tuple[str, str]]:
         blocked = exc.subcode == 5258005 or "blocked" in str(exc).lower()
         problems.append(("critical", (
             "Meta has blocked API access for the app. Open Meta for Developers, follow the prompt to restore access, "
-            "then reply here." if blocked else f"Instagram API check failed: {exc}. Reels may fail to post.")))
+            "then reply here." if blocked else
+            "The Instagram access token expired or was revoked. Generate a new system-user token (choose 'Never' expiry) "
+            "in Meta Business Settings and update the IG_ACCESS_TOKEN GitHub secret." if exc.code == 190 else
+            f"Instagram API check failed: {exc}. Reels may fail to post.")))
     return problems
 
 

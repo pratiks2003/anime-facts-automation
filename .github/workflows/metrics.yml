@@ -29,13 +29,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - name: Install the knowledge loader dependency
-        run: pip install "$(grep '^rank-bm25' requirements.txt)"
       - name: Sync metrics to Salesforce
         run: python -m pipeline.metrics --days 30
-      - name: Early warning (Instagram token expiry / API access)
+      - name: Early warning (Instagram token / API access)
         if: always()
         run: python -m pipeline.health
-      - name: Refresh the agents' knowledge library (safety net)
-        if: always()
-        run: python -m tools.sync_knowledge

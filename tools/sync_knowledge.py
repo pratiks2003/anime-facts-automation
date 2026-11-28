@@ -101,7 +101,11 @@ def main(argv=None) -> int:
         log("Salesforce credentials missing; nothing synced")
         return 0
     lib = Library(sf)
-    existing = lib.files()
+    try:
+        existing = lib.files()
+    except Exception as exc:
+        log(f"cannot read the library ({exc}); the GitHub Salesforce user may need Data Library access")
+        return 0
     todo = plan(docs, existing)
     log(f"{len(docs)} shows locally, {len(existing)} in the library; new: {todo['new'] or '-'}; changed: {todo['changed'] or '-'}")
     if args.dry_run or not (todo["new"] or todo["changed"]):

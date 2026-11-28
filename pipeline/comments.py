@@ -18,16 +18,20 @@ from integrations.instagram import InstagramAPIError, client_from_env
 from integrations.salesforce import SalesforceClient, now_iso
 
 
-def run(days: int = 14, max_replies: int = 30, pause: float = 4.0, sleep=time.sleep) -> dict:
+def run(days: int = 14, max_replies: int = 30, pause: float = 4.0, sleep=time.sleep, hours: float = 0) -> dict:
+    """hours > 0: first-hour mode - only Reels published in the last `hours` (no Instagram call when there are none)."""
     sf = SalesforceClient.from_env()
     if sf is None:
         raise SystemExit("Salesforce is not configured")
-    ig = client_from_env()
-    own = ig.account().get("username")
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    window = timedelta(hours=hours) if hours else timedelta(days=days)
+    since = (datetime.now(timezone.utc) - window).strftime("%Y-%m-%dT%H:%M:%SZ")
     posts = sf.query("SELECT Instagram_Media_Id__c, Content__r.Format__c, Content__r.Anime__r.Name, Content__r.Hook__c "
                      f"FROM Social_Post__c WHERE Status__c = 'Published' AND Published_At__c >= {since} "
                      "ORDER BY Published_At__c DESC LIMIT 30")
+    if not posts:
+        return {"posts": 0, "comments_seen": 0, "replied": 0, "failed": 0, "ideas": 0, "auto_reply": None}
+    ig = client_from_env()
+    own = ig.account().get("username")
     stats = {"posts": len(posts), "comments_seen": 0, "replied": 0, "failed": 0, "ideas": 0, "auto_reply": None}
     for post in posts:
         if stats["replied"] >= max_replies:
@@ -70,8 +74,9 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=14)
     parser.add_argument("--max-replies", type=int, default=30)
+    parser.add_argument("--hours", type=float, default=0, help="first-hour mode: only Reels published in the last N hours")
     args = parser.parse_args(argv)
-    stats = run(args.days, args.max_replies)
+    stats = run(args.days, args.max_replies, hours=args.hours)
     print(f"[comments] {stats}")
     return 0
 

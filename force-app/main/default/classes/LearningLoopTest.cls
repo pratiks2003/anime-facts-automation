@@ -46,6 +46,10 @@ private class LearningLoopTest {
         Scoreboard.refresh(Datetime.now());
         Assert.isTrue(Playbook.change('explore_share', '0.9', 'x', 'Strategist').startsWith('Refused'));
         Assert.isTrue(Playbook.change('nope', '1', 'x', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('trending_audio_share', '1.5', 'x', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('trending_audio_share', '0.5', 'compare trending vs library evenly', 'Strategist').startsWith('Changed'));
+        insert new Agent_Playbook__c(Name = 'audience_online_hours', Key__c = 'audience_online_hours', Value__c = '{"followers_online_by_hour":{"21":120}}');
+        Assert.isTrue(JSON.serialize(Playbook.data()).contains('followers_online_by_hour'));
         Assert.isTrue(Playbook.change('slot_times', '{"Morning":"09:00","Midday":"10:00"}', 'x', 'Strategist').startsWith('Refused'));
         Assert.isTrue(Playbook.change('format_mix', '{"Not A Format":0.5}', 'x', 'Strategist').startsWith('Refused'));
         Assert.isTrue(Playbook.change('explore_share', '0.3', '', 'Strategist').startsWith('Refused'));

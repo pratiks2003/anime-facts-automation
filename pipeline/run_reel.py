@@ -186,9 +186,13 @@ def wait_for_posting_window(sf, sleep=time.sleep, policy: Optional[dict] = None)
 
 
 def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_url: Optional[str] = None,
-                         trial: bool = False, cover_url: Optional[str] = None) -> tuple:
+                         trial: bool = False, cover_url: Optional[str] = None, audio: Optional[dict] = None,
+                         audio_video_url: Optional[str] = None) -> tuple:
     """Prefer handing Meta the public preview URL (reliable); fall back to direct upload,
-    whose endpoint intermittently answers 'Request processing failed'."""
+    whose endpoint intermittently answers 'Request processing failed'.
+    audio + audio_video_url: publish the narration-only cut with a licensed Instagram catalog track attached by
+    Instagram (Audio API); if Instagram refuses, the normal cut with library music is posted instead.
+    Returns (media_id, permalink, audio_used)."""
     from integrations.instagram import ContainerError, InstagramAPIError, client_from_env
 
     ig = client_from_env()
@@ -196,6 +200,16 @@ def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_
     # a designed cover (public JPEG) beats a frame offset; Meta ignores thumb_offset when cover_url is set
     extra.update({"cover_url": cover_url} if cover_url else {"thumb_offset_ms": thumb_offset_ms})
     result = None
+    if audio and audio_video_url:
+        try:
+            result = ig.publish_reel(caption, video_url=audio_video_url, publish=True, audio=audio, **extra)
+            if result.published and result.media_id:
+                return result.media_id, result.permalink, True
+        except (InstagramAPIError, ContainerError) as exc:
+            if "publish:" in str(exc):
+                raise  # the container was fine; don't risk a duplicate post via the fallback
+            log(f"Instagram audio publish failed ({exc}); posting the library-music cut instead")
+        result = None
     if video_url:
         try:
             result = ig.publish_reel(caption, video_url=video_url, publish=True, **extra)
@@ -209,7 +223,38 @@ def publish_to_instagram(video: Path, caption: str, thumb_offset_ms: int, video_
         result = ig.publish_reel(caption, video_path=str(video), publish=True, **extra)
     if not result.published or not result.media_id:
         raise RuntimeError("Instagram did not confirm publication")
-    return result.media_id, result.permalink
+    return result.media_id, result.permalink, False
+
+
+def post_first_comment(media_id: str, text: str) -> None:
+    """A question under the new Reel: early comments are a ranking signal. Never fails the publish."""
+    try:
+        from integrations.instagram import client_from_env
+
+        client_from_env().comment(media_id, text)
+        log(f"first comment: {text}")
+    except Exception as exc:
+        log(f"first comment skipped ({type(exc).__name__}: {str(exc)[:120]})")
+
+
+def voice_only_cut(manifest: dict) -> Optional[Path]:
+    """The same video with voice + SFX only (no library music), for a licensed Instagram track on top."""
+    from video.render import mix_audio, run
+
+    out = Path(manifest["video"]).parent
+    voice, sfx = out / "voice.wav", out / "sfx.wav"
+    if not voice.exists() or not sfx.exists():
+        return None
+    duration = float((manifest.get("validation") or {}).get("summary", {}).get("duration") or 0)
+    try:
+        mix_audio(voice, sfx, None, duration, out / "mix_voice.wav")
+        dst = out / "video_voice.mp4"
+        run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(manifest["video"]), "-i", str(out / "mix_voice.wav"),
+             "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", str(dst)])
+        return dst
+    except Exception as exc:
+        log(f"voice-only cut failed ({exc}); this Reel keeps library music")
+        return None
 
 
 UNCHECKED = "quality checker (Gemini) unavailable: held for review instead of posting unchecked"
@@ -686,12 +731,28 @@ def generate(args, sf) -> int:
         log(f"music: {music_choice}")
     out_dir = Path(manifest["video"]).parent
 
+    trending = None  # a licensed Instagram catalog track (Audio API), attached by Instagram at publish time
+    try:
+        from pipeline.growth import choose_trending, search_caption
+        from video.audio_library import FORMAT_MOODS
+
+        manifest["caption"] = search_caption(manifest["caption"], plan.anime)
+        trending = choose_trending(sf, (FORMAT_MOODS.get(args.format) or ["trending"])[0], recent_music(sf), cid)
+    except Exception as exc:
+        log(f"trending audio unavailable ({type(exc).__name__}: {str(exc)[:120]})")
+    voice_cut = voice_only_cut(manifest) if trending else None
+    if trending and voice_cut is None:
+        trending = None
+
     stage("Uploading preview")
     urls = {}
     store = ReleaseStore.from_env()
     if store:
         try:
-            urls = store.upload({f"{cid}.mp4": Path(manifest["video"]), f"{cid}.jpg": Path(manifest["cover"])})
+            assets = {f"{cid}.mp4": Path(manifest["video"]), f"{cid}.jpg": Path(manifest["cover"])}
+            if voice_cut:
+                assets[f"{cid}-voice.mp4"] = voice_cut
+            urls = store.upload(assets)
             store.prune()
         except Exception as exc:  # no preview link: Instagram still gets the file by direct upload
             log(f"warning: preview upload failed ({type(exc).__name__}: {str(exc)[:160]}); continuing without it")
@@ -714,8 +775,12 @@ def generate(args, sf) -> int:
         "Cover_URL__c": urls.get(f"{cid}.jpg"), "Video_URL__c": urls.get(f"{cid}.mp4"),
         "Duration_Seconds__c": manifest["validation"]["summary"].get("duration"), "Status__c": "Rendered",
         "Error_Message__c": None, "Script_Source__c": source, "Music_Choice__c": music_choice, "QA_Issues__c": "\n".join(qa_issues)[:2000] or None,
-        "Render_Report__c": json.dumps(render_report(manifest, quality, qa_issues), ensure_ascii=False)[:131000],
+        "Render_Report__c": json.dumps(dict(render_report(manifest, quality, qa_issues),
+                                            trending_audio=dict(trending, video_url=urls.get(f"{cid}-voice.mp4")) if trending else None),
+                                       ensure_ascii=False)[:131000],
     }
+    if trending:
+        log(f"Instagram trending audio planned: {trending.get('title')} - {trending.get('artist')} ({trending.get('mood')})")
     if linked:
         fields["Anime__r"] = {"AniList_Id__c": plan.anilist_id}
     if not manifest["publishable"]:
@@ -761,18 +826,24 @@ def generate(args, sf) -> int:
     stage("Publishing to Instagram" + (" as a Trial Reel" if trial else ""))
     sf.reel_update(cid, Status__c="Publishing")
     try:
-        media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
-                                                   urls.get(f"{cid}.mp4"), trial=trial,
-                                                   cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None)
+        media_id, permalink, audio_used = publish_to_instagram(
+            Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"], urls.get(f"{cid}.mp4"), trial=trial,
+            cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None,
+            audio=trending, audio_video_url=urls.get(f"{cid}-voice.mp4"))
     except TrialNotAvailable as exc:  # no hold: post it as a normal Reel
         log(f"Trial Reels not available ({exc}); posting as a normal Reel")
         trial = False
         sf.reel_update(cid, Publish_As_Trial__c=False)
-        media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
-                                                   urls.get(f"{cid}.mp4"), trial=False,
-                                                   cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None)
+        media_id, permalink, audio_used = publish_to_instagram(
+            Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"], urls.get(f"{cid}.mp4"), trial=False,
+            cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None,
+            audio=trending, audio_video_url=urls.get(f"{cid}-voice.mp4"))
     sf.record_post(cid, media_id, permalink, trial=trial)
-    sf.reel_update(cid, Status__c="Published")
+    sf.reel_update(cid, Status__c="Published", **({"Music_Choice__c": (f"Instagram trending audio: {trending.get('title')} - "
+                                                                       f"{trending.get('artist')} [{trending['audio_id']}]")[:255]}
+                                                    if audio_used else {}))
+    from pipeline.growth import first_comment
+    post_first_comment(media_id, first_comment(script, args.format))
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     log(f"published: {permalink}")
     return 0
@@ -786,7 +857,8 @@ def publish(args, sf) -> int:
     sf.job_update(job, Status__c="Running", Started_At__c=now_iso(), Run_URL__c=run_url(),
                   GitHub_Run_Id__c=os.environ.get("GITHUB_RUN_ID"), Stage__c="Downloading")
     rows = [] if isinstance(sf, NullSalesforce) else sf.query(
-        f"SELECT Caption__c, Video_URL__c, Cover_URL__c FROM Anime_Content__c WHERE External_Id__c = '{cid}' LIMIT 1")
+        f"SELECT Caption__c, Video_URL__c, Cover_URL__c, Render_Report__c, Script_JSON__c, Format__c FROM Anime_Content__c "
+        f"WHERE External_Id__c = '{cid}' LIMIT 1")
     if not rows:
         raise RuntimeError(f"Reel {cid} not found in Salesforce")
     store = ReleaseStore.from_env()
@@ -806,10 +878,23 @@ def publish(args, sf) -> int:
         log(reason)
         return 0
     sf.job_update(job, Stage__c="Publishing to Instagram")
-    media_id, permalink = publish_to_instagram(video, rows[0]["Caption__c"] or "", 900, rows[0].get("Video_URL__c"),
-                                               cover_url=rows[0].get("Cover_URL__c"))
+    try:
+        trending = (json.loads(rows[0].get("Render_Report__c") or "{}") or {}).get("trending_audio")
+    except ValueError:
+        trending = None
+    media_id, permalink, audio_used = publish_to_instagram(
+        video, rows[0]["Caption__c"] or "", 900, rows[0].get("Video_URL__c"), cover_url=rows[0].get("Cover_URL__c"),
+        audio=trending, audio_video_url=(trending or {}).get("video_url"))
     sf.record_post(cid, media_id, permalink)
-    sf.reel_update(cid, Status__c="Published", Error_Message__c=None)
+    sf.reel_update(cid, Status__c="Published", Error_Message__c=None,
+                   **({"Music_Choice__c": f"Instagram trending audio: {trending.get('title')} - {trending.get('artist')} "
+                                          f"[{trending['audio_id']}]"[:255]} if audio_used else {}))
+    try:
+        from pipeline.growth import first_comment
+
+        post_first_comment(media_id, first_comment(json.loads(rows[0].get("Script_JSON__c") or "{}"), rows[0].get("Format__c") or ""))
+    except ValueError:
+        pass
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     return 0
 

@@ -32,7 +32,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import List, Callable, Dict, Optional, Tuple
 
 HOSTS = {"unified": "https://graph.facebook.com", "instagram": "https://graph.instagram.com"}
 RUPLOAD_HOST = "https://rupload.facebook.com/ig-api-upload"
@@ -198,7 +198,8 @@ class InstagramClient:
             raise ValueError("caption has more than 30 hashtags")
 
     def _container_params(self, caption: str, share_to_feed: bool, cover_url: Optional[str],
-                          thumb_offset_ms: Optional[int], trial_strategy: Optional[str] = None) -> Dict[str, Optional[str]]:
+                          thumb_offset_ms: Optional[int], trial_strategy: Optional[str] = None,
+                          audio: Optional[dict] = None) -> Dict[str, Optional[str]]:
         self._check_caption(caption)
         if trial_strategy not in (None, "MANUAL", "SS_PERFORMANCE"):
             raise ValueError("trial_strategy must be MANUAL or SS_PERFORMANCE")
@@ -209,15 +210,19 @@ class InstagramClient:
             "share_to_feed": "true" if share_to_feed else "false",
             "cover_url": cover_url,
             "thumb_offset": str(thumb_offset_ms) if thumb_offset_ms is not None else None,
+            # Instagram Audio API: licensed catalog audio mixed in by Instagram (video_url publishing only)
+            "audio_configuration": json.dumps({"audio_id": str(audio["audio_id"]),
+                                               "audio_volume": int(audio.get("audio_volume", 30)),
+                                               "video_volume": int(audio.get("video_volume", 100))}) if audio else None,
         }
 
     def create_reel_container(self, video_url: str, caption: str = "", share_to_feed: bool = True,
                               cover_url: Optional[str] = None, thumb_offset_ms: Optional[int] = None,
-                              trial_strategy: Optional[str] = None) -> str:
-        """Container from a public video URL (Meta downloads it)."""
+                              trial_strategy: Optional[str] = None, audio: Optional[dict] = None) -> str:
+        """Container from a public video URL (Meta downloads it). audio: {"audio_id", "audio_volume", "video_volume"}."""
         if not video_url.startswith("https://"):
             raise ValueError("video_url must be a public https:// URL")
-        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms, trial_strategy)
+        params = self._container_params(caption, share_to_feed, cover_url, thumb_offset_ms, trial_strategy, audio)
         params["video_url"] = video_url
         data = self._request("POST", f"{self.user_id}/media", params)
         if "id" not in data:
@@ -312,6 +317,28 @@ class InstagramClient:
                     raise
                 self._sleep(20 * attempt)
         raise last  # pragma: no cover
+
+    # ---------- growth ----------
+
+    def search_audio(self, query: Optional[str] = None, audio_type: str = "music") -> List[dict]:
+        """Instagram Audio API: licensed catalog audio. No query = trending (Facebook / Unified Login only)."""
+        params = {"audio_type": audio_type, "user_id": self.user_id}
+        if query:
+            params["search_query"] = query
+        return list(self._request("GET", "ig_audio", params).get("audio") or [])
+
+    def comment(self, media_id: str, message: str) -> str:
+        """Post a comment on our own media (first-comment question)."""
+        return str(self._request("POST", f"{media_id}/comments", {"message": message[:2200]}).get("id") or "")
+
+    def online_followers(self) -> Dict[str, int]:
+        """Followers online by hour (0-23, account time zone, last day). Needs 100+ followers."""
+        data = self._request("GET", f"{self.user_id}/insights", {"metric": "online_followers", "period": "lifetime"})
+        for row in data.get("data") or []:
+            values = row.get("values") or []
+            if values and isinstance(values[-1].get("value"), dict):
+                return {str(k): int(v) for k, v in values[-1]["value"].items()}
+        return {}
 
     INSIGHT_METRICS = {"views": "views", "reach": "reach", "shares": "shares", "saved": "saves",
                        "total_interactions": "interactions", "ig_reels_avg_watch_time": "avg_watch_ms"}

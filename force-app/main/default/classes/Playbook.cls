@@ -21,7 +21,8 @@ public with sharing class Playbook {
         'focus_shows' => new List<String>{ '[]', 'Shows to prioritise (max 10).' },
         'avoid_shows' => new List<String>{ '[]', 'Shows to avoid (max 10).' },
         'format_mix' => new List<String>{ '{}', 'Preferred formats with weights 0-1, e.g. {"Fan Theory":0.4}.' },
-        'hook_rules' => new List<String>{ '[]', 'Proven hook / editing rules backed by the scoreboard (max 8 short rules).' }
+        'hook_rules' => new List<String>{ '[]', 'Proven hook / editing rules backed by the scoreboard (max 8 short rules).' },
+        'trending_audio_share' => new List<String>{ '0.7', 'Share of Reels that get a licensed trending Instagram track (0-1); the rest keep library music so the scoreboard can compare.' }
     };
 
     public static Map<String, Object> getAll() {
@@ -30,6 +31,21 @@ public with sharing class Playbook {
         for (String key : SPEC.keySet()) {
             Agent_Playbook__c r = rows.get(key);
             out.put(key, ShowrunnerSupport.parse(r == null || String.isBlank(r.Value__c) ? SPEC.get(key)[0] : r.Value__c));
+        }
+        return out;
+    }
+
+    /** Data GitHub writes for the agents (not tunable): trending audio list, followers online by hour. */
+    public static Map<String, Object> data() {
+        Map<String, Object> out = new Map<String, Object>();
+        for (Agent_Playbook__c r : [SELECT Key__c, Value__c FROM Agent_Playbook__c WHERE Key__c IN ('audience_online_hours', 'trending_audio')]) {
+            Object v = ShowrunnerSupport.parse(r.Value__c);
+            if (r.Key__c == 'trending_audio' && v instanceof Map<String, Object>) {
+                List<Object> tracks = (List<Object>) ((Map<String, Object>) v).get('tracks');
+                v = new Map<String, Object>{ 'fetched_at' => ((Map<String, Object>) v).get('fetched_at'),
+                    'tracks_available' => tracks == null ? 0 : tracks.size() };
+            }
+            out.put(r.Key__c, v);
         }
         return out;
     }
@@ -112,6 +128,7 @@ public with sharing class Playbook {
         if (key == 'explore_share') return range(value, 0.05, 0.5);
         if (key == 'drop_after_losers') return range(value, 1, 4);
         if (key == 'drop_hours') return range(value, 12, 168);
+        if (key == 'trending_audio_share') return range(value, 0, 1);
         if (key == 'focus_shows' || key == 'avoid_shows' || key == 'hook_rules') {
             if (!(value instanceof List<Object>)) return key + ' must be a JSON list of strings.';
             Integer max = key == 'hook_rules' ? 8 : 10;

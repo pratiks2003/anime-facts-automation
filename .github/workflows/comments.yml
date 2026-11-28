@@ -1,9 +1,11 @@
 name: Reply to comments
 
-# Every 2 hours at :23 (odd minute avoids GitHub's busiest scheduling slots). Also manual.
+# Every 2 hours at :23 for all recent Reels, plus every 15 min for Reels in their first 2 hours
+# (early replies are a ranking signal; that run makes no Instagram call when nothing was posted lately). Also manual.
 on:
   schedule:
     - cron: "23 */2 * * *"
+    - cron: "8,38,53 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -30,4 +32,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Reply to new comments
-        run: python -m pipeline.comments --days 14 --max-replies 30
+        env:
+          FULL_RUN: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '23 */2 * * *' }}
+        run: |
+          if [ "$FULL_RUN" = "true" ]; then
+            python -m pipeline.comments --days 14 --max-replies 30
+          else
+            python -m pipeline.comments --hours 2 --max-replies 20
+          fi

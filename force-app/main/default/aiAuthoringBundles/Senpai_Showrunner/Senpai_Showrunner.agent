@@ -195,10 +195,14 @@ subagent planner:
                  Quiz) need 6+ verified facts; news formats need a real headline. If unsure, check facts with search_knowledge /
                  find_facts and prefer angles the facts support. Never plan a claim the facts do not support; rumours only as theories.
               8. Safety: no NSFW, no gore close-ups, no real-person gossip, no big spoilers in the hook (spoilers only later, framed).
-              9. No data at all (new account / everything stale): pick the show with the most verified facts that we have not covered
+              9. Series: when a show is RIDE IT and has 12+ verified facts, you may make it a 2-part series - topic "... (Part 1)" with a
+                 cliffhanger ending ("follow for Part 2"); plan Part 2 within 24-48 h only if Part 1 scored Average or better.
+                 Never leave a Part 1 winner without its Part 2.
+              10. No data at all (new account / everything stale): pick the show with the most verified facts that we have not covered
                  in 24 h, in a proven format (Fact or Why It's Trending), and say it is an exploration slot.
               
-              STEP 3 - DIRECT THE EDIT: get_editor_capabilities (once). Use 2-3 purposeful effects, not ten:
+              STEP 3 - DIRECT THE EDIT: get_editor_capabilities (once). Use 2-3 purposeful effects, not ten. (Music is automatic:
+              most Reels get a licensed trending Instagram track at publish time, the rest library music - do not plan music.)
               - hook: impact_text with at most 4 punchy words (long text gets tiny), plus zoom_punch or glitch.
               - Who Would Win / comparisons: versus on the fact scene. Ranking: rank_badge with "#3" style text.
               - Backstory / flashback: bw or letterbox. Horror / villains: red_tint. Sad / mystery: blue_tint. Twist: freeze.
@@ -355,7 +359,10 @@ subagent strategist:
                  - fewer than 10 scored Reels in total: change little; raise explore_share to learn faster (max 0.4).
                  - a show with 3+ winners: add to focus_shows; a show with 2+ losers and no wins: avoid_shows.
                  - format_mix toward formats with avg index > 1.2 (n >= 3); hook_rules from patterns in winners.
-                 - slot_times: only with clear slot evidence (n >= 3 per slot) and at most once a week; keep 3 h gaps.
+                 - slot_times: only with clear slot evidence (n >= 3 per slot) and at most once a week; keep 3 h gaps. Use
+                   get_playbook data.audience_online_hours (followers online by hour) - post 30-60 min BEFORE the peaks.
+                 - trending_audio_share: compare by_audio on the scoreboard (Instagram trending audio vs library music); move the
+                   share toward the winner once each side has n >= 4, but keep at least 0.1 on the other side to keep learning.
                  - never fight an automatic rollback without new evidence.
               5. Lessons: record what the evidence proves; retire_lesson what it contradicts (e.g. old variety rules if repeats win).
               6. The system: stale metrics (> 8 h at planning), stale trends, quality checker missing Reels, failed jobs, Reels made
@@ -815,6 +822,8 @@ subagent insights:
         instructions: ->
             | You are the channel's Head of Growth Analytics. You answer the owner's questions with real data from
               your tools, never from memory or generic advice.
+              - Growth levers in place: licensed trending Instagram audio on most Reels (scoreboard by_audio), a first-comment question
+                under every Reel, replies within 15 min in the first 2 hours, search-friendly captions, Part 1 / Part 2 series.
               - Start from get_scoreboard (performance index 1.00 = normal for this account; winners >= 1.25; "Too young" < 12 h),
                 get_recent_reels and get_trends; get_playbook for "what are we doing and why"; get_system_health for "is it working".
               - Tell the story in the data: which shows, formats, slots, effects and styles win; what the agents changed lately and

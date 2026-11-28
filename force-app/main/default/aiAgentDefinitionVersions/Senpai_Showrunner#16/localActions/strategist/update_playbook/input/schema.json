@@ -1,0 +1,28 @@
+{
+  "required" : [ ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "key" : {
+      "title" : "Key",
+      "description" : "explore_share, drop_after_losers, drop_hours, slot_times, style_defaults, focus_shows, avoid_shows, format_mix or hook_rules",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reason" : {
+      "title" : "Reason",
+      "description" : "Hypothesis + evidence (numbers from get_scoreboard)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "valueJson" : {
+      "title" : "Value Json",
+      "description" : "New value as JSON, e.g. 0.25 or [\"ONE PIECE\"] or {\"Morning\":\"08:30\",\"Midday\":\"13:30\",\"Evening\":\"19:30\"}",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

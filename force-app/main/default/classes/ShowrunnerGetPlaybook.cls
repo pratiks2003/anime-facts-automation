@@ -19,7 +19,7 @@ public with sharing class ShowrunnerGetPlaybook {
                 'result' => c.Result_Index__c, 'reels_since' => c.Reels_Since__c, 'by' => c.Changed_By__c });
         }
         Result r = new Result();
-        r.playbookJson = JSON.serialize(new Map<String, Object>{ 'values' => Playbook.getAll(), 'what_each_does' => Playbook.explanations(),
+        r.playbookJson = JSON.serialize(new Map<String, Object>{ 'values' => Playbook.getAll(), 'what_each_does' => Playbook.explanations(), 'data' => Playbook.data(),
             'recent_changes' => changes, 'guardrail' => 'changes roll back automatically if the next 4+ Reels score 20% below the baseline' });
         return new List<Result>{ r };
     }

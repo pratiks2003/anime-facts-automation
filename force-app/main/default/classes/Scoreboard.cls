@@ -80,7 +80,7 @@ public with sharing class Scoreboard {
         Integer dropHours = Playbook.intValue('drop_hours', 48);
         List<Anime_Content__c> reels = [
             SELECT External_Id__c, CreatedDate, Slot__c, Anime__r.Name, Format__c, Topic__c, Verdict__c, Performance_Index__c,
-                Showrunner_Directive__c, Scored_At__c,
+                Showrunner_Directive__c, Scored_At__c, Music_Choice__c,
                 (SELECT Views__c, Avg_Watch_Time_Ms__c, Published_At__c, Metrics_Updated_At__c FROM Social_Posts__r LIMIT 1)
             FROM Anime_Content__c
             WHERE Verdict__c != null AND CreatedDate >= :now.addDays(-30)
@@ -92,6 +92,7 @@ public with sharing class Scoreboard {
         Map<String, Map<String, Object>> byEffect = new Map<String, Map<String, Object>>();
         Map<String, Map<String, Object>> byStyle = new Map<String, Map<String, Object>>();
         Map<String, Map<String, Object>> byPlanner = new Map<String, Map<String, Object>>();
+        Map<String, Map<String, Object>> byAudio = new Map<String, Map<String, Object>>();
         Map<String, List<Anime_Content__c>> showHistory = new Map<String, List<Anime_Content__c>>();
         List<String> tooYoung = new List<String>();
         Datetime freshest;
@@ -112,6 +113,7 @@ public with sharing class Scoreboard {
             add(byShow, showName, c);
             add(byFormat, c.Format__c, c);
             add(bySlot, c.Slot__c, c);
+            add(byAudio, c.Music_Choice__c != null && c.Music_Choice__c.startsWith('Instagram trending audio') ? 'Instagram trending audio' : 'library music', c);
             Map<String, Object> directive = parse(c.Showrunner_Directive__c);
             add(byPlanner, directive.isEmpty() ? 'default plan (no agent)' : String.valueOf(directive.get('by')), c);
             Object style = directive.get('style');
@@ -183,7 +185,7 @@ public with sharing class Scoreboard {
             'too_young_to_judge' => tooYoung,
             'metrics_freshness_hours' => freshHours,
             'by_show' => shows, 'by_format' => finish(byFormat), 'by_slot' => finish(bySlot),
-            'by_effect' => finish(byEffect), 'by_style' => finish(byStyle), 'by_planner' => finish(byPlanner),
+            'by_effect' => finish(byEffect), 'by_audio' => finish(byAudio), 'by_style' => finish(byStyle), 'by_planner' => finish(byPlanner),
             'fact_inventory' => inventory,
             'drop_rule' => 'drop a show after ' + dropAfter + ' losers in a row, for ' + dropHours + ' h (playbook)'
         };

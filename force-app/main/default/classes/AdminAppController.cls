@@ -15,7 +15,7 @@ public with sharing class AdminAppController {
         List<Anime_Content__c> rows;
         try {
             rows = String.isBlank(externalId) ? defaultReel() : [
-                SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Format__c, Topic__c, Status__c, Approval_Status__c, Hold_Reason__c,
+                SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Script_JSON__c, Format__c, Topic__c, Status__c, Approval_Status__c, Hold_Reason__c,
                     Performance_Index__c, Verdict__c, Remakes__c, Showrunner_Directive__c, Render_Report__c, Cover_URL__c, Video_URL__c,
                     Music_Choice__c, Scheduled_For__c, CreatedDate, Error_Message__c,
                     (SELECT Views__c, Reach__c, Shares__c, Saves__c, Likes__c, Comments__c, Avg_Watch_Time_Ms__c, Permalink__c, Published_At__c
@@ -34,7 +34,7 @@ public with sharing class AdminAppController {
         Map<String, Object> report = asMap(ShowrunnerSupport.parse(c.Render_Report__c));
         Social_Post__c p = c.Social_Posts__r.isEmpty() ? null : c.Social_Posts__r[0];
         out.put('reel', new Map<String, Object>{
-            'id' => c.External_Id__c, 'slot' => c.Slot__c, 'show' => c.Anime__r == null ? (String) directive.get('show') : c.Anime__r.Name,
+            'id' => c.External_Id__c, 'slot' => c.Slot__c, 'show' => AdminAppController.showOf(c, directive),
             'format' => c.Format__c, 'topic' => c.Topic__c, 'status' => c.Status__c, 'approval' => c.Approval_Status__c,
             'holdReason' => c.Hold_Reason__c, 'index' => c.Performance_Index__c, 'verdict' => c.Verdict__c, 'remakes' => c.Remakes__c,
             'cover' => c.Cover_URL__c, 'video' => c.Video_URL__c, 'music' => c.Music_Choice__c, 'scheduledFor' => c.Scheduled_For__c,
@@ -90,7 +90,7 @@ public with sharing class AdminAppController {
 
     private static List<Anime_Content__c> defaultReel() {
         List<Anime_Content__c> active = [
-            SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Format__c, Topic__c, Status__c, Approval_Status__c, Hold_Reason__c,
+            SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Script_JSON__c, Format__c, Topic__c, Status__c, Approval_Status__c, Hold_Reason__c,
                 Performance_Index__c, Verdict__c, Remakes__c, Showrunner_Directive__c, Render_Report__c, Cover_URL__c, Video_URL__c,
                 Music_Choice__c, Scheduled_For__c, CreatedDate, Error_Message__c,
                 (SELECT Views__c, Reach__c, Shares__c, Saves__c, Likes__c, Comments__c, Avg_Watch_Time_Ms__c, Permalink__c, Published_At__c
@@ -98,7 +98,7 @@ public with sharing class AdminAppController {
             FROM Anime_Content__c WHERE Status__c IN :ACTIVE AND LastModifiedDate = LAST_N_DAYS:1 ORDER BY LastModifiedDate DESC LIMIT 1];
         if (!active.isEmpty()) return active;
         return [
-            SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Format__c, Topic__c, Status__c, Approval_Status__c, Hold_Reason__c,
+            SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Script_JSON__c, Format__c, Topic__c, Status__c, Approval_Status__c, Hold_Reason__c,
                 Performance_Index__c, Verdict__c, Remakes__c, Showrunner_Directive__c, Render_Report__c, Cover_URL__c, Video_URL__c,
                 Music_Choice__c, Scheduled_For__c, CreatedDate, Error_Message__c,
                 (SELECT Views__c, Reach__c, Shares__c, Saves__c, Likes__c, Comments__c, Avg_Watch_Time_Ms__c, Permalink__c, Published_At__c
@@ -111,11 +111,11 @@ public with sharing class AdminAppController {
     public static List<Map<String, Object>> listStoryReels() {
         List<Map<String, Object>> out = new List<Map<String, Object>>();
         try {
-            for (Anime_Content__c c : [SELECT External_Id__c, Slot__c, Anime__r.Name, Status__c, Verdict__c, Showrunner_Directive__c, CreatedDate
+            for (Anime_Content__c c : [SELECT External_Id__c, Slot__c, Anime__r.Name, Script_JSON__c, Status__c, Verdict__c, Showrunner_Directive__c, CreatedDate
                                        FROM Anime_Content__c ORDER BY CreatedDate DESC LIMIT 15]) {
                 Map<String, Object> d = asMap(ShowrunnerSupport.parse(c.Showrunner_Directive__c));
                 out.add(new Map<String, Object>{ 'id' => c.External_Id__c, 'slot' => c.Slot__c,
-                    'show' => c.Anime__r == null ? (String) d.get('show') : c.Anime__r.Name, 'status' => c.Status__c,
+                    'show' => AdminAppController.showOf(c, d), 'status' => c.Status__c,
                     'verdict' => c.Verdict__c, 'createdDate' => c.CreatedDate, 'active' => ACTIVE.contains(c.Status__c) });
             }
         } catch (Exception e) {
@@ -263,5 +263,16 @@ public with sharing class AdminAppController {
 
     private static Map<String, Object> asMap(Object o) {
         return o instanceof Map<String, Object> ? (Map<String, Object>) o : new Map<String, Object>();
+    }
+
+    /** The show a Reel is really about: its script's "anime" (the lookup can be stale when a plan changed show). */
+    public static String showOf(Anime_Content__c c, Object directive) {
+        String script = c.Script_JSON__c;
+        if (script != null) {
+            Matcher m = Pattern.compile('"anime"\\s*:\\s*"([^"]{1,120})"').matcher(script.left(4000));
+            if (m.find()) return m.group(1);
+        }
+        if (c.Anime__r != null) return c.Anime__r.Name;
+        return directive instanceof Map<String, Object> ? (String) ((Map<String, Object>) directive).get('show') : null;
     }
 }

@@ -66,7 +66,9 @@ export default class McToday extends LightningElement {
         const reels = (this.overview && this.overview.reels) || [];
         const todayKey = this.istDate(new Date());
         return sched.map((s) => {
-            const reel = reels.find((r) => r.slot === s.name && r.scheduledFor && this.istDate(new Date(r.scheduledFor)) === todayKey);
+            // a slot's Reel has a fixed id: R-<yyyyMMdd IST>-AM|MD|PM (test / dry-run Reels never take its place)
+            const slotId = 'R-' + todayKey.replace(/-/g, '') + '-' + ({ Morning: 'AM', Midday: 'MD', Evening: 'PM' }[s.name] || '');
+            const reel = reels.find((r) => r.id === slotId);
             let state = s.done ? 'Missed' : 'Planned';
             let cls = 'pill';
             if (reel) {

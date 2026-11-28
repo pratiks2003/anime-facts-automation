@@ -70,9 +70,11 @@ public with sharing class MissionControlController {
         a.put('nextSlotAt', next);
         a.put('schedule', schedule);
         List<Anime_Content__c> active = [
-            SELECT Id, External_Id__c, Slot__c, Status__c, Topic__c, Format__c, Anime__r.Name, Showrunner_Directive__c, Cover_URL__c,
+            SELECT Id, External_Id__c, Slot__c, Status__c, Topic__c, Format__c, Anime__r.Name, Script_JSON__c, Showrunner_Directive__c, Cover_URL__c,
                 (SELECT Stage__c, Status__c, Run_URL__c, CreatedDate FROM Video_Jobs__r ORDER BY CreatedDate DESC LIMIT 1)
-            FROM Anime_Content__c WHERE Status__c IN :ACTIVE AND CreatedDate = LAST_N_DAYS:2
+            FROM Anime_Content__c WHERE Dry_Run__c = false AND CreatedDate = LAST_N_DAYS:2
+                AND (Status__c IN ('Queued', 'Generating', 'Publishing')
+                     OR (Status__c = 'Rendered' AND Approval_Status__c = 'Pending' AND Hold_Reason__c != null))
             ORDER BY CreatedDate DESC LIMIT 1
         ];
         if (!active.isEmpty()) {
@@ -80,7 +82,7 @@ public with sharing class MissionControlController {
             Video_Job__c job = c.Video_Jobs__r.isEmpty() ? null : c.Video_Jobs__r[0];
             a.put('active', new Map<String, Object>{
                 'id' => c.External_Id__c, 'slot' => c.Slot__c, 'status' => c.Status__c, 'topic' => c.Topic__c,
-                'format' => c.Format__c, 'show' => c.Anime__r == null ? showFrom(c.Showrunner_Directive__c) : c.Anime__r.Name,
+                'format' => c.Format__c, 'show' => AdminAppController.showOf(c, ShowrunnerSupport.parse(c.Showrunner_Directive__c)),
                 'stage' => job == null ? null : job.Stage__c, 'jobStatus' => job == null ? null : job.Status__c,
                 'runUrl' => job == null ? null : job.Run_URL__c, 'cover' => c.Cover_URL__c,
                 'step' => step(c.Status__c, job == null ? null : job.Stage__c)
@@ -114,7 +116,7 @@ public with sharing class MissionControlController {
     private static List<Map<String, Object>> reels() {
         List<Map<String, Object>> rows = new List<Map<String, Object>>();
         for (Anime_Content__c c : [
-            SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Format__c, Topic__c, Status__c, Performance_Index__c, Verdict__c,
+            SELECT Id, External_Id__c, Slot__c, Anime__r.Name, Script_JSON__c, Format__c, Topic__c, Status__c, Performance_Index__c, Verdict__c,
                 Scored_At__c, Remakes__c, Showrunner_Directive__c, Render_Report__c, Cover_URL__c, Video_URL__c, Quality_Score__c,
                 Scheduled_For__c, CreatedDate,
                 (SELECT Views__c, Reach__c, Shares__c, Saves__c, Likes__c, Comments__c, Avg_Watch_Time_Ms__c, Permalink__c,
@@ -127,7 +129,7 @@ public with sharing class MissionControlController {
             Social_Post__c p = c.Social_Posts__r.isEmpty() ? null : c.Social_Posts__r[0];
             rows.add(new Map<String, Object>{
                 'id' => c.External_Id__c, 'recordId' => c.Id, 'slot' => c.Slot__c,
-                'show' => c.Anime__r == null ? (String) directive.get('show') : c.Anime__r.Name,
+                'show' => AdminAppController.showOf(c, directive),
                 'format' => c.Format__c, 'topic' => c.Topic__c, 'status' => c.Status__c,
                 'index' => c.Performance_Index__c, 'verdict' => c.Verdict__c, 'scoredAt' => c.Scored_At__c,
                 'remakes' => c.Remakes__c, 'cover' => c.Cover_URL__c, 'video' => c.Video_URL__c,

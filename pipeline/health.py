@@ -57,7 +57,9 @@ def check() -> List[Tuple[str, str]]:
             problems.append(("critical", "The Instagram access token was rejected (expired or revoked). Generate a new "
                                          "system-user token and update the IG_ACCESS_TOKEN GitHub secret."))
         else:
-            log(f"debug_token unavailable ({exc}); checking the account instead")
+            # system-user tokens cannot inspect themselves without the app secret; the account check below
+            # still catches an expired / revoked / blocked token the same day
+            log("token expiry not readable with this token type; relying on the daily account check")
     try:
         ig.account()
         log("Instagram account reachable")

@@ -65,12 +65,16 @@ export default class McToday extends LightningElement {
         const sched = this.ap.schedule || [];
         const reels = (this.overview && this.overview.reels) || [];
         const todayKey = this.istDate(new Date());
+        const posted = (this.overview && this.overview.postedToday) || [];
+        const sorted = [...sched].sort((x, y) => new Date(x.at) - new Date(y.at));
         return sched.map((s) => {
+            const idx = sorted.findIndex((x) => x.name === s.name);
             // a slot's Reel has a fixed id: R-<yyyyMMdd IST>-AM|MD|PM (test / dry-run Reels never take its place)
             const slotId = 'R-' + todayKey.replace(/-/g, '') + '-' + ({ Morning: 'AM', Midday: 'MD', Evening: 'PM' }[s.name] || '');
-            const reel = reels.find((r) => r.id === slotId);
+            let reel = reels.find((r) => r.id === slotId) || posted.find((r) => r.id === slotId);
             let state = s.done ? 'Missed' : 'Planned';
             let cls = 'pill';
+            let note = null;
             if (reel) {
                 if (reel.status === 'Published') { state = 'Posted'; cls = 'pill good'; }
                 else if (reel.status === 'Failed') { state = 'Failed'; cls = 'pill bad'; }
@@ -78,11 +82,24 @@ export default class McToday extends LightningElement {
             } else if (!s.done) {
                 state = 'Upcoming';
             }
+            if (s.done && (!reel || reel.status === 'Failed')) {
+                // a different Reel posted between this slot and the next one filled the gap
+                const from = new Date(s.at).getTime();
+                const to = idx + 1 < sorted.length ? new Date(sorted[idx + 1].at).getTime() : from + 12 * 3600000;
+                const filler = posted.find((r) => r.id !== slotId && !/^R-\d{8}-(AM|MD|PM)$/.test(r.id || '')
+                    && new Date(r.publishedAt).getTime() >= from - 1800000 && new Date(r.publishedAt).getTime() < to);
+                if (filler) {
+                    note = reel ? 'The planned ' + (reel.show || 'Reel') + ' failed; a replacement was posted' : 'Filled by a replacement Reel';
+                    reel = filler;
+                    state = 'Posted · replacement';
+                    cls = 'pill good';
+                }
+            }
             return { key: s.name, name: s.name, time: s.time, state, cls, reel,
                 show: reel ? reel.show : null, topic: reel ? reel.topic : null,
                 verdict: reel ? reel.verdict : null, verdictCls: reel ? verdictClass(reel.verdict) : 'pill',
                 views: reel && reel.views !== null && reel.views !== undefined ? num(reel.views) + ' views' : null,
-                cover: reel ? reel.cover : null, rid: reel ? reel.id : null };
+                cover: reel ? reel.cover : null, rid: reel ? reel.id : null, note };
         });
     }
 

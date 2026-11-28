@@ -71,6 +71,7 @@
                             </div>
                             <template lwc:if={s.show}><div class="strong small ellipsis mt">{s.show}</div></template>
                             <template lwc:if={s.topic}><div class="muted small ellipsis">{s.topic}</div></template>
+                            <template lwc:if={s.note}><div class="small slot-note">{s.note}</div></template>
                             <template lwc:if={s.views}><div class="faint tiny">{s.views}</div></template>
                         </div>
                         <template lwc:if={s.cover}><img class="mini" src={s.cover} alt="" /></template>

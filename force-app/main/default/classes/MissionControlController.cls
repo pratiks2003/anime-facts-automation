@@ -20,6 +20,7 @@ public with sharing class MissionControlController {
         try { out.put('requests', requests()); } catch (Exception e) { out.put('requests', new List<Object>()); }
         try { out.put('trends', trends()); } catch (Exception e) { out.put('trends', new List<Object>()); }
         try { out.put('health', health(now)); } catch (Exception e) { out.put('health', new Map<String, Object>()); }
+        try { out.put('postedToday', postedToday(now)); } catch (Exception e) { out.put('postedToday', new List<Object>()); }
         return out;
     }
 
@@ -287,5 +288,26 @@ public with sharing class MissionControlController {
 
     private static Map<String, Object> asMap(Object o) {
         return o instanceof Map<String, Object> ? (Map<String, Object>) o : new Map<String, Object>();
+    }
+
+    /** Everything actually posted on Instagram in the last 24 h (including replacements for failed slots). */
+    @TestVisible
+    private static List<Map<String, Object>> postedToday(Datetime now) {
+        List<Map<String, Object>> out = new List<Map<String, Object>>();
+        for (Social_Post__c p : [SELECT Published_At__c, Permalink__c, Views__c, Content__r.External_Id__c, Content__r.Topic__c,
+                                 Content__r.Format__c, Content__r.Verdict__c, Content__r.Cover_URL__c, Content__r.Script_JSON__c,
+                                 Content__r.Anime__r.Name, Content__r.Showrunner_Directive__c
+                                 FROM Social_Post__c WHERE Status__c = 'Published' AND Published_At__c >= :now.addHours(-24)
+                                 ORDER BY Published_At__c]) {
+            Anime_Content__c c = p.Content__r;
+            out.add(new Map<String, Object>{
+                'id' => c == null ? null : c.External_Id__c, 'publishedAt' => p.Published_At__c, 'permalink' => p.Permalink__c,
+                'views' => p.Views__c, 'topic' => c == null ? null : c.Topic__c, 'format' => c == null ? null : c.Format__c,
+                'verdict' => c == null ? null : c.Verdict__c, 'cover' => c == null ? null : c.Cover_URL__c,
+                'show' => c == null ? null : AdminAppController.showOf(c, ShowrunnerSupport.parse(c.Showrunner_Directive__c)),
+                'status' => 'Published'
+            });
+        }
+        return out;
     }
 }

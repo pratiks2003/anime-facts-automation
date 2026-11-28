@@ -26,3 +26,5 @@
 .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .kpis .card + .card { margin-top: 0; }
 .kpi .big { font-size: 24px; }
+
+.slot-note { color: #f5b971; margin-top: 2px; }

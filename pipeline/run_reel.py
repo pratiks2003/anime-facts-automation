@@ -747,7 +747,7 @@ def generate(args, sf) -> int:
         from video.audio_library import FORMAT_MOODS
 
         manifest["caption"] = search_caption(manifest["caption"], plan.anime)
-        trending = choose_trending(sf, (FORMAT_MOODS.get(args.format) or ["trending"])[0], recent_music(sf), cid)
+        trending = choose_trending(sf, FORMAT_MOODS.get(args.format) or ["epic"], recent_music(sf), cid)
     except Exception as exc:
         log(f"trending audio unavailable ({type(exc).__name__}: {str(exc)[:120]})")
     voice_cut = voice_only_cut(manifest) if trending else None

@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 MOOD_QUERIES = {"battle": "phonk", "hype": "hype", "epic": "epic", "emotional": "emotional", "mystery": "dark",
-                "playful": "funny", "news": "trending"}
+                "playful": "funny", "news": "trending", "trailer": "cinematic trailer"}
 FIRST_COMMENT = {
     "Who Would Win": "Who wins this one? 👇 Defend your pick",
     "Ranking": "What's YOUR #1? 👇",
@@ -100,7 +100,7 @@ def trending_share(sf, default: float = 0.7) -> float:
         return default
 
 
-def choose_trending(sf, mood: str, recent: List[str], seed: str) -> Optional[dict]:
+def choose_trending(sf, mood, recent: List[str], seed: str) -> Optional[dict]:
     """A licensed trending track for this Reel's mood (or None -> library music). Not reused within recent Reels."""
     data = _get(sf, "trending_audio") or {}
     tracks = [t for t in data.get("tracks") or [] if t.get("audio_id")]
@@ -111,7 +111,13 @@ def choose_trending(sf, mood: str, recent: List[str], seed: str) -> Optional[dic
         return None  # this Reel keeps library music (the comparison group)
     used = " ".join(recent)
     fresh = [t for t in tracks if t["audio_id"] not in used]
-    pool = [t for t in fresh if t.get("mood") == mood] or [t for t in fresh if t.get("mood") == "trending"] or fresh
+    moods = [mood] if isinstance(mood, str) else list(mood or [])
+    pool = []
+    for m in moods + ["epic", "hype"]:  # the format's moods first; generic regional "trending" only as a last resort
+        pool = [t for t in fresh if t.get("mood") == m]
+        if pool:
+            break
+    pool = pool or [t for t in fresh if t.get("mood") == "trending"]
     return dict(pool[0]) if pool else None
 
 

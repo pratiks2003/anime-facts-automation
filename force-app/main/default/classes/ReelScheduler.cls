@@ -45,7 +45,9 @@ public with sharing class ReelScheduler implements Schedulable {
     public static void nudgeUndecidedReels(Datetime now) {
         List<Anime_Content__c> stuck = [SELECT Id, External_Id__c, Hold_Reason__c, Render_Report__c, QA_Issues__c FROM Anime_Content__c
                                         WHERE Status__c = 'Rendered' AND Approval_Status__c = 'Pending' AND Hold_Reason__c != null
-                                        AND LastModifiedDate < :now.addMinutes(-UNDECIDED_MINUTES) LIMIT 5];
+                                        AND LastModifiedDate < :now.addMinutes(-UNDECIDED_MINUTES)
+                                        AND Slot__c IN ('Morning', 'Midday', 'Evening') AND Scheduled_For__c >= :now.addHours(-12)
+                                        LIMIT 5];  // only today's scheduled slots - never old test / manual Reels
         List<String> wake = new List<String>();
         for (Anime_Content__c c : stuck) {
             if (c.Hold_Reason__c.startsWith('Posting limit')) continue;

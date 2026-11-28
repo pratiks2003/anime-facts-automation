@@ -104,7 +104,8 @@ private class LearningLoopTest {
     static void undecidedReelsAreNudgedThenPosted() {
         Test.setMock(HttpCalloutMock.class, new InstaAgentTestUtil.GitHubMock(204));
         Anime_Content__c c = new Anime_Content__c(Name = 'U', External_Id__c = 'LL-U', Format__c = 'Fact', Status__c = 'Rendered',
-            Approval_Status__c = 'Pending', Hold_Reason__c = 'QA issues: edit quality 6/10');
+            Approval_Status__c = 'Pending', Hold_Reason__c = 'QA issues: edit quality 6/10', Slot__c = 'Evening',
+            Scheduled_For__c = Datetime.now().addHours(1));
         insert c;
         Test.setCreatedDate(c.Id, Datetime.now().addHours(-2));
         Datetime later = Datetime.now().addHours(2);  // LastModifiedDate is "now", so judge from 2 h later

@@ -153,6 +153,28 @@ public with sharing class Scoreboard {
                 s.put('status', 'open');
             }
         }
+        // fact inventory: verified facts per show vs how often we covered it lately (a show runs dry when overused)
+        Map<String, Integer> facts = new Map<String, Integer>();
+        for (AggregateResult ar : [SELECT Anime__r.Name n, COUNT(Id) c FROM Anime_Knowledge__c WHERE Verified__c = true
+                                   AND Anime__c != null GROUP BY Anime__r.Name]) {
+            facts.put(String.valueOf(ar.get('n')).toLowerCase(), (Integer) ar.get('c'));
+        }
+        Map<String, Integer> recent3d = new Map<String, Integer>();
+        for (AggregateResult ar : [SELECT Anime__r.Name n, COUNT(Id) c FROM Anime_Content__c WHERE CreatedDate >= :now.addDays(-3)
+                                   AND Anime__c != null GROUP BY Anime__r.Name]) {
+            recent3d.put(String.valueOf(ar.get('n')).toLowerCase(), (Integer) ar.get('c'));
+        }
+        List<Map<String, Object>> inventory = new List<Map<String, Object>>();
+        for (String name : facts.keySet()) {
+            Integer f = facts.get(name), used = recent3d.containsKey(name) ? recent3d.get(name) : 0;
+            inventory.add(new Map<String, Object>{ 'show' => name, 'verified_facts' => f, 'reels_last_3_days' => used,
+                'risk' => f < 6 ? 'THIN: too few facts for most formats - prefer news formats or another show'
+                    : (used * 3 >= f ? 'RUNNING DRY: covered a lot lately - new angle needed or rest it' : 'ok') });
+        }
+        for (Map<String, Object> sh : shows) {
+            String key = String.valueOf(sh.get('name')).toLowerCase();
+            sh.put('verified_facts', facts.containsKey(key) ? facts.get(key) : 0);
+        }
         Decimal freshHours = freshest == null ? null : (Decimal.valueOf(now.getTime() - freshest.getTime()) / 3600000).setScale(1);
         return new Map<String, Object>{
             'how_to_read' => 'performance index 1.00 = a normal Reel for this account (views 60%, watch time 40%). Winner >= 1.25, loser <= 0.75. '
@@ -162,6 +184,7 @@ public with sharing class Scoreboard {
             'metrics_freshness_hours' => freshHours,
             'by_show' => shows, 'by_format' => finish(byFormat), 'by_slot' => finish(bySlot),
             'by_effect' => finish(byEffect), 'by_style' => finish(byStyle), 'by_planner' => finish(byPlanner),
+            'fact_inventory' => inventory,
             'drop_rule' => 'drop a show after ' + dropAfter + ' losers in a row, for ' + dropHours + ' h (playbook)'
         };
     }

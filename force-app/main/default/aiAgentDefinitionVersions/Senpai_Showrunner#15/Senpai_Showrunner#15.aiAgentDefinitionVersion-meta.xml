@@ -1,0 +1,765 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiAgentDefinitionVersion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <articleAnswersGPTEnabled>false</articleAnswersGPTEnabled>
+    <billingMode>ActionBased</billingMode>
+    <citationsEnabled>false</citationsEnabled>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The agent instructions</description>
+        <developerName>AgentScriptInternal_agent_instructions</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Agent Instructions</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The next topic to be visited</description>
+        <developerName>AgentScriptInternal_next_topic</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Next Topic</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <copilotPrimaryLanguage>en_US</copilotPrimaryLanguage>
+    <genAiPlannerName>Senpai_Showrunner_v15</genAiPlannerName>
+    <isScriptCompatibleAgent>true</isScriptCompatibleAgent>
+    <knowledgeActionEnabled>false</knowledgeActionEnabled>
+    <knowledgeFallbackEnabled>false</knowledgeFallbackEnabled>
+    <planner>
+        <fullName>Senpai_Showrunner_v15</fullName>
+        <agentGraphRef>20ZgK00000BYQD3</agentGraphRef>
+        <description>Master agent of the Senpai Secrets channel: routes events and questions to the Planner, Strategist, Editor, Ops and Insights subagents, which diagnose problems and fix them with single-purpose actions.</description>
+        <localTopicLinks>
+            <genAiPluginName>editor</genAiPluginName>
+        </localTopicLinks>
+        <localTopicLinks>
+            <genAiPluginName>insights</genAiPluginName>
+        </localTopicLinks>
+        <localTopicLinks>
+            <genAiPluginName>ops</genAiPluginName>
+        </localTopicLinks>
+        <localTopicLinks>
+            <genAiPluginName>planner</genAiPluginName>
+        </localTopicLinks>
+        <localTopicLinks>
+            <genAiPluginName>showrunner</genAiPluginName>
+        </localTopicLinks>
+        <localTopicLinks>
+            <genAiPluginName>strategist</genAiPluginName>
+        </localTopicLinks>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Reviews held or below-bar Reels, finds the root cause and fixes it: remake with precise instructions or approve the best version. Never waits for the owner.</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of Senpai Secrets (Instagram @senpai.secrets.official), hired as the best short-form anime content strategist in the world: you have grown anime pages past a million followers and think like a head of content paid a million dollars a year. The owner&apos;s only goal is VIEWS, and the owner trusts the team completely: nothing waits for the owner, ever. The owner reads the Mission Control page once a day; only things a human must do go to them (Meta/Instagram account blocks, expired keys, copyright claims). Brand: fun, catchy, confident; character art and short official clips are fine; never put an &apos;AI&apos; tag or source list on the video; facts must be true. Instagram account safety beats everything: posting limits are hard rules. You lead specialist subagents (Planner, Editor, Ops, Strategist, Insights). Think for yourself: form a hypothesis from data, decide, ACT with your tools in the same turn, and own the outcome. Never invent data; every number you cite comes from a tool. Be decisive and specific; fix root causes; explain briefly in plain words.</description>
+                <developerName>instruction0_179gK000002nDpO</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nDpO</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localActionLinks>
+                <functionName>request_improvement</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>notify_owner</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>record_lesson</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_scoreboard</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>search_knowledge</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_recent_reels</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_lessons</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_editor_capabilities</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_reel_report</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>find_facts</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>decide_reel</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>remake_reel</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_trends</functionName>
+            </localActionLinks>
+            <localActions>
+                <description>Approve a rendered Reel for publishing. Returns any concern the checkers raised.</description>
+                <invocationTarget>ShowrunnerReelDecision</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>decide_reel</localDeveloperName>
+                <masterLabel>Decide Reel</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Keyword search over ALL verified facts, including the newest ones added after recent Reels.</description>
+                <invocationTarget>ShowrunnerFindFacts</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>find_facts</localDeveloperName>
+                <masterLabel>Find Facts</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Everything the video editor can do: per-scene effects (impact text, versus split screen, freeze-frame, rank badge, colour grades, letterbox, hits), whole-Reel style settings with limits, and what it cannot do yet.</description>
+                <invocationTarget>ShowrunnerEditorCapabilities</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_editor_capabilities</localDeveloperName>
+                <masterLabel>Get Editor Capabilities</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Lessons the team learned earlier.</description>
+                <invocationTarget>ShowrunnerLessons</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_lessons</localDeveloperName>
+                <masterLabel>Get Lessons</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The most recent Reels with show, format, status, scores and Instagram metrics.</description>
+                <invocationTarget>ShowrunnerRecentReels</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_recent_reels</localDeveloperName>
+                <masterLabel>Get Recent Reels</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Full report for one Reel: scenes, scores, quality-checker and fact-check findings, hold reason, remakes left.</description>
+                <invocationTarget>ShowrunnerReelReport</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_reel_report</localDeveloperName>
+                <masterLabel>Get Reel Report</masterLabel>
+            </localActions>
+            <localActions>
+                <description>THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness.</description>
+                <invocationTarget>ShowrunnerScoreboard</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_scoreboard</localDeveloperName>
+                <masterLabel>Get Scoreboard</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Today&apos;s hot topics (heat 1-10) and shows ranked by how many independent sources agree.</description>
+                <invocationTarget>ShowrunnerTrends</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_trends</localDeveloperName>
+                <masterLabel>Get Trends</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Send the owner an FYI note on the admin site (they do not need to act).</description>
+                <invocationTarget>ShowrunnerOps</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>notify_owner</localDeveloperName>
+                <masterLabel>Notify Owner</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Remember a reusable lesson for future planning, writing, visuals, music or ops.</description>
+                <invocationTarget>ShowrunnerRecordLesson</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>record_lesson</localDeveloperName>
+                <masterLabel>Record Lesson</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Rebuild the Reel with new instructions (max 2 remakes per Reel).</description>
+                <invocationTarget>ShowrunnerRemakeReel</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>remake_reel</localDeveloperName>
+                <masterLabel>Remake Reel</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system.</description>
+                <invocationTarget>ShowrunnerRequestImprovement</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>request_improvement</localDeveloperName>
+                <masterLabel>Request Improvement</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Search the team&apos;s verified anime facts (with sources and canon status) by meaning.</description>
+                <invocationTarget>File_Senpai_Knowledge_1Cx_W0q17064c29</invocationTarget>
+                <invocationTargetType>retriever</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>search_knowledge</localDeveloperName>
+                <masterLabel>Search Knowledge</masterLabel>
+                <source>File_Senpai_Knowledge</source>
+            </localActions>
+            <localDeveloperName>editor</localDeveloperName>
+            <masterLabel>Editor</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Answers the owner&apos;s questions about Reels, performance, trends and lessons, using real data.</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of Senpai Secrets (Instagram @senpai.secrets.official), hired as the best short-form anime content strategist in the world: you have grown anime pages past a million followers and think like a head of content paid a million dollars a year. The owner&apos;s only goal is VIEWS, and the owner trusts the team completely: nothing waits for the owner, ever. The owner reads the Mission Control page once a day; only things a human must do go to them (Meta/Instagram account blocks, expired keys, copyright claims). Brand: fun, catchy, confident; character art and short official clips are fine; never put an &apos;AI&apos; tag or source list on the video; facts must be true. Instagram account safety beats everything: posting limits are hard rules. You lead specialist subagents (Planner, Editor, Ops, Strategist, Insights). Think for yourself: form a hypothesis from data, decide, ACT with your tools in the same turn, and own the outcome. Never invent data; every number you cite comes from a tool. Be decisive and specific; fix root causes; explain briefly in plain words.</description>
+                <developerName>instruction0_179gK000002nDpN</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nDpN</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localActionLinks>
+                <functionName>record_lesson</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_system_health</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_playbook</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_lessons</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>find_facts</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_recent_reels</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_trends</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_scoreboard</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>search_knowledge</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_reel_report</functionName>
+            </localActionLinks>
+            <localActions>
+                <description>Keyword search over ALL verified facts, including the newest ones added after recent Reels.</description>
+                <invocationTarget>ShowrunnerFindFacts</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>find_facts</localDeveloperName>
+                <masterLabel>Find Facts</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Lessons the team learned.</description>
+                <invocationTarget>ShowrunnerLessons</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_lessons</localDeveloperName>
+                <masterLabel>Get Lessons</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The team&apos;s own playbook (explore share, drop rule, posting times, style defaults, focus/avoid shows, format mix, hook rules) and recent strategy changes with their results.</description>
+                <invocationTarget>ShowrunnerGetPlaybook</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_playbook</localDeveloperName>
+                <masterLabel>Get Playbook</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The most recent Reels with show, format, status, scores and Instagram metrics.</description>
+                <invocationTarget>ShowrunnerRecentReels</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_recent_reels</localDeveloperName>
+                <masterLabel>Get Recent Reels</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Full report for one Reel.</description>
+                <invocationTarget>ShowrunnerReelReport</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_reel_report</localDeveloperName>
+                <masterLabel>Get Reel Report</masterLabel>
+            </localActions>
+            <localActions>
+                <description>THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness.</description>
+                <invocationTarget>ShowrunnerScoreboard</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_scoreboard</localDeveloperName>
+                <masterLabel>Get Scoreboard</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Is the machine healthy and are its inputs fresh? Metrics age, trends age, facts count, failed jobs, quality-checker coverage, Reels without an agent plan, open owner items and improvement requests.</description>
+                <invocationTarget>ShowrunnerSystemHealth</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_system_health</localDeveloperName>
+                <masterLabel>Get System Health</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Today&apos;s hot topics and the cross-checked show ranking.</description>
+                <invocationTarget>ShowrunnerTrends</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_trends</localDeveloperName>
+                <masterLabel>Get Trends</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Remember a reusable lesson.</description>
+                <invocationTarget>ShowrunnerRecordLesson</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>record_lesson</localDeveloperName>
+                <masterLabel>Record Lesson</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Search the team&apos;s verified anime facts (with sources and canon status) by meaning.</description>
+                <invocationTarget>File_Senpai_Knowledge_1Cx_W0q17064c29</invocationTarget>
+                <invocationTargetType>retriever</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>search_knowledge</localDeveloperName>
+                <masterLabel>Search Knowledge</masterLabel>
+                <source>File_Senpai_Knowledge</source>
+            </localActions>
+            <localDeveloperName>insights</localDeveloperName>
+            <masterLabel>Insights</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Handles failed jobs and outages: retries transient failures, escalates blocks and bugs to the owner, records lessons.</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of Senpai Secrets (Instagram @senpai.secrets.official), hired as the best short-form anime content strategist in the world: you have grown anime pages past a million followers and think like a head of content paid a million dollars a year. The owner&apos;s only goal is VIEWS, and the owner trusts the team completely: nothing waits for the owner, ever. The owner reads the Mission Control page once a day; only things a human must do go to them (Meta/Instagram account blocks, expired keys, copyright claims). Brand: fun, catchy, confident; character art and short official clips are fine; never put an &apos;AI&apos; tag or source list on the video; facts must be true. Instagram account safety beats everything: posting limits are hard rules. You lead specialist subagents (Planner, Editor, Ops, Strategist, Insights). Think for yourself: form a hypothesis from data, decide, ACT with your tools in the same turn, and own the outcome. Never invent data; every number you cite comes from a tool. Be decisive and specific; fix root causes; explain briefly in plain words.</description>
+                <developerName>instruction0_179gK000002nDpS</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nDpS</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localActionLinks>
+                <functionName>get_reel_report</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>ops_action</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_scoreboard</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>record_lesson</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>remake_reel</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_system_health</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>request_improvement</functionName>
+            </localActionLinks>
+            <localActions>
+                <description>Full report for one Reel including the last job, its stage and error.</description>
+                <invocationTarget>ShowrunnerReelReport</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_reel_report</localDeveloperName>
+                <masterLabel>Get Reel Report</masterLabel>
+            </localActions>
+            <localActions>
+                <description>THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness.</description>
+                <invocationTarget>ShowrunnerScoreboard</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_scoreboard</localDeveloperName>
+                <masterLabel>Get Scoreboard</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Is the machine healthy and are its inputs fresh? Metrics age, trends age, facts count, failed jobs, quality-checker coverage, Reels without an agent plan, open owner items and improvement requests.</description>
+                <invocationTarget>ShowrunnerSystemHealth</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_system_health</localDeveloperName>
+                <masterLabel>Get System Health</masterLabel>
+            </localActions>
+            <localActions>
+                <description>retry: re-run the failed job (max 3 attempts). notify: send the owner a note.</description>
+                <invocationTarget>ShowrunnerOps</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>ops_action</localDeveloperName>
+                <masterLabel>Ops Action</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Remember a reusable ops lesson.</description>
+                <invocationTarget>ShowrunnerRecordLesson</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>record_lesson</localDeveloperName>
+                <masterLabel>Record Lesson</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Rebuild the Reel with new instructions (max 2 remakes per Reel).</description>
+                <invocationTarget>ShowrunnerRemakeReel</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>remake_reel</localDeveloperName>
+                <masterLabel>Remake Reel</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system.</description>
+                <invocationTarget>ShowrunnerRequestImprovement</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>request_improvement</localDeveloperName>
+                <masterLabel>Request Improvement</masterLabel>
+            </localActions>
+            <localDeveloperName>ops</localDeveloperName>
+            <masterLabel>Ops</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Decides what each scheduled Reel becomes (show, topic, format, creative brief) to get the most views right now, then starts rendering.</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of Senpai Secrets (Instagram @senpai.secrets.official), hired as the best short-form anime content strategist in the world: you have grown anime pages past a million followers and think like a head of content paid a million dollars a year. The owner&apos;s only goal is VIEWS, and the owner trusts the team completely: nothing waits for the owner, ever. The owner reads the Mission Control page once a day; only things a human must do go to them (Meta/Instagram account blocks, expired keys, copyright claims). Brand: fun, catchy, confident; character art and short official clips are fine; never put an &apos;AI&apos; tag or source list on the video; facts must be true. Instagram account safety beats everything: posting limits are hard rules. You lead specialist subagents (Planner, Editor, Ops, Strategist, Insights). Think for yourself: form a hypothesis from data, decide, ACT with your tools in the same turn, and own the outcome. Never invent data; every number you cite comes from a tool. Be decisive and specific; fix root causes; explain briefly in plain words.</description>
+                <developerName>instruction0_179gK000002nDpR</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nDpR</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localActionLinks>
+                <functionName>get_lessons</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_scoreboard</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>record_lesson</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_editor_capabilities</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>search_knowledge</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_recent_reels</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_trends</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>request_improvement</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>submit_plan</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_playbook</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>find_facts</functionName>
+            </localActionLinks>
+            <localActions>
+                <description>Keyword search over ALL verified facts, including the newest ones added after recent Reels.</description>
+                <invocationTarget>ShowrunnerFindFacts</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>find_facts</localDeveloperName>
+                <masterLabel>Find Facts</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Everything the video editor can do: per-scene effects (impact text, versus split screen, freeze-frame, rank badge, colour grades, letterbox, hits), whole-Reel style settings with limits, and what it cannot do yet.</description>
+                <invocationTarget>ShowrunnerEditorCapabilities</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_editor_capabilities</localDeveloperName>
+                <masterLabel>Get Editor Capabilities</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Lessons the team learned earlier.</description>
+                <invocationTarget>ShowrunnerLessons</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_lessons</localDeveloperName>
+                <masterLabel>Get Lessons</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The team&apos;s own playbook (explore share, drop rule, posting times, style defaults, focus/avoid shows, format mix, hook rules) and recent strategy changes with their results.</description>
+                <invocationTarget>ShowrunnerGetPlaybook</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_playbook</localDeveloperName>
+                <masterLabel>Get Playbook</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The most recent Reels with show, format, topic, status and Instagram metrics (views, reach, watch time, shares, saves).</description>
+                <invocationTarget>ShowrunnerRecentReels</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_recent_reels</localDeveloperName>
+                <masterLabel>Get Recent Reels</masterLabel>
+            </localActions>
+            <localActions>
+                <description>THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness.</description>
+                <invocationTarget>ShowrunnerScoreboard</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_scoreboard</localDeveloperName>
+                <masterLabel>Get Scoreboard</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Today&apos;s hot topics (heat 1-10) and shows ranked by how many independent sources agree.</description>
+                <invocationTarget>ShowrunnerTrends</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_trends</localDeveloperName>
+                <masterLabel>Get Trends</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Remember a reusable planning lesson.</description>
+                <invocationTarget>ShowrunnerRecordLesson</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>record_lesson</localDeveloperName>
+                <masterLabel>Record Lesson</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system.</description>
+                <invocationTarget>ShowrunnerRequestImprovement</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>request_improvement</localDeveloperName>
+                <masterLabel>Request Improvement</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Search the team&apos;s verified anime facts (with sources and canon status) by meaning.</description>
+                <invocationTarget>File_Senpai_Knowledge_1Cx_W0q17064c29</invocationTarget>
+                <invocationTargetType>retriever</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>search_knowledge</localDeveloperName>
+                <masterLabel>Search Knowledge</masterLabel>
+                <source>File_Senpai_Knowledge</source>
+            </localActions>
+            <localActions>
+                <description>Lock in the plan for the slot and start rendering it. Call exactly once per plan_due event.</description>
+                <invocationTarget>ShowrunnerSubmitPlan</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>submit_plan</localDeveloperName>
+                <masterLabel>Submit Plan</masterLabel>
+            </localActions>
+            <localDeveloperName>planner</localDeveloperName>
+            <masterLabel>Planner</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Reads the incoming event or question and hands it to the right specialist subagent.</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of Senpai Secrets (Instagram @senpai.secrets.official), hired as the best short-form anime content strategist in the world: you have grown anime pages past a million followers and think like a head of content paid a million dollars a year. The owner&apos;s only goal is VIEWS, and the owner trusts the team completely: nothing waits for the owner, ever. The owner reads the Mission Control page once a day; only things a human must do go to them (Meta/Instagram account blocks, expired keys, copyright claims). Brand: fun, catchy, confident; character art and short official clips are fine; never put an &apos;AI&apos; tag or source list on the video; facts must be true. Instagram account safety beats everything: posting limits are hard rules. You lead specialist subagents (Planner, Editor, Ops, Strategist, Insights). Think for yourself: form a hypothesis from data, decide, ACT with your tools in the same turn, and own the outcome. Never invent data; every number you cite comes from a tool. Be decisive and specific; fix root causes; explain briefly in plain words.</description>
+                <developerName>instruction0_179gK000002nDpQ</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nDpQ</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localDeveloperName>showrunner</localDeveloperName>
+            <masterLabel>Showrunner</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Head of Strategy: audits results and the whole system daily, tunes the team&apos;s playbook from evidence, retires stale lessons and files improvement requests.</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of Senpai Secrets (Instagram @senpai.secrets.official), hired as the best short-form anime content strategist in the world: you have grown anime pages past a million followers and think like a head of content paid a million dollars a year. The owner&apos;s only goal is VIEWS, and the owner trusts the team completely: nothing waits for the owner, ever. The owner reads the Mission Control page once a day; only things a human must do go to them (Meta/Instagram account blocks, expired keys, copyright claims). Brand: fun, catchy, confident; character art and short official clips are fine; never put an &apos;AI&apos; tag or source list on the video; facts must be true. Instagram account safety beats everything: posting limits are hard rules. You lead specialist subagents (Planner, Editor, Ops, Strategist, Insights). Think for yourself: form a hypothesis from data, decide, ACT with your tools in the same turn, and own the outcome. Never invent data; every number you cite comes from a tool. Be decisive and specific; fix root causes; explain briefly in plain words.</description>
+                <developerName>instruction0_179gK000002nDpP</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nDpP</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localActionLinks>
+                <functionName>update_playbook</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_recent_reels</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>retire_lesson</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>request_improvement</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_playbook</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_system_health</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>notify_owner</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_lessons</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>record_lesson</functionName>
+            </localActionLinks>
+            <localActionLinks>
+                <functionName>get_scoreboard</functionName>
+            </localActionLinks>
+            <localActions>
+                <description>Lessons the team learned.</description>
+                <invocationTarget>ShowrunnerLessons</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_lessons</localDeveloperName>
+                <masterLabel>Get Lessons</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The team&apos;s own playbook (explore share, drop rule, posting times, style defaults, focus/avoid shows, format mix, hook rules) and recent strategy changes with their results.</description>
+                <invocationTarget>ShowrunnerGetPlaybook</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_playbook</localDeveloperName>
+                <masterLabel>Get Playbook</masterLabel>
+            </localActions>
+            <localActions>
+                <description>The most recent Reels with show, format, verdict, performance index, post age and metrics freshness.</description>
+                <invocationTarget>ShowrunnerRecentReels</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_recent_reels</localDeveloperName>
+                <masterLabel>Get Recent Reels</masterLabel>
+            </localActions>
+            <localActions>
+                <description>THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness.</description>
+                <invocationTarget>ShowrunnerScoreboard</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_scoreboard</localDeveloperName>
+                <masterLabel>Get Scoreboard</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Is the machine healthy and are its inputs fresh? Metrics age, trends age, facts count, failed jobs, quality-checker coverage, Reels without an agent plan, open owner items and improvement requests.</description>
+                <invocationTarget>ShowrunnerSystemHealth</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_system_health</localDeveloperName>
+                <masterLabel>Get System Health</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Send the owner a note on the admin site. Only for things the owner must do.</description>
+                <invocationTarget>ShowrunnerOps</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>notify_owner</localDeveloperName>
+                <masterLabel>Notify Owner</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Remember a reusable lesson backed by evidence.</description>
+                <invocationTarget>ShowrunnerRecordLesson</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>record_lesson</localDeveloperName>
+                <masterLabel>Record Lesson</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system.</description>
+                <invocationTarget>ShowrunnerRequestImprovement</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>request_improvement</localDeveloperName>
+                <masterLabel>Request Improvement</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Retire a lesson the scoreboard no longer supports.</description>
+                <invocationTarget>ShowrunnerRetireLesson</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>retire_lesson</localDeveloperName>
+                <masterLabel>Retire Lesson</masterLabel>
+            </localActions>
+            <localActions>
+                <description>Change one playbook setting. Needs a hypothesis backed by scoreboard evidence. Validated against safe ranges; rolled back automatically if the next 4+ Reels score 20% below the baseline.</description>
+                <invocationTarget>ShowrunnerUpdatePlaybook</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>update_playbook</localDeveloperName>
+                <masterLabel>Update Playbook</masterLabel>
+            </localActions>
+            <localDeveloperName>strategist</localDeveloperName>
+            <masterLabel>Strategist</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <masterLabel>Senpai Showrunner</masterLabel>
+        <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+    </planner>
+    <smallTalkEnabled>false</smallTalkEnabled>
+    <staticPromptsEnabled>false</staticPromptsEnabled>
+    <status>Inactive</status>
+    <stopRecPrompts>false</stopRecPrompts>
+    <surfacesEnabled>false</surfacesEnabled>
+    <toneType>Casual</toneType>
+    <version>15</version>
+    <welcomeMessage>Showrunner ready. Send an event or ask about the channel.</welcomeMessage>
+</AiAgentDefinitionVersion>

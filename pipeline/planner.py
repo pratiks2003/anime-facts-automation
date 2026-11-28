@@ -183,6 +183,15 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
                 print(f"[planner] {entry['name']} has too few verified facts; switching to {alt['name']}")
                 entry, facts = alt, alt_facts
                 break
+    if len(facts) < 3 and anime_hint and strict_anime:
+        # the Showrunner chose this show on purpose: its recently used facts may come back with a fresh angle
+        reused = usable_facts(store, entry["name"], set(), format_name, topic)
+        if len(reused) >= 3:
+            print(f"[planner] {entry['name']}: fresh facts used up; reusing {len(reused)} older facts with a new angle")
+            facts = reused
     if len(facts) < 3:
-        raise RuntimeError(f"only {len(facts)} verified facts available for {entry['name']}")
+        total = len([r for r in store.facts_for(entry["name"]) if r["verified"]])
+        raise RuntimeError(f"only {len(facts)} verified facts available for {entry['name']} ({total} in total, the rest were "
+                           f"used by recent Reels or are spoilers/theories). This show is exhausted for now: plan or remake "
+                           f"with a DIFFERENT show (see fact counts on the scoreboard).")
     return Plan(format_name, entry["name"], entry.get("anilist_id"), facts, ingested=ingested)

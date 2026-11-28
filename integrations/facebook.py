@@ -4,7 +4,7 @@ Flow (Meta docs "Reels Publishing API"):
   1. POST /{page-id}/video_reels upload_phase=start             -> video_id
   2. POST rupload.facebook.com/video-upload/{ver}/{video_id}    header file_url: <public video URL>
   3. POST /{page-id}/video_reels upload_phase=finish video_state=PUBLISHED description=...
-Needs a Page access token: derived from the system-user token (GET /{page-id}?fields=access_token), which requires
+Needs a Page access token: derived from FB_ACCESS_TOKEN (a system-user token for the Page; falls back to IG_ACCESS_TOKEN) (GET /{page-id}?fields=access_token), which requires
 the permissions pages_show_list, pages_read_engagement and pages_manage_posts on the token.
 """
 
@@ -38,7 +38,7 @@ def _call(method: str, url: str, params: Optional[dict] = None, headers: Optiona
 def cross_post_reel(video_url: str, description: str, opener=urllib.request.urlopen) -> Optional[str]:
     """Publish the same Reel on the Facebook Page. Returns the video id, or None (off / failed - never raises)."""
     page = os.environ.get("FB_PAGE_ID", "").strip()
-    token = os.environ.get("IG_ACCESS_TOKEN", "").strip()
+    token = (os.environ.get("FB_ACCESS_TOKEN") or os.environ.get("IG_ACCESS_TOKEN") or "").strip()  # own token preferred
     version = os.environ.get("IG_API_VERSION") or "v27.0"
     if not page or not token or not video_url:
         return None

@@ -508,3 +508,19 @@ class VarietyRulesTests(unittest.TestCase):
         self.assertEqual(vary_format("Quiz", "Fact"), "Quiz")
         self.assertNotEqual(vary_format("Quiz", "Quiz", "seed"), "Quiz")
         self.assertIn(vary_format("Why It's Trending", "Why It's Trending"), ("Just Announced", "Hype Check"))
+
+
+class RenderReportTests(unittest.TestCase):
+    def test_report_has_what_the_agents_need(self):
+        from pipeline.run_reel import render_report
+        manifest = {"visual_qa": {"status": "checked", "edit_score": 6.0, "up_to_mark": False, "issues": ["shot 3: wrong"],
+                                  "renderer": object()},
+                    "validation": {"summary": {"duration": 31.5}}, "shots": [2, 3], "image_rejections": ["a", "b"],
+                    "designed_cover": {"title": "X"}, "music": {"title": "Song"}}
+        r = render_report(manifest, {"fact_check": {"pass": False}, "quality": {"overall": 7.5, "notes": ["n"]}}, ["visual QA: x"])
+        self.assertEqual(r["visual_qa"]["edit_score"], 6.0)
+        self.assertNotIn("renderer", r["visual_qa"])
+        self.assertFalse(r["fact_check"]["pass"])
+        self.assertEqual(r["pictures_rejected"], 2)
+        import json
+        json.dumps(r)  # must be storable

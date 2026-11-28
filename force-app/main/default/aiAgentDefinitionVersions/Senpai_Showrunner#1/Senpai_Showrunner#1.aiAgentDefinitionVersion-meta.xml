@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiAgentDefinitionVersion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <articleAnswersGPTEnabled>false</articleAnswersGPTEnabled>
+    <billingMode>ActionBased</billingMode>
+    <citationsEnabled>false</citationsEnabled>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The agent instructions</description>
+        <developerName>AgentScriptInternal_agent_instructions</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Agent Instructions</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The next topic to be visited</description>
+        <developerName>AgentScriptInternal_next_topic</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Next Topic</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <copilotPrimaryLanguage>en_US</copilotPrimaryLanguage>
+    <genAiPlannerName>Senpai_Showrunner_v1</genAiPlannerName>
+    <isScriptCompatibleAgent>true</isScriptCompatibleAgent>
+    <knowledgeActionEnabled>false</knowledgeActionEnabled>
+    <knowledgeFallbackEnabled>false</knowledgeFallbackEnabled>
+    <planner>
+        <fullName>Senpai_Showrunner_v1</fullName>
+        <agentGraphRef>20ZgK00000BYG0n</agentGraphRef>
+        <description>Orchestrates the channel&apos;s specialist subagents.</description>
+        <localTopicLinks>
+            <genAiPluginName>review</genAiPluginName>
+        </localTopicLinks>
+        <localTopicLinks>
+            <genAiPluginName>showrunner</genAiPluginName>
+        </localTopicLinks>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Reviews recent Reels</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of the Senpai Secrets anime Instagram channel.</description>
+                <developerName>instruction0_179gK000002nAcz</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nAcz</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localActionLinks>
+                <functionName>get_recent_reels</functionName>
+            </localActionLinks>
+            <localActions>
+                <description>Returns the most recent Reels</description>
+                <invocationTarget>ShowrunnerRecentReels</invocationTarget>
+                <invocationTargetType>apex</invocationTargetType>
+                <isConfirmationRequired>false</isConfirmationRequired>
+                <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+                <localDeveloperName>get_recent_reels</localDeveloperName>
+                <masterLabel>Get Recent Reels</masterLabel>
+            </localActions>
+            <localDeveloperName>review</localDeveloperName>
+            <masterLabel>Review</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <localTopics>
+            <canEscalate>false</canEscalate>
+            <description>Decides which specialist handles the request</description>
+            <genAiPluginInstructions>
+                <description>You are the Showrunner of the Senpai Secrets anime Instagram channel.</description>
+                <developerName>instruction0_179gK000002nAd0</developerName>
+                <language>en_US</language>
+                <masterLabel>instruction0_179gK000002nAd0</masterLabel>
+                <sortOrder>1</sortOrder>
+            </genAiPluginInstructions>
+            <language>en_US</language>
+            <localDeveloperName>showrunner</localDeveloperName>
+            <masterLabel>Showrunner</masterLabel>
+            <pluginType>Topic</pluginType>
+        </localTopics>
+        <masterLabel>Senpai Showrunner</masterLabel>
+        <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+    </planner>
+    <smallTalkEnabled>false</smallTalkEnabled>
+    <staticPromptsEnabled>false</staticPromptsEnabled>
+    <status>Inactive</status>
+    <stopRecPrompts>false</stopRecPrompts>
+    <surfacesEnabled>false</surfacesEnabled>
+    <toneType>Casual</toneType>
+    <version>1</version>
+    <welcomeMessage>Showrunner ready.</welcomeMessage>
+</AiAgentDefinitionVersion>

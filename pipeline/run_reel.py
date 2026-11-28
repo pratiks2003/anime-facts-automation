@@ -85,6 +85,9 @@ def learning_inputs(sf, format_name: str) -> tuple:
         rows = sf.query("SELECT Hook_Lessons__c FROM Performance_Review__c ORDER BY CreatedDate DESC LIMIT 1")
         if rows and rows[0].get("Hook_Lessons__c"):
             lessons = [l.strip() for l in rows[0]["Hook_Lessons__c"].splitlines() if l.strip()][:5]
+        agent = sf.query("SELECT Lesson__c FROM Agent_Lesson__c WHERE Active__c = true AND Area__c IN "
+                         "('planning', 'writing', 'visuals') ORDER BY CreatedDate DESC LIMIT 8") or []
+        lessons = [r["Lesson__c"] for r in agent if r.get("Lesson__c")] + lessons
         ideas = sf.query("SELECT Id, Name, Anime__c FROM Topic_Idea__c WHERE Status__c = 'New' AND "
                          f"(Format__c = {soql_str(format_name)} OR Format__c = null) ORDER BY Votes__c DESC NULLS LAST, CreatedDate ASC LIMIT 1")
         idea = ideas[0] if ideas else None
@@ -402,6 +405,35 @@ def vary_format(fmt: str, last_format: str, seed: str = "") -> str:
     return options[int(hashlib.sha1(seed.encode()).hexdigest(), 16) % len(options)] if seed else options[0]
 
 
+def showrunner_directive(sf, cid: str) -> dict:
+    """Instructions from the Showrunner agent when it ordered a remake of this Reel."""
+    try:
+        rows = sf.query(f"SELECT Showrunner_Directive__c FROM Anime_Content__c WHERE External_Id__c = {soql_str(cid)} LIMIT 1") or []
+        return json.loads(rows[0]["Showrunner_Directive__c"]) if rows and rows[0].get("Showrunner_Directive__c") else {}
+    except Exception:
+        return {}
+
+
+def render_report(manifest: dict, quality: dict, qa_issues: List[str]) -> dict:
+    """What happened in this render, for the Showrunner agents (stored on the Reel)."""
+    visual = dict(manifest.get("visual_qa") or {})
+    visual.pop("renderer", None)
+    quality = quality or {}
+    return {
+        "visual_qa": {k: visual.get(k) for k in ("status", "edit_score", "up_to_mark", "issues", "fixed_issues", "edit_notes",
+                                                  "summary", "rounds", "checker")},
+        "fact_check": quality.get("fact_check"),
+        "director": {"score": (quality.get("quality") or {}).get("overall"), "notes": (quality.get("quality") or {}).get("notes")},
+        "qa_issues": qa_issues,
+        "duration_seconds": (manifest.get("validation") or {}).get("summary", {}).get("duration"),
+        "shots_per_scene": manifest.get("shots"),
+        "pictures_rejected": len(manifest.get("image_rejections") or []),
+        "rejection_examples": (manifest.get("image_rejections") or [])[:5],
+        "cover": manifest.get("designed_cover"),
+        "music": (manifest.get("music") or {}).get("title") if isinstance(manifest.get("music"), dict) else manifest.get("music"),
+    }
+
+
 def recent_pictures(sf, limit: int = 10) -> List[str]:
     """Picture fingerprints used by the last Reels (stored in their Script_JSON__c)."""
     try:
@@ -474,6 +506,14 @@ def generate(args, sf) -> int:
     recent_ids, recent_anime = recent_usage(sf)
     anime_hint, topic = args.anime or "", args.topic or ""
 
+    directive = showrunner_directive(sf, cid)
+    if directive:  # a remake ordered by the Showrunner agent: its instructions win over the usual planning
+        args.anime = directive.get("show") or args.anime
+        args.topic = directive.get("topic") or args.topic
+        args.format = directive.get("format") or args.format
+        anime_hint, topic = args.anime or "", args.topic or ""
+        log(f"Showrunner directive: show={args.anime or '-'} topic={args.topic or '-'} format={args.format} "
+            f"notes={str(directive.get('notes'))[:200]}")
     # Creative Strategist: what to make and how it should look (format, angle, length, style)
     decision = {}
     if not isinstance(sf, NullSalesforce):
@@ -491,6 +531,8 @@ def generate(args, sf) -> int:
     style = decision.get("style") or resolve_style(None)
     angle = str(decision.get("angle") or "")
     lessons, idea = learning_inputs(sf, args.format)
+    if directive:
+        lessons = [f"SHOWRUNNER (must follow): {directive.get('notes')}"] + lessons
     hot_topic = decision.get("hot_topic") if isinstance(decision.get("hot_topic"), dict) else None
     history = recent_reels(sf, exclude=cid)
     if hot_topic or args.slot == "Morning":  # enforced in code: topic, show and per-day variety
@@ -498,11 +540,15 @@ def generate(args, sf) -> int:
         if chosen is not hot_topic:
             angle = ""  # the strategist's angle was about a different topic
         hot_topic = chosen
+    if directive:  # the Showrunner's remake instructions are final
+        hot_topic, angle = None, ""
+        args.format = directive.get("format") or args.format
+        anime_hint, topic = directive.get("show") or anime_hint, directive.get("topic") or topic
     last = history[0] if history else {}
     if decision.get("anime") and not hot_topic and same_show(str(decision["anime"]), last.get("anime", "")):
         log(f"strategist picked {decision['anime']} again right after the last Reel; letting the planner choose another show")
         decision["anime"], angle = None, ""
-    new_format = vary_format(args.format, last.get("format", ""), cid)
+    new_format = args.format if directive.get("format") else vary_format(args.format, last.get("format", ""), cid)
     if new_format != args.format:
         log(f"format {args.format} repeats the previous Reel; using {new_format}")
         args.format = new_format
@@ -629,6 +675,7 @@ def generate(args, sf) -> int:
         "Cover_URL__c": urls.get(f"{cid}.jpg"), "Video_URL__c": urls.get(f"{cid}.mp4"),
         "Duration_Seconds__c": manifest["validation"]["summary"].get("duration"), "Status__c": "Rendered",
         "Error_Message__c": None, "Script_Source__c": source, "Music_Choice__c": music_choice, "QA_Issues__c": "\n".join(qa_issues)[:2000] or None,
+        "Render_Report__c": json.dumps(render_report(manifest, quality, qa_issues), ensure_ascii=False)[:131000],
     }
     if linked:
         fields["Anime__r"] = {"AniList_Id__c": plan.anilist_id}
@@ -653,17 +700,16 @@ def generate(args, sf) -> int:
 
     fields["Approval_Status__c"] = "Auto-Approved"
     if truthy(args.dry_run):
-        fields["Error_Message__c"] = "Dry run: rendered and approved, not posted to Instagram."
-        sf.reel_update(cid, **fields)
-        sf.job_update(job, Status__c="Succeeded", Stage__c="Dry run complete", Completed_At__c=now_iso())
-        log("dry run: not publishing")
-        return 0
-
+        fields["Error_Message__c"] = "Dry run: rendered, not posted to Instagram."
     sf.reel_update(cid, **fields)
-    hold, trial = gate_decision(sf, cid)
+    hold, trial = gate_decision(sf, cid)  # the gate runs in dry runs too: a hold wakes the Showrunner
     if hold:
         sf.job_update(job, Status__c="Succeeded", Stage__c="Held for review by the quality gate", Completed_At__c=now_iso())
-        log("held for review by the Salesforce quality gate")
+        log("held for review by the Salesforce quality gate (the Showrunner agent takes it from here)")
+        return 0
+    if truthy(args.dry_run):
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Dry run complete", Completed_At__c=now_iso())
+        log("dry run: passed the gate, not publishing")
         return 0
     try:
         wait_for_posting_window(sf)

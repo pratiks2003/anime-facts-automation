@@ -482,7 +482,7 @@ class VarietyRulesTests(unittest.TestCase):
         import json as _json
         return type("SF", (), {"query": lambda self, q: [{"Brief_JSON__c": _json.dumps(brief)}]})()
 
-    def test_no_fool_night_four_times(self):
+    def test_booming_show_repeats_but_never_four_times(self):
         from pipeline.run_reel import choose_hot_topic
         brief = {"hot_topics": [
             {"topic": "Fool Night Netflix release and cast reveal", "anime": "Fool Night", "heat": 9},
@@ -490,10 +490,10 @@ class VarietyRulesTests(unittest.TestCase):
             "show_ranking": [{"anime": "Overgeared", "hot": True, "score": 6, "headline": {"title": "Overgeared climax trailer"}}]}
         recent = [{"anime": "Fool Night", "format": "Quiz", "age_h": 3, "text": "Can you crack Netflix's plant mystery"}]
         got = choose_hot_topic(self._sf(brief), brief["hot_topics"][0], recent)
-        self.assertEqual(got["anime"], "ONE PIECE", "same show as the previous Reel is skipped")
-        recent2 = [{"anime": "ONE PIECE", "format": "Fact", "age_h": 1, "text": "gear 5"}] + recent
+        self.assertEqual(got["anime"], "Fool Night", "a booming show gets a second Reel on a new angle")
+        recent2 = [{"anime": "Fool Night", "format": "Fact", "age_h": 1, "text": "netflix release cast reveal"}] + recent
         got2 = choose_hot_topic(self._sf(brief), brief["hot_topics"][0], recent2)
-        self.assertEqual(got2["anime"], "Overgeared", "Fool Night already had a Reel today -> next show")
+        self.assertEqual(got2["anime"], "ONE PIECE", "two Fool Night Reels today -> no third")
 
     def test_breaking_allows_second_reel_same_day_on_new_topic(self):
         from pipeline.run_reel import choose_hot_topic
@@ -501,7 +501,8 @@ class VarietyRulesTests(unittest.TestCase):
         recent = [{"anime": "ONE PIECE", "format": "Fact", "age_h": 2, "text": "gear 5"},
                   {"anime": "Fool Night", "format": "Quiz", "age_h": 6, "text": "plant mystery quiz"}]
         self.assertIs(choose_hot_topic(self._sf({}), hot, recent, breaking=True), hot)
-        self.assertIsNone(choose_hot_topic(self._sf({}), hot, recent, breaking=False))
+        mild = dict(hot, heat=6)
+        self.assertIsNone(choose_hot_topic(self._sf({}), mild, recent, breaking=False))
 
     def test_format_never_repeats(self):
         from pipeline.run_reel import vary_format

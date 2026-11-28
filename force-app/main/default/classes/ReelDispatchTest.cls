@@ -80,7 +80,8 @@ private class ReelDispatchTest {
         Test.stopTest();
         Anime_Content__c c = [SELECT External_Id__c, Status__c FROM Anime_Content__c];
         Assert.areEqual('R-20261125-AM', c.External_Id__c);
-        Assert.areEqual('Generating', c.Status__c);
+        Assert.areEqual('Queued', c.Status__c); // the Showrunner's Planner decides it first (fallback: default plan)
+        Assert.areEqual(1, [SELECT COUNT() FROM Agent_Activity__c WHERE Agent__c = 'Planner' AND Reel__c = 'R-20261125-AM']);
     }
 
     @IsTest

@@ -336,10 +336,10 @@ def same_show(a: str, b: str) -> bool:
 
 
 def choose_hot_topic(sf, hot: Optional[dict], recent: List[dict], breaking: bool = False) -> Optional[dict]:
-    """Code-enforced variety for hot topics:
-    - never a topic covered in the last 24 h;
-    - never the same show as the previous Reel;
-    - at most one Reel per show per 24 h, unless breaking news (heat >= 9) on a different topic.
+    """Fallback only (the Showrunner's Planner normally decides each slot): views first, light variety.
+    - never the exact topic covered in the last 24 h (a repeat Reel earns nothing);
+    - a booming show (heat >= 8) may be covered again from a new angle, even back to back (max 2 per 24 h);
+    - otherwise prefer a different show from the previous Reel / last 24 h.
     Falls through the brief's hot topics, then the cross-checked show ranking."""
     last_show = recent[0]["anime"] if recent else ""
     shows_24h = [r["anime"] for r in recent if r["age_h"] <= 24]
@@ -351,9 +351,11 @@ def choose_hot_topic(sf, hot: Optional[dict], recent: List[dict], breaking: bool
 
     def ok(t: dict, strict: bool = True) -> bool:
         anime = str(t.get("anime") or "")
-        if not anime or topic_covered(t) or same_show(anime, last_show):
+        if not anime or topic_covered(t):
             return False
-        if any(same_show(anime, s) for s in shows_24h):
+        if (t.get("heat") or 0) >= 8 and sum(same_show(anime, s) for s in shows_24h) < 2:
+            return True  # booming right now: views beat variety (but never a third Reel on one show in 24 h)
+        if same_show(anime, last_show) or any(same_show(anime, s) for s in shows_24h):
             return breaking and (t.get("heat") or 0) >= 9 and not strict
         return True
 
@@ -609,7 +611,7 @@ def generate(args, sf) -> int:
                 raise RuntimeError("template script invalid: " + "; ".join(problems))
     log(f"script source: {source}")
     script["style"] = style
-    trending_sound = bool(decision.get("needs_trending_sound"))
+    trending_sound = False  # the owner wants zero manual steps: always render with library music
     OUTPUT.mkdir(exist_ok=True)
     script_path = OUTPUT / f"{cid}.script.json"
     script_path.write_text(json.dumps(script, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -717,9 +719,9 @@ def generate(args, sf) -> int:
     try:
         wait_for_posting_window(sf)
     except SpacingHold as exc:
-        reason = f"Posting limit: {exc}. Approve it on the admin site later, or switch the limit off in Settings."
+        reason = f"Posting limit: {exc}. Posts automatically when the window opens."
         sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Hold_Reason__c=reason)
-        sf.job_update(job, Status__c="Succeeded", Stage__c="Held: post spacing", Completed_At__c=now_iso())
+        sf.job_update(job, Status__c="Succeeded", Stage__c="Waiting: post spacing", Completed_At__c=now_iso())
         log(reason)
         return 0
     stage("Publishing to Instagram" + (" as a Trial Reel" if trial else ""))
@@ -728,12 +730,13 @@ def generate(args, sf) -> int:
         media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
                                                    urls.get(f"{cid}.mp4"), trial=trial,
                                                    cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None)
-    except TrialNotAvailable as exc:
-        reason = "Trial Reels are not available for this account yet (Instagram eligibility); held for your review."
-        sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Publish_As_Trial__c=False, Hold_Reason__c=reason)
-        sf.job_update(job, Status__c="Succeeded", Stage__c="Held: trial not available", Completed_At__c=now_iso())
-        log(f"{reason} ({exc})")
-        return 0
+    except TrialNotAvailable as exc:  # no hold: post it as a normal Reel
+        log(f"Trial Reels not available ({exc}); posting as a normal Reel")
+        trial = False
+        sf.reel_update(cid, Publish_As_Trial__c=False)
+        media_id, permalink = publish_to_instagram(Path(manifest["video"]), manifest["caption"], manifest["thumb_offset_ms"],
+                                                   urls.get(f"{cid}.mp4"), trial=False,
+                                                   cover_url=urls.get(f"{cid}.jpg") if manifest.get("designed_cover") else None)
     sf.record_post(cid, media_id, permalink, trial=trial)
     sf.reel_update(cid, Status__c="Published")
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
@@ -763,7 +766,7 @@ def publish(args, sf) -> int:
     try:  # owner-approved posts still respect the posting limit - held (not failed) when over it
         wait_for_posting_window(sf)
     except SpacingHold as exc:
-        reason = f"Posting limit: {exc}. Approve again later, or switch the limit off in Settings."
+        reason = f"Posting limit: {exc}. Posts automatically when the window opens."
         sf.reel_update(cid, Status__c="Rendered", Approval_Status__c="Pending", Hold_Reason__c=reason)
         sf.job_update(job, Status__c="Succeeded", Stage__c="Held: posting limit", Completed_At__c=now_iso())
         log(reason)

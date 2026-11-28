@@ -19,7 +19,7 @@ public with sharing class ShowrunnerRecentReels {
         List<Map<String, Object>> rows = new List<Map<String, Object>>();
         for (Anime_Content__c c : [
             SELECT External_Id__c, CreatedDate, Slot__c, Anime__r.Name, Format__c, Topic__c, Status__c, Quality_Score__c,
-                Hold_Reason__c, (SELECT Views__c, Avg_Watch_Time_Ms__c FROM Social_Posts__r LIMIT 1)
+                Hold_Reason__c, (SELECT Views__c, Reach__c, Shares__c, Saves__c, Avg_Watch_Time_Ms__c FROM Social_Posts__r LIMIT 1)
             FROM Anime_Content__c ORDER BY CreatedDate DESC LIMIT :n
         ]) {
             Social_Post__c p = c.Social_Posts__r.isEmpty() ? null : c.Social_Posts__r[0];
@@ -27,7 +27,8 @@ public with sharing class ShowrunnerRecentReels {
                 'id' => c.External_Id__c, 'when' => c.CreatedDate, 'slot' => c.Slot__c,
                 'show' => c.Anime__r == null ? null : c.Anime__r.Name, 'format' => c.Format__c, 'topic' => c.Topic__c,
                 'status' => c.Status__c, 'director_score' => c.Quality_Score__c, 'hold_reason' => c.Hold_Reason__c,
-                'views' => p == null ? null : p.Views__c,
+                'views' => p == null ? null : p.Views__c, 'reach' => p == null ? null : p.Reach__c,
+                'shares' => p == null ? null : p.Shares__c, 'saves' => p == null ? null : p.Saves__c,
                 'avg_watch_seconds' => p == null || p.Avg_Watch_Time_Ms__c == null ? null : p.Avg_Watch_Time_Ms__c / 1000
             });
         }

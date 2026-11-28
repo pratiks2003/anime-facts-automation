@@ -19,8 +19,29 @@ public with sharing class ReelScheduler implements Schedulable {
         }
         List<Anime_Content__c> planned = ReelSlotPlanner.planDue(now);
         if (!planned.isEmpty()) {
-            List<Id> ids = new List<Id>(new Map<Id, Anime_Content__c>(planned).keySet());
-            System.enqueueJob(new ReelDispatchQueueable(ids, ReelDispatchQueueable.GENERATE));
+            // the Showrunner's Planner decides what each slot becomes (falls back to direct rendering)
+            ShowrunnerEvents.planSlots(new List<Id>(new Map<Id, Anime_Content__c>(planned).keySet()));
+        }
+        releasePostingLimitHolds(now);
+    }
+
+    /** Reels that only waited for the posting limit are posted automatically once the window allows. */
+    public static void releasePostingLimitHolds(Datetime now) {
+        Map<String, Object> policy = InstaAgentConfig.postingPolicy();
+        if ((Boolean) policy.get('enabled') && (Integer) policy.get('posts_last_24h') >= (Integer) policy.get('max_per_day')) {
+            return;
+        }
+        Integer gap = (Integer) policy.get('min_gap_minutes');
+        List<Social_Post__c> last = [SELECT Published_At__c FROM Social_Post__c WHERE Status__c = 'Published' AND Published_At__c != null
+                                     ORDER BY Published_At__c DESC LIMIT 1];
+        if ((Boolean) policy.get('enabled') && !last.isEmpty() && last[0].Published_At__c > now.addMinutes(-gap)) {
+            return;
+        }
+        List<Anime_Content__c> waiting = [SELECT Id FROM Anime_Content__c WHERE Status__c = 'Rendered' AND Approval_Status__c = 'Pending'
+                                          AND Hold_Reason__c LIKE 'Posting limit%' ORDER BY CreatedDate ASC LIMIT 1];
+        if (!waiting.isEmpty()) {
+            update new Anime_Content__c(Id = waiting[0].Id, Approval_Status__c = 'Approved', Hold_Reason__c = null);
+            ShowrunnerSupport.log('Ops', 'Released posting-limit wait', null, 'Posting window open again', false, 'info');
         }
     }
 

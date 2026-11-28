@@ -1,5 +1,5 @@
 /**
- * Events -> Showrunner. When a Reel is held by the quality gate or fails, the Showrunner agent is woken
+ * Events -> Showrunner. Due slots go to the Planner; when a Reel is held by the quality gate or fails, the Showrunner agent is woken
  * (asynchronously) with what happened and decides what to do using its actions.
  * Holds placed by the Showrunner itself ("Showrunner: ...") never re-trigger it.
  */
@@ -27,6 +27,49 @@ public with sharing class ShowrunnerEvents {
         }
         if (!events.isEmpty() && Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
             System.enqueueJob(new Wake(events));
+        }
+    }
+
+    /** Scheduled slots go to the Showrunner's Planner first; if it does not start rendering, the slot renders anyway. */
+    public static void planSlots(List<Id> contentIds) {
+        if (contentIds.isEmpty()) {
+            return;
+        }
+        System.enqueueJob(new Plan(contentIds));
+    }
+
+    public class Plan implements Queueable, Database.AllowsCallouts {
+        private final List<Id> ids;
+
+        public Plan(List<Id> ids) {
+            this.ids = ids;
+        }
+
+        public void execute(QueueableContext context) {
+            List<Id> fallback = new List<Id>();
+            Map<String, String> answers = new Map<String, String>();  // logged after all callouts (no DML before a callout)
+            for (Anime_Content__c c : [SELECT Id, External_Id__c, Slot__c, Scheduled_For__c, Format__c FROM Anime_Content__c WHERE Id IN :ids]) {
+                String answer;
+                try {
+                    answer = disabled ? 'disabled' : ask('EVENT plan_due: Reel ' + c.External_Id__c + ' is the ' + c.Slot__c + ' slot, posting at '
+                        + c.Scheduled_For__c.format('HH:mm', InstaAgentConfig.TIMEZONE_ID) + ' IST (rotation suggests ' + c.Format__c
+                        + '). Decide what this Reel should be to get the most views right now, then submit_plan.');
+                } catch (Exception e) {
+                    answer = 'Agent unavailable: ' + e.getMessage();
+                }
+                answers.put(c.External_Id__c, answer);
+                Anime_Content__c now = [SELECT Showrunner_Directive__c, Status__c FROM Anime_Content__c WHERE Id = :c.Id];
+                if (String.isBlank(now.Showrunner_Directive__c) && now.Status__c == 'Queued') {
+                    fallback.add(c.Id);
+                }
+            }
+            if (!fallback.isEmpty() && !Test.isRunningTest()) {  // never miss a slot because the agent was busy
+                System.enqueueJob(new ReelDispatchQueueable(fallback, ReelDispatchQueueable.GENERATE));
+            }
+            for (String reelId : answers.keySet()) {
+                ShowrunnerSupport.log('Planner', 'Handled event', reelId, 'EVENT plan_due ' + reelId + '\n\nShowrunner: ' + answers.get(reelId)
+                    + (fallback.isEmpty() ? '' : '\n(No plan submitted for some slots: rendered with the default plan.)'), false, 'info');
+            }
         }
     }
 

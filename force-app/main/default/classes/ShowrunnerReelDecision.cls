@@ -1,13 +1,13 @@
 /**
- * Showrunner actions on a rendered Reel: approve it for publishing, or hold it.
- * Guardrail (code, not the agent): approval is refused when the quality checker scored the edit below 7
- * or the fact checker flagged a problem. Publishing still goes through the posting limit.
+ * Showrunner actions on a rendered Reel: approve it for publishing. The owner wants no holds: remake or approve.
+ * The owner trusts the experts: no quality veto in code. qualityBlocker() is reported to the agent as advice.
+ * Publishing still goes through the posting limit (protects the Instagram account).
  */
 public with sharing class ShowrunnerReelDecision {
     public class Request {
         @InvocableVariable(label='Reel ID' description='External id of the Reel' required=true)
         public String reelId;
-        @InvocableVariable(label='Decision' description='approve or hold' required=true)
+        @InvocableVariable(label='Decision' description='approve' required=true)
         public String decision;
         @InvocableVariable(label='Reason' description='Why (shown to the owner)' required=true)
         public String reason;
@@ -17,33 +17,25 @@ public with sharing class ShowrunnerReelDecision {
         public String outcome;
     }
 
-    @InvocableMethod(label='Decide Reel' description='Approve a rendered Reel for publishing (only if it meets the quality bar) or hold it for the owner.')
+    @InvocableMethod(label='Decide Reel' description='Approve a rendered Reel for publishing. The checkers\' concerns are returned as advice.')
     public static List<Result> run(List<Request> requests) {
         Request q = requests[0];
         Result r = new Result();
         Anime_Content__c c = ShowrunnerSupport.reel(q.reelId);
         if (q.decision == 'approve') {
-            String blocker = qualityBlocker(c);
-            if (blocker != null) {
-                r.outcome = 'Refused: ' + blocker + ' Remake it or hold it.';
-                return new List<Result>{ r };
-            }
             if (c.Status__c != 'Rendered') {
                 r.outcome = 'Refused: only rendered Reels can be approved (status ' + c.Status__c + ').';
                 return new List<Result>{ r };
             }
             c.Approval_Status__c = 'Approved';
             c.Hold_Reason__c = null;
+            String concern = qualityBlocker(c);
             update c; // trigger -> publish workflow (which enforces the posting limit)
             ShowrunnerSupport.log('Showrunner', 'Approve Reel', q.reelId, q.reason, false, 'info');
-            r.outcome = 'Approved: ' + q.reelId + ' goes to the publish queue.';
+            r.outcome = 'Approved: ' + q.reelId + ' goes to the publish queue.'
+                + (concern == null ? '' : ' (Note: ' + concern + ' You chose to post it anyway.)');
         } else {
-            c.Approval_Status__c = 'Pending';
-            c.Hold_Reason__c = ('Showrunner: ' + q.reason).abbreviate(255);
-            if (c.Status__c == 'Approved' || c.Status__c == 'Queued') c.Status__c = 'Rendered';
-            update c;
-            ShowrunnerSupport.log('Showrunner', 'Hold Reel', q.reelId, q.reason, true, 'warning');
-            r.outcome = 'Held: ' + q.reelId + ' waits for the owner.';
+            r.outcome = 'Refused: the owner wants no holds. Remake it (if remakes are left) or approve your best version.';
         }
         return new List<Result>{ r };
     }

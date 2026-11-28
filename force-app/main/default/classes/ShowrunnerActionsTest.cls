@@ -33,15 +33,57 @@ private class ShowrunnerActionsTest {
     }
 
     @IsTest
-    static void approveRespectsQualityBar() {
+    static void expertsDecideNoHolds() {
         Test.setMock(HttpCalloutMock.class, new InstaAgentTestUtil.GitHubMock(204));
         Test.startTest();
-        Assert.isTrue(ShowrunnerReelDecision.run(new List<ShowrunnerReelDecision.Request>{ decision('SR-2', 'approve') })[0].outcome.startsWith('Refused'));
+        Assert.isTrue(ShowrunnerReelDecision.run(new List<ShowrunnerReelDecision.Request>{ decision('SR-2', 'hold') })[0].outcome.startsWith('Refused'));
+        String low = ShowrunnerReelDecision.run(new List<ShowrunnerReelDecision.Request>{ decision('SR-2', 'approve') })[0].outcome;
+        Assert.isTrue(low.startsWith('Approved') && low.contains('5/10'), low);
         Assert.isTrue(ShowrunnerReelDecision.run(new List<ShowrunnerReelDecision.Request>{ decision('SR-1', 'approve') })[0].outcome.startsWith('Approved'));
-        Assert.isTrue(ShowrunnerReelDecision.run(new List<ShowrunnerReelDecision.Request>{ decision('SR-2', 'hold') })[0].outcome.startsWith('Held'));
         Test.stopTest();
-        Assert.isTrue([SELECT Hold_Reason__c FROM Anime_Content__c WHERE External_Id__c = 'SR-2'].Hold_Reason__c.startsWith('Showrunner:'));
-        Assert.areEqual(1, [SELECT COUNT() FROM Agent_Activity__c WHERE Needs_Owner__c = true]);
+        Assert.areEqual(0, [SELECT COUNT() FROM Agent_Activity__c WHERE Needs_Owner__c = true]);
+    }
+
+    @IsTest
+    static void plannerSubmitsAPlan() {
+        Test.setMock(HttpCalloutMock.class, new InstaAgentTestUtil.GitHubMock(204));
+        insert new Anime_Content__c(Name = 'R3', External_Id__c = 'SR-3', Format__c = 'Quiz', Status__c = 'Queued', Approval_Status__c = 'Pending');
+        ShowrunnerSubmitPlan.Request q = new ShowrunnerSubmitPlan.Request();
+        q.reelId = 'SR-3'; q.show = 'One Piece'; q.topic = 'Why Gear 5 is everywhere today'; q.format = 'Backstory'; q.brief = 'hook on the laugh';
+        Test.startTest();
+        Assert.isTrue(ShowrunnerSubmitPlan.run(new List<ShowrunnerSubmitPlan.Request>{ q })[0].outcome.startsWith('Planned'));
+        q.reelId = 'SR-1';
+        Assert.isTrue(ShowrunnerSubmitPlan.run(new List<ShowrunnerSubmitPlan.Request>{ q })[0].outcome.startsWith('Refused'));
+        Test.stopTest();
+        Anime_Content__c c = [SELECT Format__c, Topic__c, Showrunner_Directive__c FROM Anime_Content__c WHERE External_Id__c = 'SR-3'];
+        Assert.areEqual('Backstory', c.Format__c);
+        Assert.isTrue(c.Showrunner_Directive__c.contains('Gear 5') && c.Showrunner_Directive__c.contains('Planner'));
+    }
+
+    @IsTest
+    static void dueSlotsGoToThePlannerWithFallback() {
+        Test.setMock(HttpCalloutMock.class, new InstaAgentTestUtil.GitHubMock(204));
+        Anime_Content__c c = new Anime_Content__c(Name = 'R4', External_Id__c = 'SR-4', Format__c = 'Quiz', Status__c = 'Queued',
+            Approval_Status__c = 'Pending', Slot__c = 'Morning', Scheduled_For__c = Datetime.now().addHours(2));
+        insert c;
+        Test.startTest();
+        ShowrunnerEvents.planSlots(new List<Id>{ c.Id });
+        Test.stopTest();
+        String details = [SELECT Details__c FROM Agent_Activity__c WHERE Action__c = 'Handled event' LIMIT 1].Details__c;
+        Assert.isTrue(details.contains('plan_due') && details.contains('default plan'), details);
+    }
+
+    @IsTest
+    static void postingLimitWaitsReleaseThemselves() {
+        Test.setMock(HttpCalloutMock.class, new InstaAgentTestUtil.GitHubMock(204));
+        Anime_Content__c c = [SELECT Id FROM Anime_Content__c WHERE External_Id__c = 'SR-2'];
+        update new Anime_Content__c(Id = c.Id, Hold_Reason__c = 'Posting limit: 6 Reels in 24 h. Posts automatically when the window opens.');
+        Test.startTest();
+        ReelScheduler.releasePostingLimitHolds(Datetime.now());
+        Test.stopTest();
+        Anime_Content__c after = [SELECT Approval_Status__c, Hold_Reason__c FROM Anime_Content__c WHERE Id = :c.Id];
+        Assert.areEqual('Approved', after.Approval_Status__c);
+        Assert.isNull(after.Hold_Reason__c);
     }
 
     @IsTest

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <AiAgentDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <agentDSLEnabled>true</agentDSLEnabled>
-    <agentDescription>Master agent of the Senpai Secrets channel: routes events and questions to the Editor, Ops and Insights subagents, which diagnose problems and fix them with single-purpose actions.</agentDescription>
+    <agentDescription>Master agent of the Senpai Secrets channel: routes events and questions to the Planner, Editor, Ops and Insights subagents, which diagnose problems and fix them with single-purpose actions.</agentDescription>
     <agentType>EinsteinServiceAgent</agentType>
     <botUser>senpai.showrunner.00dgk00000h7w0quae@example.com</botUser>
     <logPrivateConversationData>false</logPrivateConversationData>

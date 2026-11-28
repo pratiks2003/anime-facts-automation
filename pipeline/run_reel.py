@@ -435,6 +435,7 @@ def render_report(manifest: dict, quality: dict, qa_issues: List[str]) -> dict:
     quality = quality or {}
     return {
         "visual_qa": {k: visual.get(k) for k in ("status", "edit_score", "up_to_mark", "issues", "fixed_issues", "edit_notes",
+                                                  "direction_score", "direction_notes",
                                                   "summary", "rounds", "checker")},
         "fact_check": quality.get("fact_check"),
         "director": {"score": (quality.get("quality") or {}).get("overall"), "notes": (quality.get("quality") or {}).get("notes")},
@@ -637,6 +638,11 @@ def generate(args, sf) -> int:
         edits, unsupported = normalize_edits(directive["edits"])
         editor_requests += unsupported
         log(f"Showrunner edits: {apply_edits(script, edits)} effect(s) placed; not supported yet: {unsupported or '-'}")
+    if directive:  # the quality checker (Gemini) judges the Reel against this direction too
+        script["direction"] = {"brief": str(directive.get("notes") or "")[:900], "topic": directive.get("topic"),
+                               "effects": {str(i + 1) + ":" + str(sc.get("role")): sc.get("fx")
+                                           for i, sc in enumerate(script.get("scenes") or []) if sc.get("fx")},
+                               "style": directive.get("style")}
     if editor_requests:
         report_feature_requests(sf, cid, editor_requests)
     trending_sound = False  # the owner wants zero manual steps: always render with library music

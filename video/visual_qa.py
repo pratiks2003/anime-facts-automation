@@ -55,6 +55,14 @@ Return ONLY JSON: {{"shots": [{{"shot": n, "on_screen": str, "matches": bool, "s
 "edit_score": 1-10, "up_to_mark": bool, "edit_notes": ["what would make this a better edit"]}}
 major = wrong character / wrong show / unsafe / watermark; minor = weak but acceptable."""
 
+DIRECTION = """
+The Showrunner (our head of content) directed this edit. Also judge how well the Reel follows that direction:
+{direction}
+Effects that hit at a scene's start (impact_text, freeze, flash, glitch, shake, zoom_punch) are shown in the extra
+"effect check" frames after the shots; versus, letterbox, rank_badge, bw / red_tint / blue_tint last the whole scene.
+Add to the JSON: "direction_score": 1-10 (did the pictures, tone and effects deliver the brief?),
+"direction_notes": ["what is missing or wrong versus the direction, concretely"]."""
+
 
 def log(msg: str) -> None:
     print(f"[visual-qa] {msg}", file=sys.stderr, flush=True)
@@ -119,12 +127,23 @@ def sentence_at(narration, start: float, end: float) -> str:
 def review(renderer, narration, script: dict, gemini: Gemini, shot_sources: List[Optional[str]]) -> Optional[dict]:
     """{"bad": [shot indices], "issues": [str], "summary": str} or None when the agent is unavailable."""
     shots = renderer.shots
-    parts = [{"text": PROMPT.format(anime=script["anime"])}]
+    direction = script.get("direction") or {}
+    prompt = PROMPT.format(anime=script["anime"])
+    if direction:
+        prompt += DIRECTION.format(direction=json.dumps(direction, ensure_ascii=False)[:1500])
+    parts = [{"text": prompt}]
     for i, shot in enumerate(shots):
         mid = (shot.start + shot.end) / 2
         parts.append({"text": f"Shot {i + 1} ({'video clip' if shot.clip else 'still'}) - narration: "
                               f"\"{sentence_at(narration, shot.start, shot.end)}\""})
         parts.append(jpeg_part(renderer.frame(mid, captions=False)))
+    if direction:  # one frame just after each scene start that has a timed effect
+        timed = {"impact_text", "freeze", "flash", "glitch", "shake", "zoom_punch"}
+        for k, (sc, spec) in enumerate(zip(narration.scenes, script.get("scenes") or [])):
+            names = sorted(timed & {str(f.get("fx") if isinstance(f, dict) else f) for f in spec.get("fx") or []})
+            if names:
+                parts.append({"text": f"Effect check - scene {k + 1} ({sc.role}) at its start: {', '.join(names)}"})
+                parts.append(jpeg_part(renderer.frame(sc.start + 0.12, captions=False)))
     result = gemini.json(parts)
     if not result:
         return None
@@ -147,6 +166,8 @@ def review(renderer, narration, script: dict, gemini: Gemini, shot_sources: List
     return {"bad": bad, "issues": issues, "summary": str(result.get("summary") or "")[:300],
             "edit_score": score, "up_to_mark": bool(result.get("up_to_mark", score is None or score >= 7)),
             "edit_notes": [str(n)[:200] for n in (result.get("edit_notes") or [])][:5],
+            "direction_score": result.get("direction_score") if direction else None,
+            "direction_notes": [str(n)[:200] for n in (result.get("direction_notes") or [])][:5] if direction else [],
             "weak": weak,
             "bad_sources": [shot_sources[i] for i in bad if i < len(shot_sources) and shot_sources[i]]}
 

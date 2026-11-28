@@ -282,10 +282,13 @@ def run_visual_qa(script, narration, style, renderer, gemini, channel: dict, bea
             break
         log(f"visual QA round {attempt + 1}: {len(result['bad'])} wrong shot(s), edit score {result['edit_score']}/10 - "
             f"{result['summary']}")
+        if result.get("direction_score") is not None:
+            log(f"  follows the Showrunner's direction: {result['direction_score']}/10 {result.get('direction_notes') or ''}")
         for issue in result["issues"]:
             log(f"  {issue}")
         report = {"status": "checked", "summary": result["summary"], "issues": result["issues"],
                   "edit_score": result["edit_score"], "up_to_mark": result["up_to_mark"], "edit_notes": result["edit_notes"],
+                  "direction_score": result.get("direction_score"), "direction_notes": result.get("direction_notes", []),
                   "rounds": attempt + 1, "fixed": fixed, "fixed_issues": report.get("fixed_issues", []) + report.get("issues", [])
                   if attempt else []}
         # weak shots: when the edit is below 8/10, act on the editor's "show this instead" suggestions

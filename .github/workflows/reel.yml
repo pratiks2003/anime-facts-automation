@@ -91,6 +91,9 @@ jobs:
       - name: Refresh the agents' knowledge library (Data Cloud)
         if: always()
         continue-on-error: true
+        env:  # only this step may use the owner-run app (Data Library access); the render keeps the limited user
+          SF_CLIENT_ID: ${{ secrets.SF_KB_CLIENT_ID || secrets.SF_CLIENT_ID }}
+          SF_CLIENT_SECRET: ${{ secrets.SF_KB_CLIENT_SECRET || secrets.SF_CLIENT_SECRET }}
         run: python -m tools.sync_knowledge
 
       - name: Upload render (for debugging)

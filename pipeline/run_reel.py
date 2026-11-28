@@ -853,6 +853,9 @@ def generate(args, sf) -> int:
     from integrations.facebook import cross_post_reel
 
     cross_post_reel(urls.get(f"{cid}.mp4"), manifest["caption"])  # off unless FB_PAGE_ID is configured
+    from integrations.youtube import upload_short
+
+    upload_short(Path(manifest["video"]), manifest["caption"], plan.anime)  # off unless YT_REFRESH_TOKEN is configured
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     log(f"published: {permalink}")
     return 0
@@ -911,6 +914,9 @@ def publish(args, sf) -> int:
     from integrations.facebook import cross_post_reel
 
     cross_post_reel(main_url, rows[0]["Caption__c"] or "")  # off unless FB_PAGE_ID is configured
+    from integrations.youtube import upload_short
+
+    upload_short(video, rows[0]["Caption__c"] or "")  # off unless YT_REFRESH_TOKEN is configured
     sf.job_update(job, Status__c="Succeeded", Stage__c="Published", Completed_At__c=now_iso())
     return 0
 

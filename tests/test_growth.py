@@ -76,3 +76,15 @@ class FacebookTests(unittest.TestCase):
         finally:
             os.environ.pop("FB_PAGE_ID", None)
             os.environ.pop("IG_ACCESS_TOKEN", None)
+
+
+class YouTubeTests(unittest.TestCase):
+    def test_metadata_and_off_without_token(self):
+        import os
+        from integrations.youtube import shorts_metadata, upload_short
+        m = shorts_metadata("Gear 5 is wild | One Piece\n#onepiece #anime", "One Piece")
+        self.assertEqual(m["snippet"]["title"], "Gear 5 is wild | One Piece #Shorts")
+        self.assertEqual(m["snippet"]["tags"], ["onepiece", "anime"])
+        for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN"):
+            os.environ.pop(k, None)
+        self.assertIsNone(upload_short("x.mp4", "cap"))

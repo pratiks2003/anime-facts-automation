@@ -23,6 +23,9 @@ jobs:
     env:
       IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
       FB_PAGE_ID: ${{ vars.FB_PAGE_ID }} # Facebook Reels cross-post (off when empty)
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }} # YouTube Shorts cross-post (off when empty)
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
       IG_USER_ID: ${{ vars.IG_USER_ID }}
       IG_LOGIN: ${{ vars.IG_LOGIN }}
       SF_DOMAIN: ${{ vars.SF_DOMAIN }}

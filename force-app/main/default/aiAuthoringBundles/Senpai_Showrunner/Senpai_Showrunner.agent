@@ -42,6 +42,17 @@ subagent planner:
     description: "Decides what each scheduled Reel becomes (show, topic, format, creative brief) to get the most views right now, then starts rendering."
 
     actions:
+        find_facts:
+            description: "Keyword search over ALL verified facts, including the newest ones added after recent Reels."
+            inputs:
+                searchText: string
+                    description: "Names or keywords, e.g. 'Ivy spiriflor' or 'Gear 5'"
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                factsJson: string
+                    description: "Matching facts as JSON (id, show, fact, canon status, source)"
+            target: "apex://ShowrunnerFindFacts"
         get_editor_capabilities:
             description: "Everything the video editor can do: per-scene effects (impact text, versus split screen, freeze-frame, rank badge, colour grades, letterbox, hits), whole-Reel style settings with limits, and what it cannot do yet."
             inputs:
@@ -136,7 +147,8 @@ subagent planner:
                 Do not avoid a show just because we posted it recently; avoid it only if its last Reels underperformed or the
                 audience would see the same Reel twice.
               - Mix in a proven evergreen hit (lore, hidden details, who would win on big shows) when nothing is truly hot.
-              - Check the angle with search_knowledge so the writers have verified facts to build on; prefer angles with facts.
+              - Check the angle with search_knowledge (by meaning) and find_facts (exact names, newest facts) so the writers
+                have verified facts to build on; prefer angles with facts.
               - Pick one show, one sharp topic, one format, and write a brief a top editor could act on: the hook line, the
                 shots, the payoff, the tone, and why it will win views today.
               - Direct the edit like a top editor: call get_editor_capabilities once and use its effects and style settings
@@ -146,6 +158,7 @@ subagent planner:
               - Call submit_plan exactly once with the Reel id from the event. Never ask the owner; decide.
               If the data shows a pattern worth keeping, record_lesson (planning). Finish with one line: what you planned and why.
         actions:
+            find_facts: @actions.find_facts
             get_editor_capabilities: @actions.get_editor_capabilities
             search_knowledge: @actions.search_knowledge
             get_recent_reels: @actions.get_recent_reels
@@ -159,6 +172,17 @@ subagent editor:
     description: "Reviews held or below-bar Reels, finds the root cause and fixes it: remake with precise instructions or approve the best version. Never waits for the owner."
 
     actions:
+        find_facts:
+            description: "Keyword search over ALL verified facts, including the newest ones added after recent Reels."
+            inputs:
+                searchText: string
+                    description: "Names or keywords, e.g. 'Ivy spiriflor' or 'Gear 5'"
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                factsJson: string
+                    description: "Matching facts as JSON (id, show, fact, canon status, source)"
+            target: "apex://ShowrunnerFindFacts"
         get_editor_capabilities:
             description: "Everything the video editor can do: per-scene effects (impact text, versus split screen, freeze-frame, rank badge, colour grades, letterbox, hits), whole-Reel style settings with limits, and what it cannot do yet."
             inputs:
@@ -297,14 +321,16 @@ subagent editor:
               - You control the edit directly: get_editor_capabilities tells you every effect and style setting; pass them in
                 remake_reel's style and edits (for example a slower image_interval if shots felt rushed, impact_text on a weak hook).
               - Accuracy is the brand: a fact problem is fixed with a remake, never posted as is; rumours run only as clearly-framed theories.
-                Before you judge or brief a claim, search_knowledge for it - the team's verified facts (with canon status and
-                sources) are the ground truth; if a claim is not there, treat it as unverified.
+                Before you judge or brief a claim, search_knowledge for it (and find_facts for exact names or the newest facts) -
+                the team's verified facts (with canon status and sources) are the ground truth; if a claim is in neither, treat it
+                as unverified.
               - A Reel held only by the posting limit is not a quality problem: leave it.
               - When remakes are used up, approve the best version. The one exception: if a claim is still factually wrong
                 (not just framed as a theory), skip the slot and send the owner an FYI note - a wrong fact costs more views than it earns.
               - If you learned something that would prevent this next time, record it as a crisp lesson (check get_lessons first).
               Finish with a short, confident summary: what was wrong, what you decided, and what happens next.
         actions:
+            find_facts: @actions.find_facts
             get_editor_capabilities: @actions.get_editor_capabilities
             search_knowledge: @actions.search_knowledge
             get_reel_report: @actions.get_reel_report
@@ -382,6 +408,17 @@ subagent insights:
     description: "Answers the owner's questions about Reels, performance, trends and lessons, using real data."
 
     actions:
+        find_facts:
+            description: "Keyword search over ALL verified facts, including the newest ones added after recent Reels."
+            inputs:
+                searchText: string
+                    description: "Names or keywords, e.g. 'Ivy spiriflor' or 'Gear 5'"
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                factsJson: string
+                    description: "Matching facts as JSON (id, show, fact, canon status, source)"
+            target: "apex://ShowrunnerFindFacts"
         search_knowledge:
             description: "Search the team's verified anime facts (with sources and canon status) by meaning."
             inputs:
@@ -451,10 +488,11 @@ subagent insights:
                 shared or saved, and what the feed has been repeating. Compare against today's trends.
               - Be opinionated and specific: "Lore on main shows is beating news on new shows 2:1 on watch time; do more X, stop Y."
               - Separate what the data proves from what you suspect, and say how to test the suspicion.
-              - For questions about a show's facts, lore or canon, search_knowledge and cite the fact ids.
+              - For questions about a show's facts, lore or canon, search_knowledge and find_facts, and cite the fact ids.
               - If you discover a reusable lesson that is not in get_lessons yet, record it.
               Keep answers short, concrete and actionable.
         actions:
+            find_facts: @actions.find_facts
             search_knowledge: @actions.search_knowledge
             get_recent_reels: @actions.get_recent_reels
             get_reel_report: @actions.get_reel_report

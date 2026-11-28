@@ -167,4 +167,16 @@ private class ShowrunnerActionsTest {
         Assert.areEqual('not json', d.get('style'));
         Assert.isTrue(d.get('edits') instanceof Map<String, Object>);
     }
+
+    @IsTest
+    static void findFactsSearchesTheMirror() {
+        insert new Anime_Knowledge__c(Name = 'Ivy the spiriflor', Knowledge_Id__c = 'FN-T1', Content__c = 'Ivy stays mobile after transfloration.');
+        Test.setFixedSearchResults(new List<Id>{ [SELECT Id FROM Anime_Knowledge__c WHERE Knowledge_Id__c = 'FN-T1'].Id });
+        ShowrunnerFindFacts.Request q = new ShowrunnerFindFacts.Request();
+        q.searchText = 'Ivy "spiriflor"';
+        String body = ShowrunnerFindFacts.run(new List<ShowrunnerFindFacts.Request>{ q })[0].factsJson;
+        Assert.isTrue(body.contains('FN-T1'), body);
+        q.searchText = 'x';
+        Assert.areEqual('[]', ShowrunnerFindFacts.run(new List<ShowrunnerFindFacts.Request>{ q })[0].factsJson);
+    }
 }

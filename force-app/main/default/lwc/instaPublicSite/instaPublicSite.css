@@ -106,3 +106,6 @@ a { color: var(--ia-info) !important; }
 .follow, a.btn_primary { background: var(--ia-accent) !important; color: #1a1405 !important; border-color: var(--ia-accent) !important; }
 a.btn:not(.btn_primary) { color: var(--ia-text) !important; }
 .source { color: var(--ia-info) !important; }
+
+.privacy h3 { margin: 18px 0 6px; font-size: 15px; }
+.privacy p { max-width: 760px; line-height: 1.6; }

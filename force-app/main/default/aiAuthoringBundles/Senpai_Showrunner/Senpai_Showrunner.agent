@@ -42,6 +42,15 @@ subagent planner:
     description: "Decides what each scheduled Reel becomes (show, topic, format, creative brief) to get the most views right now, then starts rendering."
 
     actions:
+        get_editor_capabilities:
+            description: "Everything the video editor can do: per-scene effects (impact text, versus split screen, freeze-frame, rank badge, colour grades, letterbox, hits), whole-Reel style settings with limits, and what it cannot do yet."
+            inputs:
+                topic: string
+                    description: "effects, style or all"
+            outputs:
+                capabilitiesJson: string
+                    description: "Capabilities as JSON"
+            target: "apex://ShowrunnerEditorCapabilities"
         search_knowledge:
             description: "Search the team's verified anime facts (with sources and canon status) by meaning."
             inputs:
@@ -93,6 +102,10 @@ subagent planner:
                     description: "Fact, Backstory, Fan Theory, Hidden Details, Who Would Win, Ranking, Quiz, What If, Behind the Scenes, Why It's Trending, Just Announced, Hype Check, This Week's Drops or Season Preview"
                 brief: string
                     description: "Creative brief: the hook, what to show, the tone, and why it will get views"
+                style: string
+                    description: "Optional JSON object of style settings, e.g. {\"transition\":\"flash\",\"image_interval\":1.8}; empty for the default look"
+                edits: string
+                    description: "Optional JSON object: scene role -> effects, e.g. {\"hook\":[{\"fx\":\"impact_text\",\"text\":\"NOBODY NOTICED\"}],\"twist\":[\"freeze\",\"bw\"]}"
             outputs:
                 outcome: string
                     description: "Whether rendering started"
@@ -126,9 +139,14 @@ subagent planner:
               - Check the angle with search_knowledge so the writers have verified facts to build on; prefer angles with facts.
               - Pick one show, one sharp topic, one format, and write a brief a top editor could act on: the hook line, the
                 shots, the payoff, the tone, and why it will win views today.
+              - Direct the edit like a top editor: call get_editor_capabilities once and use its effects and style settings
+                through submit_plan's style and edits (e.g. impact_text on the hook, versus for battles, freeze on the twist,
+                bw for flashbacks, rank_badge for rankings). Use effects with purpose - two or three strong moments beat ten.
+                If you want something the editor cannot do, ask for it anyway: it is logged as a feature request.
               - Call submit_plan exactly once with the Reel id from the event. Never ask the owner; decide.
               If the data shows a pattern worth keeping, record_lesson (planning). Finish with one line: what you planned and why.
         actions:
+            get_editor_capabilities: @actions.get_editor_capabilities
             search_knowledge: @actions.search_knowledge
             get_recent_reels: @actions.get_recent_reels
             get_trends: @actions.get_trends
@@ -141,6 +159,15 @@ subagent editor:
     description: "Reviews held or below-bar Reels, finds the root cause and fixes it: remake with precise instructions or approve the best version. Never waits for the owner."
 
     actions:
+        get_editor_capabilities:
+            description: "Everything the video editor can do: per-scene effects (impact text, versus split screen, freeze-frame, rank badge, colour grades, letterbox, hits), whole-Reel style settings with limits, and what it cannot do yet."
+            inputs:
+                topic: string
+                    description: "effects, style or all"
+            outputs:
+                capabilitiesJson: string
+                    description: "Capabilities as JSON"
+            target: "apex://ShowrunnerEditorCapabilities"
         search_knowledge:
             description: "Search the team's verified anime facts (with sources and canon status) by meaning."
             inputs:
@@ -214,6 +241,10 @@ subagent editor:
                     description: "Optional: the exact topic or angle"
                 format: string
                     description: "Optional: Fact, Backstory, Fan Theory, Hidden Details, Who Would Win, Ranking, Quiz, What If, Behind the Scenes, Why It's Trending, Just Announced, Hype Check, This Week's Drops or Season Preview"
+                style: string
+                    description: "Optional JSON object of style settings, e.g. {\"transition\":\"flash\",\"image_interval\":1.8}; empty for the default look"
+                edits: string
+                    description: "Optional JSON object: scene role -> effects, e.g. {\"hook\":[{\"fx\":\"impact_text\",\"text\":\"NOBODY NOTICED\"}],\"twist\":[\"freeze\",\"bw\"]}"
             outputs:
                 outcome: string
                     description: "Whether the remake started"
@@ -263,6 +294,8 @@ subagent editor:
                 and should simply be approved.
               - Your instructions for a remake are a creative brief, not a vague wish: name the exact claim to drop, the exact shots
                 to replace, the stronger hook, the better angle, and why it will perform.
+              - You control the edit directly: get_editor_capabilities tells you every effect and style setting; pass them in
+                remake_reel's style and edits (for example a slower image_interval if shots felt rushed, impact_text on a weak hook).
               - Accuracy is the brand: a fact problem is fixed with a remake, never posted as is; rumours run only as clearly-framed theories.
                 Before you judge or brief a claim, search_knowledge for it - the team's verified facts (with canon status and
                 sources) are the ground truth; if a claim is not there, treat it as unverified.
@@ -272,6 +305,7 @@ subagent editor:
               - If you learned something that would prevent this next time, record it as a crisp lesson (check get_lessons first).
               Finish with a short, confident summary: what was wrong, what you decided, and what happens next.
         actions:
+            get_editor_capabilities: @actions.get_editor_capabilities
             search_knowledge: @actions.search_knowledge
             get_reel_report: @actions.get_reel_report
             get_recent_reels: @actions.get_recent_reels

@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 from . import motion
+from .editing import COLORS, scene_fx
 from .clips import clip_frames, is_clip
 from .tts import Narration, Word
 from .visuals import H, W, base_background, clean_text, cover, font, pill, theme_for
@@ -35,6 +36,7 @@ class Shot:
     clip: Optional[List[str]] = None  # 30 fps frames of a video clip (already 1080x1920 + graded)
     layers: Optional[Tuple[Image.Image, Image.Image]] = None  # 2.5D parallax: (background, subject RGBA)
     source: Optional[str] = None  # picture / clip folder it came from (for the Visual QA agent)
+    scene: int = 0                # index of the script scene this shot belongs to
 
 
 def grade(img: Image.Image, mode: str) -> Image.Image:
@@ -100,6 +102,7 @@ class CinematicRenderer:
                  handle: str = "", beats: Optional[List[float]] = None):
         """scene_images: for every scene, the ordered list of image paths for its shots."""
         self.script, self.narration, self.style = script, narration, style
+        self.scene_images = scene_images
         self.theme = theme_for(script["anime"])
         self.duration = narration.duration
         self.handle = handle
@@ -110,7 +113,7 @@ class CinematicRenderer:
         cache: Dict[str, Image.Image] = {}
         layer_cache: Dict[str, Optional[Tuple[Image.Image, Image.Image]]] = {}
         interval = style["image_interval"]
-        for scene, paths in zip(narration.scenes, scene_images):
+        for si, (scene, paths) in enumerate(zip(narration.scenes, scene_images)):
             length = max(0.5, scene.end - scene.start)
             count = max(1, round(length / interval))
             if paths:
@@ -122,7 +125,7 @@ class CinematicRenderer:
                     if frames:
                         start = scene.start + length * k / count
                         end = scene.start + length * (k + 1) / count
-                        self.shots.append(Shot(start, end, None, True, (0.0, 0.0), clip=frames, source=path))
+                        self.shots.append(Shot(start, end, None, True, (0.0, 0.0), clip=frames, source=path, scene=si))
                         continue
                     path = None
                 key = f"{path}|{style['grading']}"
@@ -142,7 +145,7 @@ class CinematicRenderer:
                 end = scene.start + length * (k + 1) / count
                 self.shots.append(Shot(start, end, img, self.rng.random() < 0.6,
                                        (self.rng.uniform(-1, 1), self.rng.uniform(-0.6, 0.6)), layers=layers,
-                                       source=path))
+                                       source=path, scene=si))
         if beats and len(self.shots) > 1:  # land the cuts on the music's beat
             from .audio_library import snap_to_beats
 
@@ -162,6 +165,100 @@ class CinematicRenderer:
                                   {round(sc.start, 2) for sc in narration.scenes[1:]})
         self.line_times = [w.start for w, _ in self.words if re.sub(r"[^a-z]", "", w.text.lower()) in motion.ACTION_WORDS]
         self.lines_img = motion.speed_lines((W, H), seed=len(self.words)) if style.get("speed_lines") else None
+        # per-scene effects requested by the agents / writer (video/editing.py)
+        self.fx: List[Dict[str, dict]] = [scene_fx(spec) for spec in script["scenes"]]
+        self._versus: Dict[int, Optional[Image.Image]] = {}
+        self.fx_used: List[str] = sorted({name for f in self.fx for name in f})
+
+    # -------------------------------------------------------------- scene effects
+
+    def scene_index(self, t: float) -> int:
+        for k, sc in enumerate(self.narration.scenes):
+            if t < sc.end:
+                return k
+        return len(self.narration.scenes) - 1
+
+    def versus_image(self, si: int) -> Optional[Image.Image]:
+        """First two pictures of the scene stacked top/bottom with a VS badge."""
+        if si not in self._versus:
+            pics = []
+            for path in (self.scene_images[si] if si < len(self.scene_images) else []):
+                try:
+                    pics.append(Image.open(clip_frames(path)[0] if is_clip(path) else path).convert("RGB"))
+                except Exception:
+                    continue
+                if len(pics) == 2:
+                    break
+            if len(pics) < 2:
+                self._versus[si] = None
+            else:
+                img = Image.new("RGB", (W, H), (0, 0, 0))
+                for k, pic in enumerate(pics[:2]):
+                    img.paste(grade(cover(pic, (W, H // 2 - 6)), self.style["grading"]), (0, k * (H // 2 + 6)))
+                d = ImageDraw.Draw(img)
+                d.rectangle([0, H // 2 - 6, W, H // 2 + 6], fill=self.theme.accent)
+                r = 110
+                d.ellipse([W // 2 - r, H // 2 - r, W // 2 + r, H // 2 + r], fill=(0, 0, 0), outline=self.theme.accent, width=10)
+                d.text((W // 2, H // 2), "VS", font=font("Anton-Regular.ttf", 120), fill=(255, 255, 255), anchor="mm")
+                self._versus[si] = img
+        return self._versus[si]
+
+    def scene_effects(self, img: Image.Image, t: float) -> Image.Image:
+        si = self.scene_index(t)
+        fx = self.fx[si] if si < len(self.fx) else {}
+        if not fx:
+            return img
+        dt = t - self.narration.scenes[si].start
+        if "bw" in fx:
+            img = ImageOps.grayscale(img).convert("RGB")
+        for name, tint in (("red_tint", (150, 0, 0)), ("blue_tint", (0, 40, 140))):
+            if name in fx:
+                gray = ImageOps.grayscale(img)
+                img = Image.blend(img, ImageOps.colorize(gray, (0, 0, 0), tint).convert("RGB"), 0.55)
+        if "freeze" in fx and dt < 0.7:
+            img = ImageEnhance.Color(img).enhance(0.15)
+            zoom = 1.0 + 0.06 * dt / 0.7
+            cw, ch = int(W / zoom), int(H / zoom)
+            img = img.crop(((W - cw) // 2, (H - ch) // 2, (W - cw) // 2 + cw, (H - ch) // 2 + ch)).resize((W, H), Image.BILINEAR)
+            if dt < 0.15:
+                img = Image.blend(img, Image.new("RGB", (W, H), (255, 255, 255)), 0.7 * (1 - dt / 0.15))
+        if "zoom_punch" in fx and dt < 0.3:
+            zoom = 1.0 + 0.12 * (1 - motion.ease(dt / 0.3))
+            cw, ch = int(W / zoom), int(H / zoom)
+            img = img.crop(((W - cw) // 2, (H - ch) // 2, (W - cw) // 2 + cw, (H - ch) // 2 + ch)).resize((W, H), Image.BILINEAR)
+        if "shake" in fx and dt < 0.45:
+            amp = 40 * (1 - dt / 0.45)
+            img = ImageChops.offset(img, int(amp * math.sin(t * 95)), int(amp * math.cos(t * 75)))
+        if "flash" in fx and dt < 0.18:
+            img = Image.blend(img, Image.new("RGB", (W, H), (255, 255, 255)), 0.8 * (1 - dt / 0.18))
+        if "glitch" in fx and dt < 0.2:
+            r, g, b = img.split()
+            shift = int(40 * (1 - dt / 0.2))
+            img = Image.merge("RGB", (ImageChops.offset(r, shift, 0), g, ImageChops.offset(b, -shift, 0)))
+        d = ImageDraw.Draw(img)
+        if "letterbox" in fx:
+            bar = int(H * 0.11)
+            d.rectangle([0, 0, W, bar], fill=(0, 0, 0))
+            d.rectangle([0, H - bar, W, H], fill=(0, 0, 0))
+        if "rank_badge" in fx:
+            text = clean_text(fx["rank_badge"].get("text") or self.script["scenes"][si].get("headline") or "")[:6].upper()
+            if text:
+                d.rounded_rectangle([50, 230, 330, 430], radius=36, fill=self.theme.accent)
+                d.text((190, 330), text, font=font("Anton-Regular.ttf", 130), fill=(255, 255, 255), anchor="mm",
+                       stroke_width=4, stroke_fill=(0, 0, 0))
+        if "impact_text" in fx and dt < 1.4:
+            spec = fx["impact_text"]
+            text = clean_text(spec.get("text") or self.script["scenes"][si].get("headline") or "").upper()[:40]
+            if text:
+                pop = 1.0 + 0.5 * max(0.0, 1 - dt / 0.15)  # slams in big, settles
+                size = int(150 * pop)
+                fnt = font("Anton-Regular.ttf", size)
+                while fnt.getlength(text) > W - 100 and size > 70:
+                    size -= 10
+                    fnt = font("Anton-Regular.ttf", size)
+                color = COLORS.get(spec.get("color") or "", self.theme.accent)
+                d.text((W // 2, int(H * 0.27)), text, font=fnt, fill=color, anchor="mm", stroke_width=10, stroke_fill=(0, 0, 0))
+        return img
 
     # -------------------------------------------------------------- frame
 
@@ -172,15 +269,30 @@ class CinematicRenderer:
         return len(self.shots) - 1, self.shots[-1]
 
     def frame(self, t: float, captions: bool = True) -> Image.Image:
-        i, shot = self.shot_at(t)
-        u = t - shot.start
+        si = self.scene_index(t)
+        fx = self.fx[si] if si < len(self.fx) else {}
+        if "versus" in fx:
+            vs = self.versus_image(si)
+            if vs is not None:
+                i, _ = self.shot_at(t)
+                return self.finish(vs.copy(), t, t - self.narration.scenes[si].start, i, captions)
+        if "freeze" in fx and t - self.narration.scenes[si].start < 0.7:
+            t_still = self.narration.scenes[si].start  # hold the scene's first frame (scene_effects adds the look)
+            i, shot = self.shot_at(t_still)
+            u = t_still - shot.start
+        else:
+            i, shot = self.shot_at(t)
+            u = t - shot.start
         progress = min(1.0, max(0.0, u / max(0.1, shot.end - shot.start)))
         m = self.style["motion"]
+        if "slow_zoom" in fx:
+            m = 1.0
         if shot.clip:
             img = self.clip_frame(shot, u, progress)
             return self.finish(img, t, u, i, captions)
         big = shot.image
-        span = 1.0 + (OVERSCAN - 1.0) * m * (1 - progress if shot.zoom_in else progress)
+        zoom_in = shot.zoom_in or "slow_zoom" in fx
+        span = 1.0 + (OVERSCAN - 1.0) * m * (1 - progress if zoom_in else progress)
         cw, ch = int(W * span), int(H * span)
         cw, ch = min(cw, big.width), min(ch, big.height)
         free_x, free_y = big.width - cw, big.height - ch
@@ -248,6 +360,7 @@ class CinematicRenderer:
 
     def finish(self, img: Image.Image, t: float, u: float, i: int, captions: bool = True) -> Image.Image:
         img = self.effects(img, t)
+        img = self.scene_effects(img, t)
         img = self.transition(img, u, i)
         d = ImageDraw.Draw(img)
         if self.style["watermark"]:
@@ -303,6 +416,9 @@ class CinematicRenderer:
         if pop > 1.001:
             fnt = font("Anton-Regular.ttf", int(fnt.size * pop))
         y = int(H * self.style["caption_y"])
+        si = self.scene_index(t)
+        if si < len(self.fx) and "versus" in self.fx[si] and abs(y - H // 2) < 200:
+            y = H // 2 + 230  # keep the VS badge visible
         color = self.theme.accent if key else (255, 255, 255)
         glow = Image.new("L", (W, H), 0)
         ImageDraw.Draw(glow).text((W // 2, y), text, font=fnt, fill=200, anchor="mm", stroke_width=14, stroke_fill=200)

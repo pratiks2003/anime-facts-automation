@@ -416,6 +416,18 @@ def showrunner_directive(sf, cid: str) -> dict:
         return {}
 
 
+def report_feature_requests(sf, cid: str, requests: List[str]) -> None:
+    """Editor requests the renderer cannot do yet: logged for the agents and the developers (never blocks the Reel)."""
+    log(f"editor feature requests: {requests}")
+    try:
+        sf.request("POST", "sobjects/Agent_Activity__c", {
+            "Agent__c": "Editor", "Action__c": "Feature request", "Reel__c": cid, "Needs_Owner__c": False,
+            "Severity__c": "info", "Details__c": ("The agents asked the video editor for things it cannot do yet:\n- "
+                                                  + "\n- ".join(requests))[:5000]})
+    except Exception as exc:
+        log(f"could not log feature requests ({type(exc).__name__})")
+
+
 def render_report(manifest: dict, quality: dict, qa_issues: List[str]) -> dict:
     """What happened in this render, for the Showrunner agents (stored on the Reel)."""
     visual = dict(manifest.get("visual_qa") or {})
@@ -432,6 +444,7 @@ def render_report(manifest: dict, quality: dict, qa_issues: List[str]) -> dict:
         "pictures_rejected": len(manifest.get("image_rejections") or []),
         "rejection_examples": (manifest.get("image_rejections") or [])[:5],
         "cover": manifest.get("designed_cover"),
+        "effects_used": manifest.get("effects_used"),
         "music": (manifest.get("music") or {}).get("title") if isinstance(manifest.get("music"), dict) else manifest.get("music"),
     }
 
@@ -531,6 +544,13 @@ def generate(args, sf) -> int:
     from video.style import resolve_style
 
     style = decision.get("style") or resolve_style(None)
+    editor_requests: List[str] = []  # what the agents asked the editor for but it cannot do yet (feature requests)
+    if directive.get("style"):
+        from video.editing import style_overrides
+
+        style, unknown = style_overrides(style, directive["style"])
+        editor_requests += unknown
+        log(f"Showrunner style overrides applied: {directive['style']}")
     angle = str(decision.get("angle") or "")
     lessons, idea = learning_inputs(sf, args.format)
     if directive:
@@ -611,6 +631,14 @@ def generate(args, sf) -> int:
                 raise RuntimeError("template script invalid: " + "; ".join(problems))
     log(f"script source: {source}")
     script["style"] = style
+    if directive.get("edits"):
+        from video.editing import apply_edits, normalize_edits
+
+        edits, unsupported = normalize_edits(directive["edits"])
+        editor_requests += unsupported
+        log(f"Showrunner edits: {apply_edits(script, edits)} effect(s) placed; not supported yet: {unsupported or '-'}")
+    if editor_requests:
+        report_feature_requests(sf, cid, editor_requests)
     trending_sound = False  # the owner wants zero manual steps: always render with library music
     OUTPUT.mkdir(exist_ok=True)
     script_path = OUTPUT / f"{cid}.script.json"

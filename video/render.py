@@ -506,6 +506,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "cover": str(out / "cover.jpg"),
         "thumb_offset_ms": int(thumb_t * 1000),
         "designed_cover": cover_info,
+        "effects_used": getattr(renderer, "fx_used", []),
         "caption": "\n\n".join(x for x in (
             full_caption(script),
             AI_DISCLOSURE if any(a and a.kind == "ai_image" for a in scene_assets) else "",

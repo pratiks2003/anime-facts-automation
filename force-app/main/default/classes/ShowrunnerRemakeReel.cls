@@ -14,6 +14,10 @@ public with sharing class ShowrunnerRemakeReel {
         public String topic;
         @InvocableVariable(label='Format' description='Optional: one of the channel formats, e.g. Backstory, Fan Theory, Why It\'s Trending')
         public String format;
+        @InvocableVariable(label='Style' description='Optional JSON object of editor style settings, e.g. {"transition":"flash","grading":"vivid","image_interval":1.8}. See get_editor_capabilities.')
+        public String style;
+        @InvocableVariable(label='Edits' description='Optional JSON object: scene role -> effects, e.g. {"hook":[{"fx":"impact_text","text":"NOBODY NOTICED"},"freeze"],"twist":["bw"]}. See get_editor_capabilities.')
+        public String edits;
     }
     public class Result {
         @InvocableVariable(label='Outcome' description='Whether the remake started, or why not')
@@ -31,7 +35,7 @@ public with sharing class ShowrunnerRemakeReel {
             return new List<Result>{ r };
         }
         if (done >= ShowrunnerSupport.MAX_REMAKES) {
-            r.outcome = 'Refused: ' + q.reelId + ' was already remade ' + done + ' times (limit ' + ShowrunnerSupport.MAX_REMAKES + '). Hold it and notify the owner instead.';
+            r.outcome = 'Refused: ' + q.reelId + ' was already remade ' + done + ' times (limit ' + ShowrunnerSupport.MAX_REMAKES + '). Approve the best version instead.';
             return new List<Result>{ r };
         }
         Set<String> formats = new Set<String>();
@@ -42,6 +46,7 @@ public with sharing class ShowrunnerRemakeReel {
         if (String.isNotBlank(q.show)) directive.put('show', q.show.trim());
         if (String.isNotBlank(q.topic)) directive.put('topic', q.topic.trim());
         if (String.isNotBlank(q.format) && formats.contains(q.format.trim())) directive.put('format', q.format.trim());
+        ShowrunnerEditorCapabilities.addEditing(directive, q.style, q.edits);
         c.Showrunner_Directive__c = JSON.serialize(directive).abbreviate(5000);
         c.Remakes__c = done + 1;
         c.Status__c = 'Queued';

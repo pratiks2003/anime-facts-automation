@@ -1,0 +1,158 @@
+{
+ "always_on": [
+  "word-by-word captions synced to the voice",
+  "cuts snapped to the music beat",
+  "official clips mixed with stills (clip_ratio)",
+  "every picture checked for wrong show / duplicates / text / photos before use",
+  "designed cover picked by the quality checker",
+  "AI voice (speed from style.voice_speed)",
+  "music from the licensed library, ducked under the voice"
+ ],
+ "cannot_do_yet": [
+  "custom fonts per Reel",
+  "user-uploaded footage",
+  "lip-sync",
+  "music chosen by name",
+  "audio effects beyond whoosh/impact/pop",
+  "any request not listed here: ask anyway - it is logged as a feature request for the developers"
+ ],
+ "effect_colors": [
+  "cyan",
+  "green",
+  "orange",
+  "pink",
+  "red",
+  "white",
+  "yellow"
+ ],
+ "effects": {
+  "blue_tint": "Cold blue grade for the whole scene (sad, lonely, mystery).",
+  "bw": "Black-and-white grade for the whole scene (flashback, death, past).",
+  "flash": "White flash as the scene starts.",
+  "freeze": "Freeze-frame record-scratch: the first 0.7 s holds still, desaturated, with a white flash and a slow push-in (for 'wait... what?' moments).",
+  "glitch": "Glitch hit (RGB split + slices) as the scene starts, whatever the global transition.",
+  "impact_text": "Huge slam-in text over the scene's first ~1.4 s (e.g. 'EXPOSED', 'NOBODY NOTICED'). Uses 'text', else the scene headline. Params: text, color.",
+  "letterbox": "Cinematic black bars for the whole scene (epic / backstory moments).",
+  "rank_badge": "Big rank number badge in the top corner for the whole scene (e.g. '#3'). Params: text.",
+  "red_tint": "Blood-red danger grade for the whole scene (villain, threat, horror).",
+  "shake": "Strong camera shake as the scene starts.",
+  "slow_zoom": "Strong continuous push-in on every picture of the scene (tension).",
+  "versus": "Split screen: the scene's first two pictures stacked top/bottom with a VS badge (for Who Would Win / comparisons). Needs 2+ pictures in the scene.",
+  "zoom_punch": "Hard zoom punch as the scene starts."
+ },
+ "how_to_request": "submit_plan / remake_reel take 'style' (JSON object of Style Spec keys) and 'edits' (JSON object: role -> list of effects). Roles: hook, fact, twist, theory, what_if, rank, outro, all.",
+ "style": {
+  "booleans": [
+   "keyword_color",
+   "show_headline",
+   "show_tags",
+   "show_brand",
+   "show_progress",
+   "outro_cta",
+   "speed_lines"
+  ],
+  "choices": {
+   "caption_mode": [
+    "word",
+    "chunk",
+    "none"
+   ],
+   "grading": [
+    "none",
+    "dark",
+    "vivid"
+   ],
+   "layout": [
+    "cinematic",
+    "classic"
+   ],
+   "sfx_density": [
+    "low",
+    "medium",
+    "high"
+   ],
+   "transition": [
+    "cut",
+    "flash",
+    "glitch"
+   ]
+  },
+  "defaults": {
+   "beat_punch": 0.6,
+   "caption_mode": "word",
+   "caption_size": 118,
+   "caption_y": 0.5,
+   "clip_ratio": 0.5,
+   "grading": "dark",
+   "image_interval": 2.6,
+   "keyword_color": true,
+   "layout": "cinematic",
+   "motion": 0.7,
+   "music_gain_db": -7.0,
+   "name": "Cinematic Story",
+   "outro_cta": true,
+   "parallax": 0.0,
+   "sfx_density": "medium",
+   "shake": 0.5,
+   "show_brand": false,
+   "show_headline": false,
+   "show_progress": false,
+   "show_tags": false,
+   "speed_lines": true,
+   "target_seconds": 45,
+   "transition": "glitch",
+   "voice_speed": 1.2,
+   "watermark": "SENPAI SECRETS"
+  },
+  "ranges": {
+   "beat_punch": [
+    0.0,
+    1.0
+   ],
+   "caption_size": [
+    60,
+    150
+   ],
+   "caption_y": [
+    0.3,
+    0.7
+   ],
+   "clip_ratio": [
+    0.0,
+    1.0
+   ],
+   "image_interval": [
+    1.2,
+    8.0
+   ],
+   "motion": [
+    0.0,
+    1.0
+   ],
+   "music_gain_db": [
+    -20.0,
+    -4.0
+   ],
+   "parallax": [
+    0.0,
+    0.0
+   ],
+   "shake": [
+    0.0,
+    1.0
+   ],
+   "target_seconds": [
+    15,
+    90
+   ],
+   "voice_speed": [
+    0.9,
+    1.5
+   ]
+  },
+  "text": {
+   "name": "max 40 chars",
+   "watermark": "max 40 chars, '' for none"
+  }
+ }
+}

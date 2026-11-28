@@ -31,3 +31,9 @@ jobs:
           python-version: "3.12"
       - name: Sync metrics to Salesforce
         run: python -m pipeline.metrics --days 30
+      - name: Early warning (Instagram token expiry / API access)
+        if: always()
+        run: python -m pipeline.health
+      - name: Refresh the agents' knowledge library (safety net)
+        if: always()
+        run: python -m tools.sync_knowledge

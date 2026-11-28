@@ -81,11 +81,11 @@ class SalesforceClient:
         return self.request("POST", path, payload, attempts=2, base="apexrest")
 
     def request(self, method: str, path: str, payload: Optional[dict] = None, attempts: int = 3,
-                base: str = "data") -> Optional[dict]:
+                base: str = "data", version: str = API_VERSION) -> Optional[dict]:
         if not self._token:
             self._authenticate()
         for attempt in range(1, attempts + 1):
-            prefix = f"/services/data/{API_VERSION}" if base == "data" else "/services/apexrest"
+            prefix = f"/services/data/{version}" if base == "data" else "/services/apexrest"
             url = f"{self.instance_url}{prefix}/{path.lstrip('/')}"
             data = json.dumps(payload).encode() if payload is not None else None
             req = urllib.request.Request(url, data=data, method=method)

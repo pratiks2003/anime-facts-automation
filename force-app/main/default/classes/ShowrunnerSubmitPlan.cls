@@ -14,6 +14,10 @@ public with sharing class ShowrunnerSubmitPlan {
         public String format;
         @InvocableVariable(label='Brief' description='Creative brief for writers and editors: hook idea, what to show, tone, why it will get views' required=true)
         public String brief;
+        @InvocableVariable(label='Style' description='Optional JSON object of editor style settings, e.g. {"transition":"flash","grading":"vivid","image_interval":1.8}. See get_editor_capabilities.')
+        public String style;
+        @InvocableVariable(label='Edits' description='Optional JSON object: scene role -> effects, e.g. {"hook":[{"fx":"impact_text","text":"NOBODY NOTICED"},"freeze"],"twist":["bw"]}. See get_editor_capabilities.')
+        public String edits;
     }
     public class Result {
         @InvocableVariable(label='Outcome' description='Whether rendering started')
@@ -41,6 +45,7 @@ public with sharing class ShowrunnerSubmitPlan {
             plan.put('format', q.format.trim());
             c.Format__c = q.format.trim();
         }
+        ShowrunnerEditorCapabilities.addEditing(plan, q.style, q.edits);
         c.Showrunner_Directive__c = JSON.serialize(plan).abbreviate(5000);
         c.Topic__c = q.topic == null ? c.Topic__c : q.topic.abbreviate(255);
         List<Anime__c> anime = [SELECT Id FROM Anime__c WHERE Name = :(String) plan.get('show') LIMIT 1];

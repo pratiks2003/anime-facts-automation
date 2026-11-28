@@ -50,6 +50,7 @@ private class ShowrunnerActionsTest {
         insert new Anime_Content__c(Name = 'R3', External_Id__c = 'SR-3', Format__c = 'Quiz', Status__c = 'Queued', Approval_Status__c = 'Pending');
         ShowrunnerSubmitPlan.Request q = new ShowrunnerSubmitPlan.Request();
         q.reelId = 'SR-3'; q.show = 'One Piece'; q.topic = 'Why Gear 5 is everywhere today'; q.format = 'Backstory'; q.brief = 'hook on the laugh';
+        q.style = '{"transition":"flash"}'; q.edits = '{"hook":["freeze"]}';
         Test.startTest();
         Assert.isTrue(ShowrunnerSubmitPlan.run(new List<ShowrunnerSubmitPlan.Request>{ q })[0].outcome.startsWith('Planned'));
         q.reelId = 'SR-1';
@@ -58,6 +59,7 @@ private class ShowrunnerActionsTest {
         Anime_Content__c c = [SELECT Format__c, Topic__c, Showrunner_Directive__c FROM Anime_Content__c WHERE External_Id__c = 'SR-3'];
         Assert.areEqual('Backstory', c.Format__c);
         Assert.isTrue(c.Showrunner_Directive__c.contains('Gear 5') && c.Showrunner_Directive__c.contains('Planner'));
+        Assert.isTrue(c.Showrunner_Directive__c.contains('"edits":{"hook":["freeze"]}'), c.Showrunner_Directive__c);
     }
 
     @IsTest
@@ -152,5 +154,17 @@ private class ShowrunnerActionsTest {
         update new Anime_Content__c(Id = c.Id, Hold_Reason__c = 'Showrunner: waiting for owner');
         Test.stopTest();
         Assert.areEqual(0, [SELECT COUNT() FROM Agent_Activity__c WHERE Action__c = 'Handled event']);
+    }
+
+    @IsTest
+    static void editorCapabilitiesAreReadable() {
+        ShowrunnerEditorCapabilities.Request q = new ShowrunnerEditorCapabilities.Request();
+        q.topic = 'effects';
+        String body = ShowrunnerEditorCapabilities.run(new List<ShowrunnerEditorCapabilities.Request>{ q })[0].capabilitiesJson;
+        Assert.isTrue(body.contains('versus') && body.contains('how_to_request'), body);
+        Map<String, Object> d = new Map<String, Object>();
+        ShowrunnerEditorCapabilities.addEditing(d, 'not json', '{"all":["letterbox"]}');
+        Assert.areEqual('not json', d.get('style'));
+        Assert.isTrue(d.get('edits') instanceof Map<String, Object>);
     }
 }

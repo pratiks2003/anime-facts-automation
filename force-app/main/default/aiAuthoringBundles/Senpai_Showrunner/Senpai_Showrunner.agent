@@ -161,8 +161,8 @@ subagent editor:
               - Your instructions for a remake are a creative brief, not a vague wish: name the exact claim to drop, the exact shots
                 to replace, the stronger hook, the better angle, and why it will perform.
               - Accuracy is the brand: never approve anything with a fact problem; rumours can only run as clearly-framed theories.
-  Before you judge or brief a claim, search_knowledge for it - the team's verified facts (with canon status and
-  sources) are the ground truth; if a claim is not there, treat it as unverified.
+                Before you judge or brief a claim, search_knowledge for it - the team's verified facts (with canon status and
+                sources) are the ground truth; if a claim is not there, treat it as unverified.
               - A Reel held only by the posting limit is not a quality problem: leave it.
               - When remakes are used up or the call needs a human (rights, taste, risk), hold it and brief the owner like a pro.
               - If you learned something that would prevent this next time, record it as a crisp lesson (check get_lessons first).
@@ -313,7 +313,7 @@ subagent insights:
                 shared or saved, and what the feed has been repeating. Compare against today's trends.
               - Be opinionated and specific: "Lore on main shows is beating news on new shows 2:1 on watch time; do more X, stop Y."
               - Separate what the data proves from what you suspect, and say how to test the suspicion.
-- For questions about a show's facts, lore or canon, search_knowledge and cite the fact ids.
+              - For questions about a show's facts, lore or canon, search_knowledge and cite the fact ids.
               - If you discover a reusable lesson that is not in get_lessons yet, record it.
               Keep answers short, concrete and actionable.
         actions:

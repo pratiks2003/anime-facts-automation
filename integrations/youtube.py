@@ -1,7 +1,7 @@
 """YouTube Shorts cross-posting (YouTube Data API v3, resumable upload). Off unless YT_REFRESH_TOKEN is set.
 
-Until Google approves the API project in its audit, YouTube keeps API uploads private; they become public-capable after.
-Quota: an upload costs ~1,600 of the default 10,000 units a day (about 6 uploads).
+Uploads are public (privacyStatus "public"); no API audit is needed for that (confirmed by the YouTube API Services
+team, Nov 2026). Quota: videos.insert costs 1 unit per upload from a separate bucket of 100 uploads a day.
 """
 
 from __future__ import annotations

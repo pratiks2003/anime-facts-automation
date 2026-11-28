@@ -552,9 +552,19 @@ def generate(args, sf) -> int:
     from video.render import render
 
     cid, job = args.content_id, args.job_id
-    stage = lambda name: sf.job_update(job, Stage__c=name)  # noqa: E731
+    from pipeline.live_log import install
+
+    live = install(sf, job)  # streams the pipeline's key moments to the admin site's Live view
+
+    def stage(name):
+        sf.job_update(job, Stage__c=name)
+        if live:
+            live.add("stage", name)
+
     sf.job_update(job, Status__c="Running", Started_At__c=now_iso(), Run_URL__c=run_url(),
                   GitHub_Run_Id__c=os.environ.get("GITHUB_RUN_ID"), Stage__c="Planning")
+    if live:
+        live.add("stage", "Planning", "Reading the Showrunner's plan, trends and verified facts")
     sf.reel_update(cid, Status__c="Generating")
 
     from pipeline.llm import AgentforceLLM, ChainLLM
@@ -866,8 +876,13 @@ def publish(args, sf) -> int:
     from pipeline.github_release import ReleaseStore
 
     cid, job = args.content_id, args.job_id
+    from pipeline.live_log import install
+
+    live = install(sf, job)
     sf.job_update(job, Status__c="Running", Started_At__c=now_iso(), Run_URL__c=run_url(),
                   GitHub_Run_Id__c=os.environ.get("GITHUB_RUN_ID"), Stage__c="Downloading")
+    if live:
+        live.add("stage", "Publishing", "Approved by the Editor agent - posting to Instagram")
     rows = [] if isinstance(sf, NullSalesforce) else sf.query(
         f"SELECT Caption__c, Video_URL__c, Cover_URL__c, Render_Report__c, Script_JSON__c, Format__c FROM Anime_Content__c "
         f"WHERE External_Id__c = '{cid}' LIMIT 1")

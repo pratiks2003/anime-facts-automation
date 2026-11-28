@@ -1,0 +1,56 @@
+{
+  "required" : [ ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "brief" : {
+      "title" : "Brief",
+      "description" : "Creative brief: the hook, what to show, the tone, and why it will get views",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "edits" : {
+      "title" : "Edits",
+      "description" : "Optional JSON object: scene role -> effects, e.g. {\"hook\":[{\"fx\":\"impact_text\",\"text\":\"NOBODY NOTICED\"}],\"twist\":[\"freeze\",\"bw\"]}",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "format" : {
+      "title" : "Format",
+      "description" : "Fact, Backstory, Fan Theory, Hidden Details, Who Would Win, Ranking, Quiz, What If, Behind the Scenes, Why It's Trending, Just Announced, Hype Check, This Week's Drops or Season Preview",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reelId" : {
+      "title" : "Reel Id",
+      "description" : "External id of the slot from the event, e.g. R-20261129-AM",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "show" : {
+      "title" : "Show",
+      "description" : "The anime to cover",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "style" : {
+      "title" : "Style",
+      "description" : "Optional JSON object of style settings, e.g. {\"transition\":\"flash\",\"image_interval\":1.8}; empty for the default look",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "topic" : {
+      "title" : "Topic",
+      "description" : "The exact topic or angle, specific enough to hook in 1.5 seconds",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

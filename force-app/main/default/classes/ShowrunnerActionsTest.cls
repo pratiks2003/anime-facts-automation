@@ -179,4 +179,19 @@ private class ShowrunnerActionsTest {
         q.searchText = 'x';
         Assert.areEqual('[]', ShowrunnerFindFacts.run(new List<ShowrunnerFindFacts.Request>{ q })[0].factsJson);
     }
+
+    @IsTest
+    static void plannerCannotPickADroppedShow() {
+        Anime__c show = new Anime__c(Name = 'Loser Show');
+        insert show;
+        for (Integer i = 0; i < 3; i++) {
+            insert new Anime_Content__c(Name = 'L' + i, External_Id__c = 'SR-L' + i, Format__c = 'Fact', Status__c = 'Published',
+                Anime__c = show.Id, Verdict__c = 'Loser', Performance_Index__c = 0.4);
+        }
+        insert new Anime_Content__c(Name = 'R5', External_Id__c = 'SR-5', Format__c = 'Quiz', Status__c = 'Queued', Approval_Status__c = 'Pending');
+        ShowrunnerSubmitPlan.Request q = new ShowrunnerSubmitPlan.Request();
+        q.reelId = 'SR-5'; q.show = 'Loser Show'; q.topic = 't'; q.format = 'Fact'; q.brief = 'b';
+        String outcome = ShowrunnerSubmitPlan.run(new List<ShowrunnerSubmitPlan.Request>{ q })[0].outcome;
+        Assert.isTrue(outcome.startsWith('Refused') && outcome.contains('DROPPED'), outcome);
+    }
 }

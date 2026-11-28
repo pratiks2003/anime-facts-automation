@@ -33,6 +33,12 @@ public with sharing class ShowrunnerSubmitPlan {
             r.outcome = 'Refused: ' + q.reelId + ' is already ' + c.Status__c + '.';
             return new List<Result>{ r };
         }
+        // the evidence, from code (agents can misread it): the show's real record and the best alternative
+        Map<String, Object> record = showRecord(q.show);
+        if (record != null && String.valueOf(record.get('status')).startsWith('DROPPED')) {
+            r.outcome = 'Refused: ' + q.show + ' is ' + record.get('status') + '. Pick another show. Best on this account: ' + best();
+            return new List<Result>{ r };
+        }
         Set<String> formats = new Set<String>();
         for (Schema.PicklistEntry e : Anime_Content__c.Format__c.getDescribe().getPicklistValues()) {
             formats.add(e.getValue());
@@ -46,6 +52,7 @@ public with sharing class ShowrunnerSubmitPlan {
             c.Format__c = q.format.trim();
         }
         ShowrunnerEditorCapabilities.addEditing(plan, q.style, q.edits);
+        plan.put('scoreboard_at_plan', record);  // what the evidence really said, for the Strategist's audit
         c.Showrunner_Directive__c = JSON.serialize(plan).abbreviate(5000);
         c.Topic__c = q.topic == null ? c.Topic__c : q.topic.abbreviate(255);
         List<Anime__c> anime = [SELECT Id FROM Anime__c WHERE Name = :(String) plan.get('show') LIMIT 1];
@@ -55,7 +62,29 @@ public with sharing class ShowrunnerSubmitPlan {
         update c;
         System.enqueueJob(new ReelDispatchQueueable(new List<Id>{ c.Id }, ReelDispatchQueueable.GENERATE));
         ShowrunnerSupport.log('Planner', 'Submit Plan', q.reelId, JSON.serialize(plan), false, 'info');
-        r.outcome = 'Planned and rendering: ' + q.show + ' / ' + q.format + ' / ' + q.topic;
+        r.outcome = 'Planned and rendering: ' + q.show + ' / ' + q.format + ' / ' + q.topic + '. Scoreboard fact check: '
+            + (record == null ? q.show + ' has no scored Reels yet (this is an exploration slot)'
+               : q.show + ' avg index ' + record.get('avg_index') + ' over ' + record.get('n') + ' Reels, last verdicts (newest first) '
+                 + record.get('last_verdicts')) + '. Best shows on this account: ' + best() + '.';
         return new List<Result>{ r };
+    }
+
+    static Map<String, Object> showRecord(String show) {
+        if (String.isBlank(show)) return null;
+        for (Object o : (List<Object>) Scoreboard.insights(Datetime.now(), null).get('by_show')) {
+            Map<String, Object> m = (Map<String, Object>) o;
+            String name = String.valueOf(m.get('name'));
+            if (name.equalsIgnoreCase(show.trim()) || name.containsIgnoreCase(show.trim()) || show.trim().containsIgnoreCase(name)) return m;
+        }
+        return null;
+    }
+
+    static String best() {
+        List<String> out = new List<String>();
+        for (Object o : (List<Object>) Scoreboard.insights(Datetime.now(), null).get('by_show')) {
+            Map<String, Object> m = (Map<String, Object>) o;
+            if ((Integer) m.get('n') >= 2 && out.size() < 3) out.add(m.get('name') + ' ' + m.get('avg_index') + 'x (n=' + m.get('n') + ')');
+        }
+        return out.isEmpty() ? 'not enough data yet' : String.join(out, ', ');
     }
 }

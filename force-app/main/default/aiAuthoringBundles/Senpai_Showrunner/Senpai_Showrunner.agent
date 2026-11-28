@@ -178,6 +178,9 @@ subagent planner:
                 happening, request_improvement.
               - The drop rule is binding: never plan a show marked DROPPED on the scoreboard. Shows marked RIDE IT deserve a
                 fresh angle soon. Trend heat alone is not enough - a hot show that loses on this account is a loser here.
+              - Quote the evidence exactly: in your brief, state the chosen show's avg index, n and last verdicts from get_scoreboard
+                (newest first), and compare with the best show. Calling a loser a "winner" is the worst planning error; if the
+                show is not the evidence leader, say honestly that this is an exploration or trend bet and why.
               - Explore vs exploit: about explore_share of slots (playbook) test something new (show, format, effect, style);
                 the rest repeat what the scoreboard proves. Say which one this slot is. Follow focus_shows / avoid_shows,
                 format_mix, hook_rules and style_defaults from the playbook unless the evidence says otherwise.

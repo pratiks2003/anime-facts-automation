@@ -1,0 +1,158 @@
+<template>
+    <div class="row between section-title">
+        <span>Pick a Reel</span>
+        <button class="btn small" onclick={refresh} aria-label="Refresh">↻ Refresh</button>
+    </div>
+    <div class="chips section">
+        <template for:each={chips} for:item="c">
+            <button key={c.id} class={c.cls} data-id={c.id} onclick={pickReel}>
+                <template lwc:if={c.active}><span class="dot pulse live-dot"></span></template>{c.label}
+            </button>
+        </template>
+    </div>
+
+    <template lwc:if={error}><div class="error-box section">{error}</div></template>
+    <template lwc:if={loading}><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></template>
+    <template lwc:if={notFound}><div class="card empty">No Reel to show yet.</div></template>
+
+    <template lwc:if={found}>
+        <!-- header -->
+        <section class="section card head">
+            <div class="row top">
+                <template lwc:if={reel.cover}><img class="cover" src={reel.cover} alt="" /></template>
+                <template lwc:else><div class="cover ph">🎬</div></template>
+                <div class="grow">
+                    <div class="row wrap">
+                        <span class={liveCls}><template lwc:if={inProgress}><span class="dot pulse"></span></template>{liveLabel}</span>
+                        <span class={statusCls}>{reel.status}</span>
+                        <template lwc:if={reel.verdict}><span class={verdictCls}>{reel.verdict}</span></template>
+                    </div>
+                    <div class="title">{headTitle}</div>
+                    <div class="muted small">{reel.format} · {reel.slot} · {whenLabel}</div>
+                    <div class="small clamp3 mt">{reel.topic}</div>
+                </div>
+            </div>
+            <div class="stepper">
+                <template for:each={steps} for:item="s">
+                    <div key={s.key} class={s.cls}>
+                        <span class="node">{s.n}</span>
+                        <span class="lbl">{s.label}</span>
+                    </div>
+                </template>
+            </div>
+            <div class="thinking">
+                <template lwc:if={inProgress}><span class="brain"><span></span><span></span><span></span></span></template>
+                <span class="small">{thinkingLine}</span>
+            </div>
+            <template lwc:if={holdReason}><div class="hold small"><strong>Waiting for the Editor:</strong> {holdReason}</div></template>
+            <template lwc:if={reel.error}><div class="error-box small mt">{reel.error}</div></template>
+        </section>
+
+        <!-- the plan -->
+        <template lwc:if={hasPlan}>
+            <section class="section">
+                <div class="section-title">The plan <span class="hint">by {planBy}</span></div>
+                <div class="card plan">
+                    <div class="row wrap">
+                        <template lwc:if={plan.show}><span class="pill accent">{plan.show}</span></template>
+                        <template lwc:if={plan.format}><span class="pill">{plan.format}</span></template>
+                    </div>
+                    <template lwc:if={plan.topic}><div class="strong mt2">{plan.topic}</div></template>
+                    <template lwc:if={plan.notes}>
+                        <div class="small pre mt2 brief">{briefText}</div>
+                        <template lwc:if={briefLong}><button class="link" data-key={briefKey} onclick={toggle}>{briefToggle}</button></template>
+                    </template>
+                    <template lwc:if={hasPlanEffects}>
+                        <div class="faint tiny mt2">Edit directions</div>
+                        <div class="fx"><template for:each={planEffects} for:item="e"><span key={e.key} class="pill fxp">{e.label}</span></template></div>
+                    </template>
+                    <template lwc:if={hasPlanStyle}>
+                        <div class="faint tiny mt2">Style</div>
+                        <div class="fx"><template for:each={planStyle} for:item="e"><span key={e.key} class="pill">{e.label}</span></template></div>
+                    </template>
+                    <template lwc:if={evidence}>
+                        <div class="evidence">
+                            <div class="faint tiny">Scoreboard when planned</div>
+                            <div class="row wrap mt">
+                                <span class="pill">avg {evidence.avg}×</span><span class="pill">n = {evidence.n}</span>
+                                <span class="pill">last: {evidence.last}</span>
+                            </div>
+                            <template lwc:if={evidence.status}><div class="tiny muted mt">{evidence.status}</div></template>
+                        </div>
+                    </template>
+                </div>
+            </section>
+        </template>
+
+        <!-- timeline -->
+        <section class="section">
+            <div class="section-title">How the agents made it <span class="hint">newest at the bottom</span></div>
+            <template lwc:if={hasEvents}>
+                <ol class="timeline">
+                    <template for:each={events} for:item="e">
+                        <li key={e.key} class={e.cls}>
+                            <span class="av" style={e.avatarStyle}>{e.icon}</span>
+                            <div class="body">
+                                <div class="row between">
+                                    <span class="strong small ellipsis">{e.who} · {e.title}</span>
+                                    <span class="faint tiny">{e.time}</span>
+                                </div>
+                                <template lwc:if={e.hasScore}>
+                                    <div class="row scores">
+                                        <span class="ring" style={e.scoreStyle}><span>{e.score}</span></span><span class="tiny muted">quality</span>
+                                        <template lwc:if={e.hasScore2}><span class="ring" style={e.score2Style}><span>{e.score2}</span></span><span class="tiny muted">on brief</span></template>
+                                    </div>
+                                </template>
+                                <template lwc:if={e.isCover}><img class="ev-cover" src={e.cover} alt="Cover" /></template>
+                                <template lwc:if={e.hasDetail}><div class="small pre detail">{e.detail}</div></template>
+                                <div class="row">
+                                    <template lwc:if={e.long}><button class="link" data-key={e.key} onclick={toggle}>{e.toggleLabel}</button></template>
+                                    <template lwc:if={e.runUrl}><a class="link" href={e.runUrl} target="_blank" rel="noopener">Run log ↗</a></template>
+                                </div>
+                            </div>
+                        </li>
+                    </template>
+                </ol>
+            </template>
+            <template lwc:else><div class="card empty">Nothing yet - the Planner hasn't started on this Reel.</div></template>
+        </section>
+
+        <!-- quality report -->
+        <template lwc:if={hasReport}>
+            <section class="section">
+                <div class="section-title">Quality report <template lwc:if={duration}><span class="hint">{duration} long</span></template></div>
+                <div class="card">
+                    <div class="row scores-big">
+                        <template lwc:if={hasEdit}><div class="col"><span class="ring big-ring" style={editStyle}><span>{editScore}</span></span><span class="tiny muted">edit quality</span></div></template>
+                        <template lwc:if={hasDirection}><div class="col"><span class="ring big-ring" style={directionStyle}><span>{directionScore}</span></span><span class="tiny muted">followed the brief</span></div></template>
+                        <div class="grow stack">
+                            <template lwc:if={factLine}><span class={factCls}>{factLine}</span></template>
+                            <template lwc:if={audioLine}><div class="tiny muted">{audioLine}</div></template>
+                        </div>
+                    </div>
+                    <template lwc:if={qaSummary}><div class="small mt2">{qaSummary}</div></template>
+                    <template lwc:if={hasNotes}>
+                        <ul class="notes"><template for:each={notes} for:item="n"><li key={n.key} class={n.cls}>{n.text}</li></template></ul>
+                    </template>
+                    <template lwc:if={hasEffectsUsed}>
+                        <div class="faint tiny mt2">Effects in the final cut</div>
+                        <div class="fx"><template for:each={effectsUsed} for:item="e"><span key={e.key} class="pill fxp">{e.label}</span></template></div>
+                    </template>
+                </div>
+            </section>
+        </template>
+
+        <!-- results -->
+        <template lwc:if={isPosted}>
+            <section class="section">
+                <div class="section-title">Results <template lwc:if={indexLabel}><span class="hint">{indexLabel}</span></template></div>
+                <div class="card">
+                    <div class="results">
+                        <template for:each={results} for:item="r"><div key={r.k}><div class="big">{r.value}</div><div class="faint tiny">{r.label}</div></div></template>
+                    </div>
+                    <template lwc:if={reel.permalink}><a class="btn primary full" href={reel.permalink} target="_blank" rel="noopener">Open on Instagram ↗</a></template>
+                </div>
+            </section>
+        </template>
+    </template>
+</template>

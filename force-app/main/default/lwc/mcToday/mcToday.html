@@ -1,0 +1,94 @@
+<template>
+    <template lwc:if={ready}>
+        <section class="section hero card">
+            <div class="row between">
+                <div class="muted small">Next Reel</div>
+                <span class="pill accent">{nextName} · {nextAt}</span>
+            </div>
+            <div class="count">{countdown}</div>
+            <div class="muted small">{statusLine}</div>
+        </section>
+
+        <template lwc:if={active}>
+            <section class="section">
+                <div class="section-title">Now creating <span class="hint">tap to watch the agents think</span></div>
+                <div class="card tap live-card" onclick={openActive} role="button" aria-label="Open live view">
+                    <div class="row">
+                        <template lwc:if={active.cover}><img class="thumb" src={active.cover} alt="" /></template>
+                        <template lwc:else><div class="thumb ph"><span class="dot pulse"></span></div></template>
+                        <div class="grow">
+                            <div class="row"><span class="pill live"><span class="dot pulse"></span>Live</span><span class="faint tiny">{active.id}</span></div>
+                            <div class="strong ellipsis mt">{activeTitle}</div>
+                            <div class="muted small clamp2">{active.topic}</div>
+                        </div>
+                        <svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+                    </div>
+                    <div class="steps">
+                        <template for:each={activeSteps} for:item="s">
+                            <div key={s.key} class={s.cls}><span class="bead"></span><span class="tiny">{s.label}</span></div>
+                        </template>
+                    </div>
+                    <template lwc:if={active.stage}><div class="faint tiny mt">Stage: {active.stage}</div></template>
+                </div>
+            </section>
+        </template>
+
+        <section class="section">
+            <div class="section-title">Needs you</div>
+            <template lwc:if={message}><div class="error-box">{message}</div></template>
+            <template lwc:if={hasInbox}>
+                <template for:each={inbox} for:item="i">
+                    <div key={i.id} class="card inbox">
+                        <div class="row">
+                            <span class="avatar" style={i.avatarStyle}>{i.avatar}</span>
+                            <div class="grow">
+                                <div class="row"><span class="strong small">{i.agent} · {i.action}</span><span class={i.sevCls}>{i.severity}</span></div>
+                                <div class="faint tiny">{i.when}</div>
+                            </div>
+                        </div>
+                        <div class="small pre body">{i.details}</div>
+                        <div class="row actions">
+                            <template lwc:if={i.reel}><button class="btn small" data-id={i.reel} onclick={openInboxReel}>Open {i.reel}</button></template>
+                            <button class="btn small primary" data-id={i.id} onclick={resolve} disabled={i.busy}>Done</button>
+                        </div>
+                    </div>
+                </template>
+            </template>
+            <template lwc:else>
+                <div class="card empty"><span class="big-emoji">✨</span>Autopilot is handling everything.<br /><span class="faint small">Only things a human must do show up here.</span></div>
+            </template>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Today's slots</div>
+            <template for:each={slots} for:item="s">
+                <div key={s.key} class="card slot tap" data-id={s.rid} onclick={openSlot} role="button" aria-label={s.name}>
+                    <div class="row">
+                        <div class="time"><div class="strong">{s.time}</div><div class="faint tiny">{s.name}</div></div>
+                        <div class="grow">
+                            <div class="row"><span class={s.cls}>{s.state}</span>
+                                <template lwc:if={s.verdict}><span class={s.verdictCls}>{s.verdict}</span></template>
+                            </div>
+                            <template lwc:if={s.show}><div class="strong small ellipsis mt">{s.show}</div></template>
+                            <template lwc:if={s.topic}><div class="muted small ellipsis">{s.topic}</div></template>
+                            <template lwc:if={s.views}><div class="faint tiny">{s.views}</div></template>
+                        </div>
+                        <template lwc:if={s.cover}><img class="mini" src={s.cover} alt="" /></template>
+                    </div>
+                </div>
+            </template>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Results <span class="hint">{postingLine}</span></div>
+            <div class="kpis">
+                <template for:each={kpiCards} for:item="k">
+                    <div key={k.key} class="card kpi"><div class="big">{k.value}</div><div class="muted tiny">{k.label}</div></div>
+                </template>
+            </div>
+        </section>
+    </template>
+    <template lwc:else>
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </template>
+</template>

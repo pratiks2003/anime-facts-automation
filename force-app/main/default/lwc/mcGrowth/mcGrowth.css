@@ -1,0 +1,20 @@
+@import 'c/mcStyles';
+
+.wrap { flex-wrap: wrap; gap: 6px; }
+.mt { margin-top: 6px; }
+.cap { text-transform: capitalize; }
+.intro p { margin: 10px 0 6px; line-height: 1.5; }
+.srow { padding: 10px 0; border-top: 1px solid var(--line); }
+.srow:first-child { border-top: 0; padding-top: 0; }
+.srow .bar { margin: 7px 0 5px; }
+.srow .pill { margin-top: 6px; height: 22px; font-size: 10.5px; }
+.irow { padding: 9px 0; border-top: 1px solid var(--line); gap: 8px; }
+.irow:first-child { border-top: 0; padding-top: 0; }
+.review { border-color: rgba(62, 224, 255, 0.3); background: linear-gradient(160deg, rgba(62, 224, 255, 0.08), var(--card)); line-height: 1.55; }
+.pb .val { font-size: 15px; font-weight: 650; margin: 6px 0 4px; word-break: break-word; }
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; height: 92px; align-items: end; }
+.hcol { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 3px; }
+.hbar { width: 100%; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--accent), rgba(255, 77, 109, 0.35)); min-height: 3px; }
+.trow { padding: 10px 0; border-top: 1px solid var(--line); }
+.trow:first-child { border-top: 0; padding-top: 0; }
+.trow .bar { margin-top: 7px; }

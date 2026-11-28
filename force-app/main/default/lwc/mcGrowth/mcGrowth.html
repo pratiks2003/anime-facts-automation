@@ -1,0 +1,135 @@
+<template>
+    <div class="chips section">
+        <template for:each={views} for:item="v"><button key={v.id} class={v.cls} data-id={v.id} onclick={pick}>{v.label}</button></template>
+    </div>
+    <template lwc:if={error}><div class="error-box section">{error}</div></template>
+    <template lwc:if={ready}>
+
+        <template lwc:if={isScore}>
+            <section class="section card intro">
+                <div class="row wrap"><span class={freshCls}>{freshness}</span><span class="pill">{scored} scored Reels</span></div>
+                <p class="small muted">1.0× = a normal Reel for this account (views 60%, watch time 40%). Winner 1.25×+, loser 0.75× or less. Reels under 12 h are too young to judge.</p>
+                <template lwc:if={tooYoung}><div class="tiny faint">Too young: {tooYoung}</div></template>
+            </section>
+            <template lwc:if={hasGroups}>
+                <template for:each={groups} for:item="g">
+                    <section key={g.key} class="section">
+                        <div class="section-title">{g.title}</div>
+                        <div class="card">
+                            <template for:each={g.rows} for:item="r">
+                                <div key={r.key} class="srow">
+                                    <div class="row between">
+                                        <span class="strong small ellipsis grow">{r.name}</span>
+                                        <span class="small strong">{r.avg}×</span>
+                                    </div>
+                                    <div class={r.barCls}><span style={r.barStyle}></span><i class="median" style="left:33.3%"></i></div>
+                                    <div class="row between tiny faint">
+                                        <span>n {r.n} · {r.wins} wins · {r.losses} losses</span>
+                                        <template lwc:if={r.facts}><span>{r.facts}</span></template>
+                                    </div>
+                                    <template lwc:if={r.status}><span class={r.statusCls}>{r.status}</span></template>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                </template>
+            </template>
+            <template lwc:else><div class="card empty">No scored Reels yet - results appear 12 h after posting.</div></template>
+            <template lwc:if={hasInventory}>
+                <section class="section">
+                    <div class="section-title">Fact inventory <span class="hint">verified facts per show</span></div>
+                    <div class="card">
+                        <template for:each={inventory} for:item="f">
+                            <div key={f.key} class="row between irow">
+                                <span class="small strong ellipsis grow">{f.show}</span>
+                                <span class="tiny faint">{f.facts} facts · {f.recent} Reels/3d</span>
+                                <span class={f.cls}>{f.riskLabel}</span>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+            </template>
+        </template>
+
+        <template lwc:if={isStrategy}>
+            <template lwc:if={review}>
+                <section class="section">
+                    <div class="section-title">Strategist's daily review <span class="hint">{reviewWhen}</span></div>
+                    <div class="card review"><div class="small pre">{review.text}</div></div>
+                </section>
+            </template>
+            <section class="section">
+                <div class="section-title">Playbook <span class="hint">the agents tune this themselves</span></div>
+                <template for:each={playbook} for:item="p">
+                    <div key={p.key} class="card pb">
+                        <div class="row between"><span class="strong small cap">{p.label}</span></div>
+                        <div class="val">{p.pretty}</div>
+                        <div class="tiny faint">{p.explanation}</div>
+                    </div>
+                </template>
+            </section>
+            <section class="section">
+                <div class="section-title">Audience online <span class="hint">by hour</span></div>
+                <div class="card">
+                    <template lwc:if={hasHours}>
+                        <div class="hours">
+                            <template for:each={hours} for:item="h"><div key={h.key} class="hcol"><span class="hbar" style={h.style}></span><span class="tiny faint">{h.label}</span></div></template>
+                        </div>
+                    </template>
+                    <template lwc:else><div class="small muted">Instagram shares this once the account has 100+ followers.</div></template>
+                    <div class="tiny faint mt">{trendingAudio}</div>
+                </div>
+            </section>
+            <section class="section">
+                <div class="section-title">Experiments <span class="hint">auto-rollback if results drop 20%</span></div>
+                <template lwc:if={hasChanges}>
+                    <template for:each={changes} for:item="c">
+                        <div key={c.key} class="card">
+                            <div class="row between"><span class="strong small cap">{c.label}</span><span class={c.cls}>{c.status}</span></div>
+                            <div class="small mt"><span class="faint">{c.fromP}</span> → <span class="strong">{c.toP}</span></div>
+                            <div class="small muted pre mt">{c.why}</div>
+                            <div class="tiny faint mt">{c.result} · {c.by} · {c.when}</div>
+                        </div>
+                    </template>
+                </template>
+                <template lwc:else><div class="card empty">No experiments yet. The Strategist starts after its first daily review (23:40 IST).</div></template>
+            </section>
+        </template>
+
+        <template lwc:if={isRequests}>
+            <section class="section">
+                <div class="section-title">What the agents asked for <span class="hint">built by the developer</span></div>
+                <template lwc:if={hasRequests}>
+                    <template for:each={requests} for:item="r">
+                        <div key={r.key} class="card">
+                            <div class="row between"><span class={r.cls}>{r.type}</span><span class="tiny faint">{r.agent} · {r.when}</span></div>
+                            <div class="small pre mt">{r.short}</div>
+                            <template lwc:if={r.reel}><div class="tiny faint mt">From {r.reel}</div></template>
+                        </div>
+                    </template>
+                </template>
+                <template lwc:else><div class="card empty">No requests - the agents have everything they need.</div></template>
+            </section>
+        </template>
+
+        <template lwc:if={isTrends}>
+            <section class="section">
+                <div class="section-title">Hot right now <span class="hint">{trendsWhen}</span></div>
+                <template lwc:if={hasTrends}>
+                    <div class="card">
+                        <template for:each={trends} for:item="t">
+                            <div key={t.key} class="trow">
+                                <div class="row between"><span class="strong small ellipsis grow">{t.anime}</span><span class="tiny strong">heat {t.heat}</span></div>
+                                <div class="small muted clamp2">{t.topic}</div>
+                                <div class="bar"><span style={t.style}></span></div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template lwc:else><div class="card empty">No trend brief yet.</div></template>
+            </section>
+        </template>
+    </template>
+    <template lwc:elseif={error}></template>
+    <template lwc:else><div class="skeleton"></div><div class="skeleton"></div></template>
+</template>

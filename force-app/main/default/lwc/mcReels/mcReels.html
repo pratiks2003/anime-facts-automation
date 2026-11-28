@@ -1,0 +1,54 @@
+<template>
+    <div class="chips section">
+        <template for:each={filters} for:item="f">
+            <button key={f.id} class={f.cls} data-id={f.id} onclick={pick}>{f.label}</button>
+        </template>
+    </div>
+    <template lwc:if={ready}>
+        <template lwc:if={hasReels}>
+            <template for:each={reels} for:item="r">
+                <article key={r.id} class="card tap reel" data-id={r.id} onclick={open} role="button" aria-label={r.title}>
+                    <div class="row top">
+                        <template lwc:if={r.cover}><img class="cover" src={r.cover} alt="" loading="lazy" /></template>
+                        <template lwc:else><div class="cover ph">🎬</div></template>
+                        <div class="grow">
+                            <div class="row wrap">
+                                <span class={r.statusCls}>{r.status}</span>
+                                <template lwc:if={r.verdict}><span class={r.verdictCls}>{r.verdict}</span></template>
+                            </div>
+                            <div class="strong ellipsis mt">{r.title}</div>
+                            <div class="muted small">{r.format} · {r.slot}</div>
+                            <div class="small clamp2 mt">{r.topic}</div>
+                            <div class="faint tiny mt">{r.id} · {r.when}</div>
+                        </div>
+                    </div>
+                    <template lwc:if={r.indexLabel}>
+                        <div class="row perf">
+                            <div class="grow"><div class={r.barCls}><span style={r.barStyle}></span><i class="median" style="left:33.3%"></i></div></div>
+                            <span class="strong small">{r.indexLabel}</span>
+                        </div>
+                        <div class="faint tiny">performance vs a normal Reel (1.0×)</div>
+                    </template>
+                    <div class="stats">
+                        <template for:each={r.stats} for:item="s">
+                            <div key={s.k} class="stat"><div class="strong">{s.value}</div><div class="faint tiny">{s.label}</div></div>
+                        </template>
+                    </div>
+                    <template lwc:if={r.hasEffects}>
+                        <div class="fx">
+                            <template for:each={r.effectChips} for:item="e"><span key={e.key} class="pill">{e.label}</span></template>
+                        </div>
+                    </template>
+                    <div class="row links">
+                        <template lwc:if={r.permalink}><a class="btn small" href={r.permalink} target="_blank" rel="noopener" onclick={stop}>Instagram ↗</a></template>
+                        <template lwc:if={r.video}><a class="btn small" href={r.video} target="_blank" rel="noopener" onclick={stop}>Video ↗</a></template>
+                        <span class="grow"></span>
+                        <span class="live-link small">How it was made →</span>
+                    </div>
+                </article>
+            </template>
+        </template>
+        <template lwc:else><div class="card empty">No Reels here yet.</div></template>
+    </template>
+    <template lwc:else><div class="skeleton"></div><div class="skeleton"></div></template>
+</template>

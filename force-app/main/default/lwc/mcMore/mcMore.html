@@ -1,0 +1,69 @@
+<template>
+    <template lwc:if={inTool}>
+        <div class="row tool-head section">
+            <button class="btn small" onclick={back} aria-label="Back">‹ Back</button>
+            <span class="strong">{toolTitle}</span>
+        </div>
+        <template lwc:if={toolError}><div class="error-box section">{toolError}</div></template>
+        <div class="tool">
+            <template lwc:if={isQueue}><c-insta-reels></c-insta-reels></template>
+            <template lwc:if={isPublished}><c-insta-posts></c-insta-posts></template>
+            <template lwc:if={isComments}><c-insta-comments></c-insta-comments></template>
+            <template lwc:if={isIdeas}><c-insta-ideas></c-insta-ideas></template>
+            <template lwc:if={isLearn}><c-insta-learn></c-insta-learn></template>
+            <template lwc:if={needsAdmin}>
+                <template lwc:if={adminReady}>
+                    <template lwc:if={isSettings}><c-insta-settings settings={adminSettings} onchanged={handleChanged}></c-insta-settings></template>
+                    <template lwc:if={isClassic}><c-insta-dashboard overview={adminOverview} onchanged={handleChanged}></c-insta-dashboard></template>
+                </template>
+                <template lwc:else><div class="skeleton"></div></template>
+            </template>
+        </div>
+    </template>
+
+    <template lwc:else>
+        <section class="section">
+            <div class="section-title">Ask the Showrunner <span class="hint">answers from real data</span></div>
+            <div class="card chat">
+                <template lwc:if={hasThread}>
+                    <div class="thread">
+                        <template for:each={thread} for:item="m"><div key={m.key} class={m.cls}>{m.text}</div></template>
+                        <template lwc:if={asking}><div class="msg them typing"><span></span><span></span><span></span></div></template>
+                    </div>
+                </template>
+                <template lwc:else>
+                    <div class="chips">
+                        <template for:each={suggestions} for:item="s"><button key={s.key} class="chip" data-q={s.q} onclick={useSuggestion}>{s.q}</button></template>
+                    </div>
+                </template>
+                <div class="row ask">
+                    <input class="input grow" type="text" placeholder="Ask anything about the channel…" value={question} oninput={onQuestion} onkeydown={onKey} aria-label="Question" />
+                    <button class="btn primary" onclick={ask} disabled={askDisabled} aria-label="Send">➤</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">System health</div>
+            <template lwc:if={healthError}><div class="error-box">{healthError}</div></template>
+            <div class="card">
+                <template for:each={checks} for:item="c">
+                    <div key={c.key} class="row hrow"><span class={c.cls}></span><span class="small grow">{c.label}</span><span class="small strong">{c.value}</span></div>
+                </template>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">Tools</div>
+            <div class="card list">
+                <template for:each={tools} for:item="t">
+                    <button key={t.id} class="item" data-id={t.id} onclick={openTool} aria-label={t.label}>
+                        <span class="ico">{t.icon}</span>
+                        <span class="grow txt"><span class="strong small">{t.label}</span><span class="tiny faint">{t.sub}</span></span>
+                        <span class="faint">›</span>
+                    </button>
+                </template>
+            </div>
+        </section>
+    </template>
+</template>

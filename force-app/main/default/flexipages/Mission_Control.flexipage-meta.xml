@@ -3,8 +3,8 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>missionControl</componentName>
-                <identifier>c_missionControl</identifier>
+                <componentName>adminShell</componentName>
+                <identifier>c_adminShell</identifier>
             </componentInstance>
         </itemInstances>
         <name>main</name>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Verified anime facts (with sources and canon status) used by the Showrunner, writers and fact checker.</description>
+    <developerName>File_Senpai_Knowledge</developerName>
+    <invocationTarget>File_Senpai_Knowledge_1Cx_W0q17064c29</invocationTarget>
+    <invocationTargetType>retriever</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>File_Senpai_Knowledge</localDeveloperName>
+    <masterLabel>Get Information from Senpai_Knowledge</masterLabel>
+    <progressIndicatorMessage>Getting information...</progressIndicatorMessage>
+</GenAiFunction>

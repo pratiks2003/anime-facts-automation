@@ -10,6 +10,9 @@ config:
     agent_label: "Senpai Showrunner"
     description: "Master agent of the Senpai Secrets channel: routes events and questions to the Editor, Ops and Insights subagents, which diagnose problems and fix them with single-purpose actions."
 
+knowledge:
+    rag_feature_config_id: "1JDgK000009eCJpWAM"
+
 language:
     default_locale: "en_US"
     additional_locales: ""
@@ -36,6 +39,16 @@ subagent editor:
     description: "Reviews held or below-bar Reels, finds the root cause and fixes it: approve, remake with precise instructions, or hold for the owner."
 
     actions:
+        search_knowledge:
+            description: "Search the team's verified anime facts (with sources and canon status) by meaning."
+            inputs:
+                searchText: string
+                    description: "What to look up, e.g. 'Fool Night transfloration' or 'Is the Joyboy, Imu and Lili friendship confirmed?'"
+            outputs:
+                results: string
+                    description: "Relevant verified facts"
+            target: "retriever://File_Senpai_Knowledge_1Cx_W0q17064c29"
+            source: "File_Senpai_Knowledge"
         get_reel_report:
             description: "Full report for one Reel: scenes, scores, quality-checker and fact-check findings, hold reason, remakes left."
             inputs:
@@ -148,11 +161,14 @@ subagent editor:
               - Your instructions for a remake are a creative brief, not a vague wish: name the exact claim to drop, the exact shots
                 to replace, the stronger hook, the better angle, and why it will perform.
               - Accuracy is the brand: never approve anything with a fact problem; rumours can only run as clearly-framed theories.
+  Before you judge or brief a claim, search_knowledge for it - the team's verified facts (with canon status and
+  sources) are the ground truth; if a claim is not there, treat it as unverified.
               - A Reel held only by the posting limit is not a quality problem: leave it.
               - When remakes are used up or the call needs a human (rights, taste, risk), hold it and brief the owner like a pro.
               - If you learned something that would prevent this next time, record it as a crisp lesson (check get_lessons first).
               Finish with a short, confident summary: what was wrong, what you decided, and what happens next.
         actions:
+            search_knowledge: @actions.search_knowledge
             get_reel_report: @actions.get_reel_report
             get_recent_reels: @actions.get_recent_reels
             get_trends: @actions.get_trends
@@ -228,6 +244,16 @@ subagent insights:
     description: "Answers the owner's questions about Reels, performance, trends and lessons, using real data."
 
     actions:
+        search_knowledge:
+            description: "Search the team's verified anime facts (with sources and canon status) by meaning."
+            inputs:
+                searchText: string
+                    description: "What to look up, e.g. 'Fool Night transfloration' or 'Is the Joyboy, Imu and Lili friendship confirmed?'"
+            outputs:
+                results: string
+                    description: "Relevant verified facts"
+            target: "retriever://File_Senpai_Knowledge_1Cx_W0q17064c29"
+            source: "File_Senpai_Knowledge"
         get_recent_reels:
             description: "The most recent Reels with show, format, status, scores and Instagram metrics."
             inputs:
@@ -287,9 +313,11 @@ subagent insights:
                 shared or saved, and what the feed has been repeating. Compare against today's trends.
               - Be opinionated and specific: "Lore on main shows is beating news on new shows 2:1 on watch time; do more X, stop Y."
               - Separate what the data proves from what you suspect, and say how to test the suspicion.
+- For questions about a show's facts, lore or canon, search_knowledge and cite the fact ids.
               - If you discover a reusable lesson that is not in get_lessons yet, record it.
               Keep answers short, concrete and actionable.
         actions:
+            search_knowledge: @actions.search_knowledge
             get_recent_reels: @actions.get_recent_reels
             get_reel_report: @actions.get_reel_report
             get_trends: @actions.get_trends

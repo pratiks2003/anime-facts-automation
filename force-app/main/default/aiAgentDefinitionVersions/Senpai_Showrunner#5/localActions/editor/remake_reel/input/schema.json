@@ -1,0 +1,42 @@
+{
+  "required" : [ ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "format" : {
+      "title" : "Format",
+      "description" : "Optional: Fact, Backstory, Fan Theory, Hidden Details, Who Would Win, Ranking, Quiz, What If, Behind the Scenes, Why It's Trending, Just Announced, Hype Check, This Week's Drops or Season Preview",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "notes" : {
+      "title" : "Notes",
+      "description" : "Concrete instructions for the writers and editors: what to fix and how",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reelId" : {
+      "title" : "Reel Id",
+      "description" : "External id of the Reel",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "show" : {
+      "title" : "Show",
+      "description" : "Optional: switch to this anime (use a show from get_trends)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "topic" : {
+      "title" : "Topic",
+      "description" : "Optional: the exact topic or angle",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

@@ -542,6 +542,9 @@ def generate(args, sf) -> int:
         hot_topic = chosen
     if directive:  # the Showrunner's remake instructions are final
         hot_topic, angle = None, ""
+        if directive.get("show"):  # news formats must cover the show the Showrunner chose, not today's trending list
+            hot_topic = {"anime": directive["show"], "topic": directive.get("topic") or directive["show"],
+                         "headline": directive.get("topic"), "heat": 0}
         args.format = directive.get("format") or args.format
         anime_hint, topic = directive.get("show") or anime_hint, directive.get("topic") or topic
     last = history[0] if history else {}

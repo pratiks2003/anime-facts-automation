@@ -620,8 +620,9 @@ def generate(args, sf) -> int:
         hot_topic = chosen
     if directive:  # the Showrunner's remake instructions are final
         hot_topic, angle = None, ""
-        if directive.get("show"):  # news formats must cover the show the Showrunner chose, not today's trending list
-            hot_topic = {"anime": directive["show"], "topic": directive.get("topic") or directive["show"],
+        show = directive.get("show") or args.anime  # a remake that keeps the show may not repeat its name
+        if show:  # news formats must cover the show the Showrunner chose, never a generic "Anime" roundup
+            hot_topic = {"anime": show, "topic": directive.get("topic") or show,
                          "headline": directive.get("topic"), "heat": 0}
         args.format = directive.get("format") or args.format
         anime_hint, topic = directive.get("show") or anime_hint, directive.get("topic") or topic

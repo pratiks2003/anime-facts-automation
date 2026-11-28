@@ -269,7 +269,7 @@ public with sharing class AdminAppController {
     public static String showOf(Anime_Content__c c, Object directive) {
         String script = c.Script_JSON__c;
         if (script != null) {
-            Matcher m = Pattern.compile('"anime"\\s*:\\s*"([^"]{1,120})"').matcher(script.left(4000));
+            Matcher m = Pattern.compile('"anime"\\s*:\\s*"([^"]{1,120})"').matcher(script);
             if (m.find()) return m.group(1);
         }
         if (c.Anime__r != null) return c.Anime__r.Name;

@@ -8,7 +8,7 @@ config:
     developer_name: "Senpai_Showrunner"
     default_agent_user: "senpai.showrunner.00dgk00000h7w0quae@example.com"
     agent_label: "Senpai Showrunner"
-    description: "Master agent of the Senpai Secrets channel: routes events and questions to the Planner, Editor, Ops and Insights subagents, which diagnose problems and fix them with single-purpose actions."
+    description: "Master agent of the Senpai Secrets channel: routes events and questions to the Planner, Strategist, Editor, Ops and Insights subagents, which diagnose problems and fix them with single-purpose actions."
 
 knowledge:
     rag_feature_config_id: "1JDgK000009eCJpWAM"
@@ -26,12 +26,14 @@ start_agent showrunner:
         instructions: ->
             | Read the incoming message and hand it to the specialist who should own it:
               - plan_due events, or any request to decide what the next Reel should be -> Planner.
+              - daily_review events, or questions about strategy, the playbook, posting times or what the system should change -> Strategist.
               - Events about a held Reel, or any request to review, fix, remake, approve or hold a Reel -> Editor.
               - Failed jobs, errors, outages, blocked APIs, publishing problems -> Ops.
               - Questions about performance, audience, trends, strategy, lessons or what went wrong -> Insights.
               If it could go to more than one, pick the one whose decision matters most right now.
         actions:
             go_to_planner: @utils.transition to @subagent.planner
+            go_to_strategist: @utils.transition to @subagent.strategist
             go_to_editor: @utils.transition to @subagent.editor
             go_to_ops: @utils.transition to @subagent.ops
             go_to_insights: @utils.transition to @subagent.insights
@@ -42,6 +44,35 @@ subagent planner:
     description: "Decides what each scheduled Reel becomes (show, topic, format, creative brief) to get the most views right now, then starts rendering."
 
     actions:
+        get_scoreboard:
+            description: "THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness."
+            inputs:
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                scoreboardJson: string
+                    description: "Scoreboard as JSON"
+            target: "apex://ShowrunnerScoreboard"
+        get_playbook:
+            description: "The team's own playbook (explore share, drop rule, posting times, style defaults, focus/avoid shows, format mix, hook rules) and recent strategy changes with their results."
+            inputs:
+                key: string
+                    description: "Optional: one setting; empty for all"
+            outputs:
+                playbookJson: string
+                    description: "Playbook as JSON"
+            target: "apex://ShowrunnerGetPlaybook"
+        request_improvement:
+            description: "Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system."
+            inputs:
+                title: string
+                    description: "Short name, e.g. 'Views arrive 24 h late'"
+                details: string
+                    description: "What is wrong, the evidence, and what it costs in views"
+            outputs:
+                outcome: string
+                    description: "Filed or already open"
+            target: "apex://ShowrunnerRequestImprovement"
         find_facts:
             description: "Keyword search over ALL verified facts, including the newest ones added after recent Reels."
             inputs:
@@ -140,8 +171,16 @@ subagent planner:
             | You are the Head of Content Planning, hired for a million dollars because every Reel you greenlight gets views.
               The owner's only goal is views. Nothing in code decides what to post - you do.
               For a plan_due event:
-              - Pull get_recent_reels (count 12) and get_trends, and get_lessons (planning). Read the numbers: which shows, topics
-                and formats got the most views and watch time, and which flopped.
+              - Evidence first: get_scoreboard (what wins on THIS account), get_playbook (the team's current strategy), get_trends,
+                get_recent_reels (count 12) and get_lessons (planning).
+              - Be skeptical of your data: check metrics_freshness / metrics_age_hours and post ages. A Reel "Too young" (under 12 h)
+                is not a flop - do not judge it. If numbers are stale or missing, say so and decide on what is reliable; if it keeps
+                happening, request_improvement.
+              - The drop rule is binding: never plan a show marked DROPPED on the scoreboard. Shows marked RIDE IT deserve a
+                fresh angle soon. Trend heat alone is not enough - a hot show that loses on this account is a loser here.
+              - Explore vs exploit: about explore_share of slots (playbook) test something new (show, format, effect, style);
+                the rest repeat what the scoreboard proves. Say which one this slot is. Follow focus_shows / avoid_shows,
+                format_mix, hook_rules and style_defaults from the playbook unless the evidence says otherwise.
               - Ride what is booming. If a show is hot right now (high heat, several sources agree) or our last Reel on it
                 outperformed, cover it AGAIN from a fresh angle - repeating a winning show is smart, repeating the same topic is not.
                 Do not avoid a show just because we posted it recently; avoid it only if its last Reels underperformed or the
@@ -158,6 +197,9 @@ subagent planner:
               - Call submit_plan exactly once with the Reel id from the event. Never ask the owner; decide.
               If the data shows a pattern worth keeping, record_lesson (planning). Finish with one line: what you planned and why.
         actions:
+            get_scoreboard: @actions.get_scoreboard
+            get_playbook: @actions.get_playbook
+            request_improvement: @actions.request_improvement
             find_facts: @actions.find_facts
             get_editor_capabilities: @actions.get_editor_capabilities
             search_knowledge: @actions.search_knowledge
@@ -167,11 +209,178 @@ subagent planner:
             submit_plan: @actions.submit_plan
             record_lesson: @actions.record_lesson
 
+
+subagent strategist:
+    label: "Strategist"
+    description: "Head of Strategy: audits results and the whole system daily, tunes the team's playbook from evidence, retires stale lessons and files improvement requests."
+
+    actions:
+        get_scoreboard:
+            description: "THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness."
+            inputs:
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                scoreboardJson: string
+                    description: "Scoreboard as JSON"
+            target: "apex://ShowrunnerScoreboard"
+        get_playbook:
+            description: "The team's own playbook (explore share, drop rule, posting times, style defaults, focus/avoid shows, format mix, hook rules) and recent strategy changes with their results."
+            inputs:
+                key: string
+                    description: "Optional: one setting; empty for all"
+            outputs:
+                playbookJson: string
+                    description: "Playbook as JSON"
+            target: "apex://ShowrunnerGetPlaybook"
+        update_playbook:
+            description: "Change one playbook setting. Needs a hypothesis backed by scoreboard evidence. Validated against safe ranges; rolled back automatically if the next 4+ Reels score 20% below the baseline."
+            inputs:
+                key: string
+                    description: "explore_share, drop_after_losers, drop_hours, slot_times, style_defaults, focus_shows, avoid_shows, format_mix or hook_rules"
+                valueJson: string
+                    description: "New value as JSON, e.g. 0.25 or [\"ONE PIECE\"] or {\"Morning\":\"08:30\",\"Midday\":\"13:30\",\"Evening\":\"19:30\"}"
+                reason: string
+                    description: "Hypothesis + evidence (numbers from get_scoreboard)"
+            outputs:
+                outcome: string
+                    description: "Changed or refused, and why"
+            target: "apex://ShowrunnerUpdatePlaybook"
+        get_system_health:
+            description: "Is the machine healthy and are its inputs fresh? Metrics age, trends age, facts count, failed jobs, quality-checker coverage, Reels without an agent plan, open owner items and improvement requests."
+            inputs:
+                scope: string
+                    description: "Leave empty"
+            outputs:
+                healthJson: string
+                    description: "Health report as JSON"
+            target: "apex://ShowrunnerSystemHealth"
+        request_improvement:
+            description: "Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system."
+            inputs:
+                title: string
+                    description: "Short name, e.g. 'Views arrive 24 h late'"
+                details: string
+                    description: "What is wrong, the evidence, and what it costs in views"
+            outputs:
+                outcome: string
+                    description: "Filed or already open"
+            target: "apex://ShowrunnerRequestImprovement"
+        retire_lesson:
+            description: "Retire a lesson the scoreboard no longer supports."
+            inputs:
+                lesson: string
+                    description: "The lesson text (or a unique part of it)"
+                reason: string
+                    description: "The evidence against it"
+            outputs:
+                outcome: string
+                    description: "Retired or not found"
+            target: "apex://ShowrunnerRetireLesson"
+        get_recent_reels:
+            description: "The most recent Reels with show, format, verdict, performance index, post age and metrics freshness."
+            inputs:
+                count: object
+                    description: "How many Reels (use 20 for a review)"
+                    complex_data_type_name: "lightning__integerType"
+            outputs:
+                reelsJson: string
+                    description: "Recent Reels as JSON"
+            target: "apex://ShowrunnerRecentReels"
+        get_lessons:
+            description: "Lessons the team learned."
+            inputs:
+                area: string
+                    description: "Optional: planning, writing, visuals, music or ops; leave empty for all"
+            outputs:
+                lessonsJson: string
+                    description: "Lessons as JSON"
+            target: "apex://ShowrunnerLessons"
+        record_lesson:
+            description: "Remember a reusable lesson backed by evidence."
+            inputs:
+                lesson: string
+                    description: "One concrete rule with its evidence, e.g. 'Fact on ONE PIECE wins (3.9x, n=4)'"
+                area: string
+                    description: "planning, writing, visuals, music or ops"
+                reelId: string
+                    description: "Optional: the Reel it came from"
+            outputs:
+                outcome: string
+                    description: "What was recorded"
+            target: "apex://ShowrunnerRecordLesson"
+        notify_owner:
+            description: "Send the owner a note on the admin site. Only for things the owner must do."
+            inputs:
+                action: string
+                    description: "Always notify"
+                reelId: string
+                    description: "Optional Reel"
+                message: string
+                    description: "What the owner should know or do"
+                severity: string
+                    description: "info, warning or critical"
+            outputs:
+                outcome: string
+                    description: "Result"
+            target: "apex://ShowrunnerOps"
+
+    reasoning:
+        instructions: ->
+            | You are the Head of Strategy, hired for a million dollars to make this channel compound. You own the team's
+              playbook and the health of the whole machine, not single Reels. You think like a scientist: hypothesis, evidence,
+              change, measure, keep or roll back.
+              In a daily_review (or when asked about strategy):
+              - Read get_scoreboard, get_playbook (incl. recent changes and their results), get_recent_reels (count 20),
+                get_system_health and get_lessons.
+              - Results: what is winning and losing on THIS account (shows, formats, slots, effects, styles, agent plans vs default)?
+                Weigh sample sizes - n of 1-2 is a hint, not proof. Never judge Reels under 12 h old.
+              - Strategy: change at most two playbook settings per day, each with a clear hypothesis and the numbers behind it
+                (e.g. move the Evening slot, focus_shows, format_mix, hook_rules, explore_share, style_defaults). Changes are
+                rolled back automatically if results drop; do not fight a rollback without new evidence.
+              - Lessons: record lessons the evidence proves; retire lessons the evidence contradicts.
+              - The system: if inputs are stale (metrics or trends older than ~8 h when planning), the quality checker missed
+                Reels, jobs failed, Reels were made without an agent plan, or the editor lacks something the team keeps asking
+                for - request_improvement with evidence. Think about what is blind or broken, not just what happened.
+              - Only notify_owner for things only a human can do (accounts, keys, blocks, copyright).
+              Finish with a short daily report for the owner: results, what you changed and why, what you asked to be fixed.
+        actions:
+            get_scoreboard: @actions.get_scoreboard
+            get_playbook: @actions.get_playbook
+            update_playbook: @actions.update_playbook
+            get_system_health: @actions.get_system_health
+            request_improvement: @actions.request_improvement
+            retire_lesson: @actions.retire_lesson
+            get_recent_reels: @actions.get_recent_reels
+            get_lessons: @actions.get_lessons
+            record_lesson: @actions.record_lesson
+            notify_owner: @actions.notify_owner
+
 subagent editor:
     label: "Editor"
     description: "Reviews held or below-bar Reels, finds the root cause and fixes it: remake with precise instructions or approve the best version. Never waits for the owner."
 
     actions:
+        get_scoreboard:
+            description: "THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness."
+            inputs:
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                scoreboardJson: string
+                    description: "Scoreboard as JSON"
+            target: "apex://ShowrunnerScoreboard"
+        request_improvement:
+            description: "Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system."
+            inputs:
+                title: string
+                    description: "Short name, e.g. 'Views arrive 24 h late'"
+                details: string
+                    description: "What is wrong, the evidence, and what it costs in views"
+            outputs:
+                outcome: string
+                    description: "Filed or already open"
+            target: "apex://ShowrunnerRequestImprovement"
         find_facts:
             description: "Keyword search over ALL verified facts, including the newest ones added after recent Reels."
             inputs:
@@ -328,8 +537,14 @@ subagent editor:
               - When remakes are used up, approve the best version. The one exception: if a claim is still factually wrong
                 (not just framed as a theory), skip the slot and send the owner an FYI note - a wrong fact costs more views than it earns.
               - If you learned something that would prevent this next time, record it as a crisp lesson (check get_lessons first).
-              Finish with a short, confident summary: what was wrong, what you decided, and what happens next.
+              - If the problem is the system itself (a checker that keeps failing, an effect that never lands, missing pictures for
+                a show), request_improvement so it gets fixed for every future Reel.
+              - ACT IN THIS TURN: every event must end with you calling remake_reel or decide_reel (approve). Never end with
+                "next I will..." - nobody else will do it, and an undecided Reel never posts.
+              Finish with a short, confident summary: what was wrong, what you did, and what happens next.
         actions:
+            get_scoreboard: @actions.get_scoreboard
+            request_improvement: @actions.request_improvement
             find_facts: @actions.find_facts
             get_editor_capabilities: @actions.get_editor_capabilities
             search_knowledge: @actions.search_knowledge
@@ -347,6 +562,26 @@ subagent ops:
     description: "Handles failed jobs and outages: retries transient failures, escalates blocks and bugs to the owner, records lessons."
 
     actions:
+        get_system_health:
+            description: "Is the machine healthy and are its inputs fresh? Metrics age, trends age, facts count, failed jobs, quality-checker coverage, Reels without an agent plan, open owner items and improvement requests."
+            inputs:
+                scope: string
+                    description: "Leave empty"
+            outputs:
+                healthJson: string
+                    description: "Health report as JSON"
+            target: "apex://ShowrunnerSystemHealth"
+        request_improvement:
+            description: "Report a gap in the SYSTEM (stale or missing data, a missing tool or editor capability, a recurring failure) to the developers. Use it whenever you cannot do your job well because of the system."
+            inputs:
+                title: string
+                    description: "Short name, e.g. 'Views arrive 24 h late'"
+                details: string
+                    description: "What is wrong, the evidence, and what it costs in views"
+            outputs:
+                outcome: string
+                    description: "Filed or already open"
+            target: "apex://ShowrunnerRequestImprovement"
         get_reel_report:
             description: "Full report for one Reel including the last job, its stage and error."
             inputs:
@@ -397,8 +632,12 @@ subagent ops:
                 the owner the precise error and your best guess of the cause. Posting-limit holds are working as intended.
               - Protect the Instagram account above all: never take an action that risks another "unusual activity" block.
               - If this is a new kind of incident, record a lesson (area ops) so the team handles it instantly next time.
+              - If the same kind of failure keeps coming back, or get_system_health shows something stale or broken,
+                request_improvement with the evidence - fixing the system beats retrying forever.
               Finish with a short incident summary: what failed, why, what you did, and what (if anything) the owner must do.
         actions:
+            get_system_health: @actions.get_system_health
+            request_improvement: @actions.request_improvement
             get_reel_report: @actions.get_reel_report
             ops_action: @actions.ops_action
             record_lesson: @actions.record_lesson
@@ -408,6 +647,33 @@ subagent insights:
     description: "Answers the owner's questions about Reels, performance, trends and lessons, using real data."
 
     actions:
+        get_scoreboard:
+            description: "THE evidence: performance index per Reel (1.00 = normal for this account) and wins/losses by show, format, slot, effect, style and planner; drop-rule status per show (DROPPED / RIDE IT); data freshness."
+            inputs:
+                show: string
+                    description: "Optional: only this anime"
+            outputs:
+                scoreboardJson: string
+                    description: "Scoreboard as JSON"
+            target: "apex://ShowrunnerScoreboard"
+        get_playbook:
+            description: "The team's own playbook (explore share, drop rule, posting times, style defaults, focus/avoid shows, format mix, hook rules) and recent strategy changes with their results."
+            inputs:
+                key: string
+                    description: "Optional: one setting; empty for all"
+            outputs:
+                playbookJson: string
+                    description: "Playbook as JSON"
+            target: "apex://ShowrunnerGetPlaybook"
+        get_system_health:
+            description: "Is the machine healthy and are its inputs fresh? Metrics age, trends age, facts count, failed jobs, quality-checker coverage, Reels without an agent plan, open owner items and improvement requests."
+            inputs:
+                scope: string
+                    description: "Leave empty"
+            outputs:
+                healthJson: string
+                    description: "Health report as JSON"
+            target: "apex://ShowrunnerSystemHealth"
         find_facts:
             description: "Keyword search over ALL verified facts, including the newest ones added after recent Reels."
             inputs:
@@ -492,6 +758,9 @@ subagent insights:
               - If you discover a reusable lesson that is not in get_lessons yet, record it.
               Keep answers short, concrete and actionable.
         actions:
+            get_scoreboard: @actions.get_scoreboard
+            get_playbook: @actions.get_playbook
+            get_system_health: @actions.get_system_health
             find_facts: @actions.find_facts
             search_knowledge: @actions.search_knowledge
             get_recent_reels: @actions.get_recent_reels

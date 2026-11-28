@@ -1,9 +1,11 @@
 name: Sync Instagram metrics
 
-# Daily at 07:17 IST (odd minute avoids GitHub's busiest scheduling slots). Also manual.
+# Before each posting slot, so the Planner judges fresh numbers (odd minutes avoid GitHub's busiest slots). Also manual.
 on:
   schedule:
-    - cron: "47 1 * * *"
+    - cron: "47 1 * * *"   # 07:17 IST, before the morning plan (also runs the health check)
+    - cron: "47 6 * * *"   # 12:17 IST, before the midday plan
+    - cron: "47 12 * * *"  # 18:17 IST, before the evening plan
   workflow_dispatch:
 
 permissions:
@@ -31,6 +33,6 @@ jobs:
           python-version: "3.12"
       - name: Sync metrics to Salesforce
         run: python -m pipeline.metrics --days 30
-      - name: Early warning (Instagram token / API access)
-        if: always()
+      - name: Early warning (Instagram token / API access) - once a day
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '47 1 * * *')
         run: python -m pipeline.health

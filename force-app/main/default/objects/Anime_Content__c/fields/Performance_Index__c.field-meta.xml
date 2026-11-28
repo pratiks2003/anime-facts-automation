@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Performance_Index__c</fullName>
+    <description>Views and watch time versus the channel median (1.00 = median). Set by Scoreboard.</description>
+    <label>Performance Index</label>
+    <required>false</required>
+    <type>Number</type>
+    <precision>6</precision>
+    <scale>2</scale>
+</CustomField>

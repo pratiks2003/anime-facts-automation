@@ -1,5 +1,6 @@
 <template>
     <div class="app">
+        <template lwc:if={showHeader}>
         <header class="header">
             <div class="brand">
                 <div class="logo">先輩</div>
@@ -15,6 +16,7 @@
                 <template lwc:if={showDryRun}><span class="chip chip_warn">Dry run · not posting</span></template>
             </div>
         </header>
+        </template>
 
         <nav class="tabs" role="tablist">
             <template for:each={tabs} for:item="tab">
@@ -23,6 +25,10 @@
         </nav>
 
         <main class="content">
+            <template lwc:if={isMission}>
+                <c-mission-control></c-mission-control>
+            </template>
+            <template lwc:else>
             <template lwc:if={error}>
                 <div class="error">Couldn't load data: {error}</div>
             </template>
@@ -53,6 +59,7 @@
                         <c-insta-settings settings={settings} onchanged={handleChanged}></c-insta-settings>
                     </template>
                 </template>
+            </template>
             </template>
         </main>
     </div>

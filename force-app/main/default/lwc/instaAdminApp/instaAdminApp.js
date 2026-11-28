@@ -3,6 +3,7 @@ import getOverview from '@salesforce/apex/AdminPanelController.getOverview';
 import { errorMessage } from 'c/instaUtils';
 
 const TABS = [
+    { id: 'mission', label: 'Mission Control' },
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'reels', label: 'Reels' },
     { id: 'published', label: 'Published' },
@@ -15,7 +16,7 @@ const REFRESH_MS = 30000;
 
 export default class InstaAdminApp extends LightningElement {
     @track overview;
-    activeTab = 'dashboard';
+    activeTab = 'mission';
     loading = true;
     error;
     timer;
@@ -60,6 +61,12 @@ export default class InstaAdminApp extends LightningElement {
         return this.overview ? this.overview.settings : {};
     }
 
+    get isMission() {
+        return this.activeTab === 'mission';
+    }
+    get showHeader() {
+        return !this.isMission;
+    }
     get isDashboard() {
         return this.activeTab === 'dashboard';
     }

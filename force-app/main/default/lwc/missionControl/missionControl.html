@@ -1,0 +1,301 @@
+<template>
+    <div class="mc">
+        <div class="glow glow_a"></div>
+        <div class="glow glow_b"></div>
+
+        <!-- ============ HERO ============ -->
+        <section class="hero" data-section="top">
+            <div class="topbar">
+                <div class="brand">
+                    <div class="logo">先輩</div>
+                    <div>
+                        <div class="brand-name">Senpai Secrets</div>
+                        <div class="brand-sub">Mission Control</div>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class={pillClass}><span class="pulse"></span>{pillLabel}</span>
+                    <button class={refreshClass} onclick={handleRefresh} title="Refresh" aria-label="Refresh">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                            <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <template lwc:if={error}><div class="error">{error}</div></template>
+
+            <div class="hero-grid">
+                <div class="card countdown-card">
+                    <div class="eyebrow">Next Reel drops in</div>
+                    <div class="countdown">
+                        <div class="cd"><span class="cd-num">{countdown.h}</span><span class="cd-unit">hrs</span></div>
+                        <span class="cd-sep">:</span>
+                        <div class="cd"><span class="cd-num">{countdown.m}</span><span class="cd-unit">min</span></div>
+                        <span class="cd-sep">:</span>
+                        <div class="cd"><span class="cd-num">{countdown.s}</span><span class="cd-unit">sec</span></div>
+                    </div>
+                    <div class="muted">{nextSlotLabel} · {cadence}</div>
+                    <div class="slots">
+                        <template for:each={schedule} for:item="s">
+                            <span key={s.name} class={s.className}>{s.name} · {s.time}</span>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="card pipeline-card">
+                    <div class="eyebrow">Live pipeline</div>
+                    <template lwc:if={active}>
+                        <div class="active-title">{activeTitle}</div>
+                        <div class="active-topic">{active.topic}</div>
+                        <ol class="stepper">
+                            <template for:each={steps} for:item="st">
+                                <li key={st.key} class={st.className}>
+                                    <span class="step-dot">{st.num}</span>
+                                    <span class="step-label">{st.label}</span>
+                                </li>
+                            </template>
+                        </ol>
+                        <div class="muted small">{active.id} · {active.stage}</div>
+                    </template>
+                    <template lwc:else>
+                        <div class="idle">
+                            <div class="idle-orb"></div>
+                            <div>
+                                <div class="active-title">All quiet</div>
+                                <div class="muted">The Planner wakes up 40 minutes before the next slot.</div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ NEEDS YOU ============ -->
+        <section class="section">
+            <div class="section-head">
+                <h2>Needs you</h2>
+                <template lwc:if={hasInbox}><span class="count count_hot">{inboxCount}</span></template>
+            </div>
+            <template lwc:if={hasInbox}>
+                <div class="inbox">
+                    <template for:each={inbox} for:item="i">
+                        <div key={i.id} class={i.className}>
+                            <div class={i.who.color}>{i.who.initial}</div>
+                            <div class="inbox-body">
+                                <div class="inbox-meta">{i.who.label} · {i.action} · {i.when}</div>
+                                <div class="inbox-text">{i.details}</div>
+                            </div>
+                            <button class="btn-done" data-id={i.id} onclick={handleResolve}>Done</button>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template lwc:else>
+                <div class="card zen">
+                    <div class="zen-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                            <path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="zen-title">Autopilot is handling everything</div>
+                        <div class="muted">Nothing needs you right now. The agents will put anything they can't fix here.</div>
+                    </div>
+                </div>
+            </template>
+        </section>
+
+        <!-- ============ KPIs ============ -->
+        <section class="section">
+            <div class="kpis">
+                <template for:each={kpis} for:item="k">
+                    <div key={k.key} class="card kpi">
+                        <div class="kpi-label">{k.label}</div>
+                        <div class="kpi-value">{k.value}</div>
+                        <div class="kpi-sub">{k.sub}</div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- ============ REELS ============ -->
+        <section class="section" data-section="reels">
+            <div class="section-head"><h2>Reels</h2><span class="muted small">scored against the channel median</span></div>
+            <template lwc:if={hasReels}>
+                <div class="reels">
+                    <template for:each={reels} for:item="r">
+                        <article key={r.recordId} class="card reel">
+                            <div class="reel-cover">
+                                <template lwc:if={r.hasCover}><img src={r.cover} alt={r.topic} loading="lazy" /></template>
+                                <template lwc:else><div class="cover-fallback">{r.fallbackLetter}</div></template>
+                                <span class={r.verdictClass}>{r.verdictLabel}</span>
+                                <span class="slot-tag">{r.slot}</span>
+                            </div>
+                            <div class="reel-body">
+                                <div class="reel-show">{r.show} · {r.format}</div>
+                                <div class="reel-topic">{r.topic}</div>
+                                <template lwc:if={r.hasIndex}>
+                                    <div class="bar"><div class={r.barClass} style={r.barStyle}></div><span class="bar-mid"></span></div>
+                                    <div class="bar-label">{r.indexLabel} the channel median</div>
+                                </template>
+                                <div class="stats">
+                                    <div><b>{r.viewsLabel}</b><span>views</span></div>
+                                    <div><b>{r.watchLabel}</b><span>watch</span></div>
+                                    <div><b>{r.sharesLabel}</b><span>shares</span></div>
+                                    <div><b>{r.editLabel}</b><span>quality</span></div>
+                                    <div><b>{r.directionLabel}</b><span>on brief</span></div>
+                                </div>
+                                <template lwc:if={r.brief}>
+                                    <div class="brief"><span class="brief-by">{r.planner}</span> {r.brief}</div>
+                                </template>
+                                <template lwc:if={r.hasEffects}>
+                                    <div class="chips">
+                                        <template for:each={r.effectChips} for:item="c">
+                                            <span key={c.key} class="chip">{c.label}</span>
+                                        </template>
+                                    </div>
+                                </template>
+                                <div class="reel-foot">
+                                    <span class="muted small">{r.id} · {r.status} · {r.when}</span>
+                                    <template lwc:if={r.hasLink}>
+                                        <a class="ig-link" href={r.permalink} target="_blank" rel="noopener">Open on Instagram ↗</a>
+                                    </template>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </template>
+            <template lwc:else><div class="card empty">No Reels yet.</div></template>
+        </section>
+
+        <!-- ============ AGENTS ============ -->
+        <section class="section" data-section="agents">
+            <div class="two-col">
+                <div>
+                    <div class="section-head"><h2>Agent decisions</h2><span class="muted small">every call, with its reasoning</span></div>
+                    <div class="card feed">
+                        <template for:each={feed} for:item="a">
+                            <div key={a.id} class={a.className}>
+                                <div class={a.who.color}>{a.who.initial}</div>
+                                <div class="feed-body">
+                                    <div class="feed-meta"><b>{a.who.label}</b> · {a.action} <template lwc:if={a.reel}>· {a.reel}</template> · {a.when}</div>
+                                    <div class="feed-text">{a.summary}</div>
+                                    <template lwc:if={a.canExpand}>
+                                        <button class="link-btn" data-id={a.id} onclick={handleToggle}>{a.toggleLabel}</button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-head"><h2>Ask the Showrunner</h2></div>
+                    <div class="card ask">
+                        <div class="ask-row">
+                            <input class="ask-input" type="text" aria-label="Ask the Showrunner" placeholder="Ask anything about the channel…" value={question}
+                                oninput={handleQuestion} onkeyup={handleAskKey} />
+                            <button class="btn-primary" onclick={handleAsk} disabled={asking}>{askLabel}</button>
+                        </div>
+                        <div class="suggestions">
+                            <template for:each={suggestions} for:item="s">
+                                <button key={s.key} class="suggestion" data-q={s.q} onclick={handleSuggestion}>{s.q}</button>
+                            </template>
+                        </div>
+                        <template lwc:if={asking}><div class="thinking"><span></span><span></span><span></span></div></template>
+                        <template lwc:if={answer}><div class="answer">{answer}</div></template>
+                        <template lwc:if={askError}><div class="error">{askError}</div></template>
+                    </div>
+
+                    <div class="section-head"><h2>Trending now</h2></div>
+                    <div class="card">
+                        <template lwc:if={hasTrends}>
+                            <template for:each={trends} for:item="t">
+                                <div key={t.key} class="trend">
+                                    <div class="trend-text"><b>{t.anime}</b><span>{t.topic}</span></div>
+                                    <div class="heat"><div class="heat-fill" style={t.heatStyle}></div></div>
+                                    <span class="heat-num">{t.heatLabel}</span>
+                                </div>
+                            </template>
+                        </template>
+                        <template lwc:else><div class="muted">Research hasn't run yet today.</div></template>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ STRATEGY ============ -->
+        <section class="section" data-section="strategy">
+            <div class="two-col">
+                <div>
+                    <div class="section-head"><h2>The agents' playbook</h2><span class="muted small">tuned by the Strategist</span></div>
+                    <div class="card">
+                        <template lwc:if={hasPlaybook}>
+                            <template for:each={playbook} for:item="p">
+                                <div key={p.key} class="play">
+                                    <div class="play-head"><b>{p.name}</b><span class="muted small">{p.when}</span></div>
+                                    <div class="play-value">{p.display}</div>
+                                    <div class="muted small">{p.explanation}</div>
+                                </div>
+                            </template>
+                        </template>
+                        <template lwc:else><div class="muted">The Strategist writes its first playbook after the daily review.</div></template>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-head"><h2>Experiments</h2><span class="muted small">kept if they win, rolled back if not</span></div>
+                    <div class="card">
+                        <template lwc:if={hasChanges}>
+                            <template for:each={changes} for:item="c">
+                                <div key={c.id} class="change">
+                                    <div class="change-head"><b>{c.setting}</b><span class={c.statusClass}>{c.status}</span></div>
+                                    <div class="change-diff"><span class="old">{c.oldDisplay}</span> → <span class="new">{c.newDisplay}</span></div>
+                                    <div class="change-reason">{c.reason}</div>
+                                    <div class="muted small">{c.by} · {c.when} · {c.evidence}</div>
+                                </div>
+                            </template>
+                        </template>
+                        <template lwc:else><div class="muted">No experiments yet. They start once Reels are scored.</div></template>
+                    </div>
+
+                    <div class="section-head"><h2>Agents asked for</h2><span class="muted small">improvement and feature requests</span></div>
+                    <div class="card">
+                        <template lwc:if={hasRequests}>
+                            <template for:each={requests} for:item="r">
+                                <div key={r.id} class="request">
+                                    <div class={r.who.color}>{r.who.initial}</div>
+                                    <div>
+                                        <div class="feed-meta"><b>{r.who.label}</b> · {r.action} · {r.when}</div>
+                                        <div class="feed-text">{r.details}</div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template lwc:else><div class="muted">No requests. The editor can do everything the agents asked for.</div></template>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ HEALTH ============ -->
+        <section class="section">
+            <div class="health">
+                <template for:each={health} for:item="h">
+                    <div key={h.key} class="health-item">
+                        <span class={h.dot}></span>
+                        <span class="health-label">{h.label}</span>
+                        <b>{h.value}</b>
+                    </div>
+                </template>
+            </div>
+            <div class="footer muted small">{updatedLabel} · refreshes every minute</div>
+        </section>
+
+        <nav class="bottom-nav">
+            <template for:each={nav} for:item="n">
+                <button key={n.id} data-id={n.id} onclick={handleNav}>{n.label}</button>
+            </template>
+        </nav>
+    </div>
+</template>

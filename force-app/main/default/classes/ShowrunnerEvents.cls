@@ -73,12 +73,33 @@ public with sharing class ShowrunnerEvents {
         }
     }
 
+    /** Once a day: the Strategist audits results, strategy and the system itself. */
+    public static void dailyReview(Datetime now) {
+        Date today = Date.valueOf(now.format('yyyy-MM-dd', InstaAgentConfig.TIMEZONE_ID));
+        if ([SELECT COUNT() FROM Agent_Activity__c WHERE Action__c = 'Daily review' AND CreatedDate >= :now.addHours(-20)] > 0) {
+            return;
+        }
+        System.enqueueJob(new Wake(new List<String>{
+            'EVENT daily_review: It is the end of ' + String.valueOf(today) + '. Run your daily self-audit: get_scoreboard, get_system_health, '
+            + 'get_playbook and get_lessons. Decide what to keep doing, what to change in the playbook (with evidence), which lessons to '
+            + 'record or retire, and what is broken or blind in the system (request_improvement). Then summarise the day for the owner.'
+        }, 'Strategist', 'Daily review'));
+    }
+
     /** Talks to the agent (one message per event) and logs its answer. */
     public class Wake implements Queueable, Database.AllowsCallouts {
         private final List<String> events;
+        private final String agent;
+        private final String action;
 
         public Wake(List<String> events) {
+            this(events, 'Showrunner', 'Handled event');
+        }
+
+        public Wake(List<String> events, String agent, String action) {
             this.events = events;
+            this.agent = agent;
+            this.action = action;
         }
 
         public void execute(QueueableContext context) {
@@ -90,7 +111,7 @@ public with sharing class ShowrunnerEvents {
                 } catch (Exception e) {
                     answer = 'Agent unavailable: ' + e.getMessage();
                 }
-                ShowrunnerSupport.log('Showrunner', 'Handled event', reelId, event + '\n\nShowrunner: ' + answer, false, 'info');
+                ShowrunnerSupport.log(agent, action, reelId, event + '\n\nShowrunner: ' + answer, false, 'info');
             }
         }
     }

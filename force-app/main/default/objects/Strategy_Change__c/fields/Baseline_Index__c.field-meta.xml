@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Baseline_Index__c</fullName>
+    <description>Average performance index of the 10 Reels before the change.</description>
+    <label>Baseline Index</label>
+    <required>false</required>
+    <type>Number</type>
+    <precision>6</precision>
+    <scale>2</scale>
+</CustomField>

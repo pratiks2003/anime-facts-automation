@@ -17,12 +17,58 @@ public with sharing class ReelScheduler implements Schedulable {
         if (!InstaAgentConfig.get().Automation_Enabled__c) {
             return;
         }
+        try {  // the learning loop: score results, judge the agents' strategy changes (rolls back what hurt)
+            Scoreboard.refresh(now);
+            Playbook.review();
+        } catch (Exception e) {
+            ShowrunnerSupport.log('Ops', 'Scoreboard error', null, e.getMessage(), false, 'warning');
+        }
+        if (Integer.valueOf(now.format('H', InstaAgentConfig.TIMEZONE_ID)) == 23) {
+            ShowrunnerEvents.dailyReview(now);  // the Strategist audits the whole system once a day
+        }
         List<Anime_Content__c> planned = ReelSlotPlanner.planDue(now);
         if (!planned.isEmpty()) {
             // the Showrunner's Planner decides what each slot becomes (falls back to direct rendering)
             ShowrunnerEvents.planSlots(new List<Id>(new Map<Id, Anime_Content__c>(planned).keySet()));
         }
         releasePostingLimitHolds(now);
+        nudgeUndecidedReels(now);
+    }
+
+    public static final Integer UNDECIDED_MINUTES = 40;
+
+    /**
+     * Safety net for "no owner holds": a Reel held by the quality gate must be decided by the Editor agent.
+     * Undecided after 40 min -> wake the agent again (once). Still undecided 40 min later -> post the best version,
+     * unless the fact checker flagged it (then it is skipped and the owner gets an FYI).
+     */
+    public static void nudgeUndecidedReels(Datetime now) {
+        List<Anime_Content__c> stuck = [SELECT Id, External_Id__c, Hold_Reason__c, Render_Report__c, QA_Issues__c FROM Anime_Content__c
+                                        WHERE Status__c = 'Rendered' AND Approval_Status__c = 'Pending' AND Hold_Reason__c != null
+                                        AND LastModifiedDate < :now.addMinutes(-UNDECIDED_MINUTES) LIMIT 5];
+        List<String> wake = new List<String>();
+        for (Anime_Content__c c : stuck) {
+            if (c.Hold_Reason__c.startsWith('Posting limit')) continue;
+            Integer nudges = [SELECT COUNT() FROM Agent_Activity__c WHERE Reel__c = :c.External_Id__c AND Action__c = 'Nudge'];
+            if (nudges == 0) {
+                ShowrunnerSupport.log('Ops', 'Nudge', c.External_Id__c, 'Held ' + UNDECIDED_MINUTES + '+ min without a decision; asking the Editor again.', false, 'info');
+                wake.add('EVENT reel_held: Reel ' + c.External_Id__c + ' is STILL waiting for your decision (held ' + UNDECIDED_MINUTES
+                    + '+ min). Hold reason: ' + c.Hold_Reason__c + ' Decide now: call remake_reel with your brief, or decide_reel approve.');
+            } else {
+                Boolean factProblem = (c.QA_Issues__c != null && c.QA_Issues__c.containsIgnoreCase('fact checker flagged'))
+                    || (c.Render_Report__c != null && c.Render_Report__c.contains('"pass":false'));
+                if (factProblem) {
+                    update new Anime_Content__c(Id = c.Id, Approval_Status__c = 'Rejected', Hold_Reason__c = 'Skipped: fact problem and no agent decision');
+                    ShowrunnerSupport.log('Ops', 'Skipped Reel', c.External_Id__c, 'No agent decision and the fact checker flagged it: skipped this slot.', true, 'info');
+                } else {
+                    update new Anime_Content__c(Id = c.Id, Approval_Status__c = 'Approved', Hold_Reason__c = null);
+                    ShowrunnerSupport.log('Ops', 'Auto-approved', c.External_Id__c, 'No agent decision after a nudge: posting the best version (owner rule: no holds).', false, 'warning');
+                }
+            }
+        }
+        if (!wake.isEmpty()) {
+            System.enqueueJob(new ShowrunnerEvents.Wake(wake));
+        }
     }
 
     /** Reels that only waited for the posting limit are posted automatically once the window allows. */

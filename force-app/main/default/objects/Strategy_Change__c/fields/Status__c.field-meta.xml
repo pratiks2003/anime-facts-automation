@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Status__c</fullName>
+    <description>Active until reviewed; rolled back automatically if results drop 20%.</description>
+    <label>Status</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Active</fullName>
+                <default>false</default>
+                <label>Active</label>
+            </value>
+            <value>
+                <fullName>Kept</fullName>
+                <default>false</default>
+                <label>Kept</label>
+            </value>
+            <value>
+                <fullName>Rolled back</fullName>
+                <default>false</default>
+                <label>Rolled back</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

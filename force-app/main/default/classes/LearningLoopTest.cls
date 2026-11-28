@@ -1,76 +1,118 @@
 @IsTest
 private class LearningLoopTest {
-    static final String ANALYST = '{"summary":"JoJo hooks win.","best_formats":["Quiz"],"weak_formats":["Fact"],"best_slot":"Evening",'
-        + '"feature_anime":["JoJo"],"avoid_anime":["Black Clover"],"hook_lessons":["Name the payoff","Lead with the biggest show"],'
-        + '"topic_ideas":[{"anime":"JoJo","format":"Quiz","idea":"Guess the Stand from 3 clues"},{"anime":"X","format":"Nope","idea":"Bad format idea"}]}';
-
-    @IsTest
-    static void analystWritesReviewAndBacklog() {
-        Anime_Content__c c = new Anime_Content__c(Name = 'R', External_Id__c = 'R-A', Format__c = 'Quiz', Status__c = 'Published', Quality_Score__c = 8.7);
+    static Anime_Content__c reel(String id, Anime__c show, Datetime published, Decimal views, Decimal watchMs, String directive) {
+        Anime_Content__c c = new Anime_Content__c(Name = id, External_Id__c = id, Format__c = 'Fact', Status__c = 'Published',
+            Slot__c = 'Evening', Anime__c = show.Id, Showrunner_Directive__c = directive);
         insert c;
-        insert new Social_Post__c(Content__c = c.Id, Instagram_Media_Id__c = 'M-1', Likes__c = 10, Status__c = 'Published');
-        PromptRunner.mock = new Map<String, List<String>>{ PerformanceAnalyst.TEMPLATE => new List<String>{ ANALYST } };
-        Test.startTest();
-        Performance_Review__c r = PerformanceAnalyst.run(Date.today());
-        Test.stopTest();
-        r = [SELECT Feature_Anime__c, Avoid_Anime__c, Hook_Lessons__c, Reels_Analysed__c FROM Performance_Review__c WHERE Id = :r.Id];
-        Assert.areEqual('JoJo', r.Feature_Anime__c);
-        Assert.areEqual(1, r.Reels_Analysed__c);
-        Assert.isTrue(r.Hook_Lessons__c.contains('Name the payoff'));
-        List<Topic_Idea__c> ideas = [SELECT Name, Format__c, Source__c FROM Topic_Idea__c ORDER BY Name];
-        Assert.areEqual(2, ideas.size());
-        Assert.isNull(ideas[0].Format__c, 'unknown formats are dropped, idea kept');
-        Assert.areEqual('Analyst', ideas[1].Source__c);
-        Assert.areEqual(0, TopicBacklog.add(JSON.deserializeUntyped('[{"anime":"JoJo","format":"Quiz","idea":"Guess the Stand from 3 clues"}]'), 'Admin'), 'duplicates skipped');
+        insert new Social_Post__c(Content__c = c.Id, Status__c = 'Published', Published_At__c = published, Views__c = views,
+            Avg_Watch_Time_Ms__c = watchMs, Instagram_Media_Id__c = 'm' + id, Metrics_Updated_At__c = Datetime.now().addHours(-2));
+        return c;
+    }
+
+    @TestSetup
+    static void data() {
+        InstaAgentTestUtil.settings(true, true);
+        Anime__c op = new Anime__c(Name = 'One Piece');
+        Anime__c fn = new Anime__c(Name = 'Fool Night');
+        insert new List<Anime__c>{ op, fn };
+        Datetime now = Datetime.now();
+        String planned = '{"by":"Showrunner Planner","style":{"transition":"flash","image_interval":1.6},"edits":{"hook":[{"fx":"impact_text"}],"twist":["freeze"]}}';
+        reel('LL-1', op, now.addHours(-60), 2000, 9000, planned);
+        reel('LL-2', op, now.addHours(-50), 1800, 8000, planned);
+        reel('LL-3', fn, now.addHours(-40), 400, 3000, null);
+        reel('LL-4', fn, now.addHours(-30), 300, 2500, null);
+        reel('LL-5', op, now.addHours(-20), 1000, 6000, null);
+        reel('LL-6', fn, now.addHours(-2), 50, 1000, null);
     }
 
     @IsTest
-    static void schedulesWeekly() {
-        PromptRunner.mock = new Map<String, List<String>>{ PerformanceAnalyst.TEMPLATE => new List<String>{ ANALYST, ANALYST } };
-        Test.startTest();
-        PerformanceAnalyst.scheduleWeekly();
-        PerformanceAnalyst.scheduleWeekly();
-        Test.stopTest();
-        Assert.areEqual(1, [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name = :PerformanceAnalyst.JOB_NAME]);
+    static void scoresVerdictsAndEvidence() {
+        Datetime now = Datetime.now();
+        Assert.isTrue(Scoreboard.refresh(now) >= 6);
+        Map<String, String> verdicts = new Map<String, String>();
+        for (Anime_Content__c c : [SELECT External_Id__c, Verdict__c FROM Anime_Content__c]) verdicts.put(c.External_Id__c, c.Verdict__c);
+        Assert.areEqual('Winner', verdicts.get('LL-1'));
+        Assert.areEqual('Loser', verdicts.get('LL-4'));
+        Assert.areEqual('Too young', verdicts.get('LL-6'));
+        Map<String, Object> ins = Scoreboard.insights(now, null);
+        String body = JSON.serialize(ins);
+        Assert.isTrue(body.contains('DROPPED') && body.contains('impact_text') && body.contains('pace=fast cuts'), body);
+        Assert.isTrue(ShowrunnerScoreboard.run(new List<ShowrunnerScoreboard.Request>{ new ShowrunnerScoreboard.Request() })[0].scoreboardJson.contains('by_show'));
+        Assert.areEqual(1.5, Scoreboard.median(new List<Decimal>{ 1, 2 }));
     }
 
     @IsTest
-    static void communityManagerRepliesToAllAndSkipsUnsafe() {
-        insert new Social_Post__c(Instagram_Media_Id__c = 'M-2', Status__c = 'Published');
-        InstaAgentTestUtil.settings(true, false);
-        InstaAgent_Settings__c s = InstaAgent_Settings__c.getOrgDefaults();
-        s.Auto_Reply_Comments__c = true;
-        update s;
-        InstaAgentConfig.cached = null;
-        PromptRunner.mock = new Map<String, List<String>>{
-            'Insta_Community_Manager' => new List<String>{ '{"replies":['
-                + '{"comment_id":"c1","category":"request","reply":"Zoro Reel loading 👀"},'
-                + '{"comment_id":"c2","category":"insult","reply":"Ouch! Senpai survived the filler arcs 😤"},'
-                + '{"comment_id":"c3","category":"spam","reply":""},'
-                + '{"comment_id":"zzz","category":"other","reply":"hallucinated id"}],'
-                + '"topic_ideas":[{"anime":"One Piece","format":"Hidden Details","idea":"Zoro details you missed"}]}' }
-        };
-        String body = '{"media_id":"M-2","reel":{"format":"Quiz"},"comments":[{"id":"c1","text":"Do Zoro next!"},{"id":"c2","text":"this is trash"},{"id":"c3","text":"follow me for crypto"}]}';
-        RestContext.response = new RestResponse();
-        RestContext.request = new RestRequest();
-        RestContext.request.requestBody = Blob.valueOf(body);
-        CommunityResource.run();
-        Assert.areEqual(200, RestContext.response.statusCode);
-        Map<String, Object> out = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
-        Assert.areEqual(2, ((List<Object>) out.get('replies')).size(), 'request + insult joke; spam skipped');
-        Assert.areEqual(3, [SELECT COUNT() FROM Comment_Reply__c]);
-        Assert.areEqual('Skipped', [SELECT Status__c FROM Comment_Reply__c WHERE Comment_Id__c = 'c3'].Status__c);
-        Assert.areEqual('Comments', [SELECT Source__c FROM Topic_Idea__c].Source__c);
+    static void playbookGuardrailsAndRollback() {
+        Scoreboard.refresh(Datetime.now());
+        Assert.isTrue(Playbook.change('explore_share', '0.9', 'x', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('nope', '1', 'x', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('slot_times', '{"Morning":"09:00","Midday":"10:00"}', 'x', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('format_mix', '{"Not A Format":0.5}', 'x', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('explore_share', '0.3', '', 'Strategist').startsWith('Refused'));
+        Assert.isTrue(Playbook.change('slot_times', '{"Morning":"08:30","Midday":"13:30","Evening":"19:30"}', 'evening audience peaks later', 'Strategist').startsWith('Changed'));
+        Assert.areEqual('19:30', InstaAgentConfig.get().Evening_Slot_IST__c);
+        Assert.isTrue(Playbook.change('hook_rules', '["Open on a question"]', 'winners open with questions', 'Strategist').startsWith('Changed'));
+        Assert.isTrue(Playbook.change('hook_rules', '["Open on a question"]', 'same', 'Strategist').startsWith('No change'));
 
-        // second run: nothing new to answer, no agent call needed
-        RestContext.response = new RestResponse();
-        CommunityResource.run();
-        out = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
-        Assert.areEqual(0, ((List<Object>) out.get('replies')).size());
+        // a change followed by 4 bad Reels is rolled back
+        Strategy_Change__c ch = [SELECT Id FROM Strategy_Change__c WHERE Setting__c = 'slot_times'];
+        Test.setCreatedDate(ch.Id, Datetime.now().addDays(-5));
+        update new Strategy_Change__c(Id = ch.Id, Baseline_Index__c = 2.0);
+        Assert.areEqual(1, Playbook.review());
+        Assert.areEqual('Rolled back', [SELECT Status__c FROM Strategy_Change__c WHERE Id = :ch.Id].Status__c);
+        Assert.areEqual('19:00', InstaAgentConfig.get().Evening_Slot_IST__c);
 
-        RestContext.response = new RestResponse();
-        RestContext.request.requestBody = Blob.valueOf('{"media_id":"M-2","comments":[]}');
-        CommunityResource.run();
-        Assert.areEqual(400, RestContext.response.statusCode);
+        ShowrunnerUpdatePlaybook.Request u = new ShowrunnerUpdatePlaybook.Request();
+        u.key = 'drop_hours'; u.valueJson = '24'; u.reason = 'losers recover after a day';
+        Assert.isTrue(ShowrunnerUpdatePlaybook.run(new List<ShowrunnerUpdatePlaybook.Request>{ u })[0].outcome.startsWith('Changed'));
+        Assert.areEqual(24, Playbook.intValue('drop_hours', 48));
+        String pb = ShowrunnerGetPlaybook.run(new List<ShowrunnerGetPlaybook.Request>{ new ShowrunnerGetPlaybook.Request() })[0].playbookJson;
+        Assert.isTrue(pb.contains('drop_hours') && pb.contains('Rolled back'), pb);
+        Assert.isNull(Playbook.validate('style_defaults', new Map<String, Object>{ 'transition' => 'flash' }));
+        Assert.isNotNull(Playbook.validate('style_defaults', new Map<String, Object>{ 'neon' => true }));
+    }
+
+    @IsTest
+    static void healthRequestsAndLessons() {
+        String h = ShowrunnerSystemHealth.run(new List<ShowrunnerSystemHealth.Request>{ new ShowrunnerSystemHealth.Request() })[0].healthJson;
+        Assert.isTrue(h.contains('metrics_hours_old'), h);
+        ShowrunnerRequestImprovement.Request q = new ShowrunnerRequestImprovement.Request();
+        q.title = 'Views arrive late'; q.details = 'metrics are 20 h old at planning time';
+        Assert.isTrue(ShowrunnerRequestImprovement.run(new List<ShowrunnerRequestImprovement.Request>{ q })[0].outcome.startsWith('Filed'));
+        Assert.isTrue(ShowrunnerRequestImprovement.run(new List<ShowrunnerRequestImprovement.Request>{ q })[0].outcome.startsWith('Already'));
+        insert new Agent_Lesson__c(Lesson__c = 'Never post the same show twice', Area__c = 'planning', Active__c = true);
+        ShowrunnerRetireLesson.Request l = new ShowrunnerRetireLesson.Request();
+        l.lesson = 'same show twice'; l.reason = 'repeats of hot shows win now';
+        Assert.isTrue(ShowrunnerRetireLesson.run(new List<ShowrunnerRetireLesson.Request>{ l })[0].outcome.startsWith('Retired'));
+        Assert.isTrue(ShowrunnerRetireLesson.run(new List<ShowrunnerRetireLesson.Request>{ l })[0].outcome.startsWith('Not found'));
+        ShowrunnerRecentReels.Request rq = new ShowrunnerRecentReels.Request();
+        rq.count = 3;
+        Assert.isTrue(ShowrunnerRecentReels.run(new List<ShowrunnerRecentReels.Request>{ rq })[0].reelsJson.contains('post_age_hours'));
+    }
+
+    @IsTest
+    static void dailyReviewRunsOncePerDay() {
+        Test.startTest();
+        ShowrunnerEvents.dailyReview(Datetime.now());
+        Test.stopTest();
+        Assert.areEqual(1, [SELECT COUNT() FROM Agent_Activity__c WHERE Action__c = 'Daily review' AND Agent__c = 'Strategist']);
+        ShowrunnerEvents.dailyReview(Datetime.now());  // already done today: nothing queued
+        Assert.areEqual(1, [SELECT COUNT() FROM Agent_Activity__c WHERE Action__c = 'Daily review']);
+    }
+
+    @IsTest
+    static void undecidedReelsAreNudgedThenPosted() {
+        Test.setMock(HttpCalloutMock.class, new InstaAgentTestUtil.GitHubMock(204));
+        Anime_Content__c c = new Anime_Content__c(Name = 'U', External_Id__c = 'LL-U', Format__c = 'Fact', Status__c = 'Rendered',
+            Approval_Status__c = 'Pending', Hold_Reason__c = 'QA issues: edit quality 6/10');
+        insert c;
+        Test.setCreatedDate(c.Id, Datetime.now().addHours(-2));
+        Datetime later = Datetime.now().addHours(2);  // LastModifiedDate is "now", so judge from 2 h later
+        ReelScheduler.nudgeUndecidedReels(later);
+        Assert.areEqual(1, [SELECT COUNT() FROM Agent_Activity__c WHERE Reel__c = 'LL-U' AND Action__c = 'Nudge']);
+        Test.startTest();
+        ReelScheduler.nudgeUndecidedReels(later);
+        Test.stopTest();
+        Assert.areEqual('Approved', [SELECT Approval_Status__c FROM Anime_Content__c WHERE Id = :c.Id].Approval_Status__c);
     }
 }

@@ -131,6 +131,16 @@ def collect(sf, ig, yt_key: Optional[str]) -> dict:
         except Exception as exc:
             signals["problems"].append(f"{key}: {str(exc)[:160]}")
             signals[key] = []
+    try:  # compare all sources per show: hot only when >= 2 agree; main shows weighted up
+        from collections import Counter
+
+        from rag.knowledge import load_knowledge
+        from research.fusion import fuse
+
+        counts = Counter(r["anime"] for r in load_knowledge())
+        signals["show_ranking"] = fuse(signals, dict(counts), extra_shows=list(counts))
+    except Exception as exc:
+        signals["problems"].append(f"fusion: {str(exc)[:160]}")
     return signals
 
 

@@ -76,6 +76,25 @@ def ann_news(opener: Callable = urllib.request.urlopen, hours: int = 30) -> List
     return out[:20]
 
 
+def crunchyroll_news(opener: Callable = urllib.request.urlopen, hours: int = 30) -> List[dict]:
+    """Crunchyroll News (official): second news source next to Anime News Network."""
+    xml = _get("https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss", opener).decode("utf-8", "replace")
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    out = []
+    for item in re.findall(r"<item>(.*?)</item>", xml, re.S):
+        def tag(name: str) -> str:
+            m = re.search(rf"<{name}>(.*?)</{name}>", item, re.S)
+            return html.unescape(re.sub(r"<!\[CDATA\[|\]\]>|<[^>]+>", "", m.group(1))).strip() if m else ""
+        try:
+            when = parsedate_to_datetime(tag("pubDate"))
+        except (TypeError, ValueError):
+            continue
+        if when >= since:
+            out.append({"title": tag("title")[:160], "summary": tag("description")[:300], "url": tag("link"),
+                        "published": when.isoformat(timespec="minutes"), "source": "crunchyroll"})
+    return out[:20]
+
+
 def bluesky_buzz(shows: List[str], opener: Callable = urllib.request.urlopen, hours: int = 24) -> List[dict]:
     """Per show: likes + reposts of its top posts in the last day, plus the top post texts."""
     since = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -97,6 +116,7 @@ def bluesky_buzz(shows: List[str], opener: Callable = urllib.request.urlopen, ho
 def collect(trending_titles: List[str], opener: Callable = urllib.request.urlopen) -> Dict[str, object]:
     signals: Dict[str, object] = {"problems": []}
     for key, fn in (("forum", lambda: anilist_threads(opener)), ("news", lambda: ann_news(opener)),
+                    ("crunchyroll_news", lambda: crunchyroll_news(opener)),
                     ("bluesky", lambda: bluesky_buzz(trending_titles, opener))):
         try:
             signals[key] = fn()

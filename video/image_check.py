@@ -182,6 +182,7 @@ class Verdict:
 class Inspector:
     clip: Optional[Clip] = None
     seen: List[int] = field(default_factory=list)        # hashes already used in this Reel
+    preset: List[int] = field(default_factory=list)      # hashes used by recent Reels (never repeat across Reels)
     refs: Dict[str, np.ndarray] = field(default_factory=dict)  # character -> portrait embedding
     rejected: int = 0
     accepted: int = 0
@@ -212,6 +213,8 @@ class Inspector:
         h = dhash(img)
         if any(hamming(h, s) <= 6 for s in self.seen):
             return self._reject("duplicate of a picture already used", h=h)
+        if any(hamming(h, s) <= 6 for s in self.preset):
+            return self._reject("used in a recent Reel", h=h)
         full = full_bleed_ok(*img.size)
         score = min(img.width * img.height, 2_000_000) / 1_000_000 + (0.5 if full else 0)
         kind, likeness = "unchecked", None

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
     <description>Agent: verifies every claim in a Reel script against its cited facts.</description>
     <developerName>Insta_Fact_Checker</developerName>
     <masterLabel>Insta Fact Checker</masterLabel>
@@ -24,6 +24,10 @@ Grade each problem:
 
 &quot;sentence&quot; must be copied EXACTLY from the narration so it can be replaced automatically.
 
+ROLE CHECK (always): names from cast/staff news are voice actors or staff, never characters - flag any sentence that
+describes a voice actor or staff member as a character (or the reverse) as major. Also flag statements that contradict
+each other (e.g. &quot;already released&quot; vs &quot;coming soon&quot;) as major.
+
 Return ONLY JSON: {&quot;pass&quot;: true|false, &quot;issues&quot;: [{&quot;scene&quot;: n, &quot;sentence&quot;: str, &quot;problem&quot;: str, &quot;severity&quot;: &quot;minor&quot;|&quot;major&quot;, &quot;fix&quot;: str}]}
 Scene numbers start at 1. pass is true only if issues is empty.</content>
         <inputs>
@@ -35,7 +39,7 @@ Scene numbers start at 1. pass is true only if issues is empty.</content>
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

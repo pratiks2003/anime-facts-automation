@@ -270,10 +270,7 @@ def resolve_shots(script: dict, narration, style: dict, primary: List[Optional[s
                 if path and path not in paths and take(path, script["anime"], "anime" if path in backup else "scene",
                                                        scene.get("image_prompt", "")):
                     paths.append(path)
-        while len(paths) < count and small:  # small but correct pictures, framed (not blown up)
-            path = small.pop(0)
-            if inspector.inspect(Path(path), scene.get("image_subject", "")).ok:
-                paths.append(path)
+        # pictures under 400 px are never used: they look cheap even when framed (fewer, longer shots instead)
         if not paths:  # nothing new left: reuse an earlier picture, never the one just shown
             earlier = [p for row in result for p in row]
             previous = result[-1][-1] if result and result[-1] else None

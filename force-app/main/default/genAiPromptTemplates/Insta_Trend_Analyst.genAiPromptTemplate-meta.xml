@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</activeVersionIdentifier>
     <description>Agent: turns daily research signals into a trend brief (what to make next and how).</description>
     <developerName>Insta_Trend_Analyst</developerName>
     <masterLabel>Insta Trend Analyst</masterLabel>
@@ -15,6 +15,8 @@ REQUEST (JSON): {!$Input:request}
 - youtube: trending anime Shorts titles and views (may be empty)
 - ours: our recent Reels with views, watch time, shares, saves, style and format
 - references: lessons from Reels the owner asked us to study
+- show_ranking: every source compared per show (wikipedia spike/views, anilist, bluesky, forum, news, watchlist), with
+  sources_agreeing, main_show and verified_facts. hot=true means at least 2 independent sources agree.
 - conversation: what fans are discussing RIGHT NOW - forum (fresh AniList discussion threads with reply counts),
   news (Anime News Network headlines of the last ~30 h), bluesky (buzz score + top fan posts per trending show)
 
@@ -28,7 +30,9 @@ Write the brief:
    captions, ~50s stories&quot;).
 5. our_gaps: where our Reels underperform vs the breakouts and the one fix with the biggest expected impact.
 6. trending_sound: {&quot;wanted&quot;: bool, &quot;note&quot;: str} - wanted only if many breakouts clearly rely on the same audio.
-7. hot_topics: the 5 hottest things being talked about right now, hottest first. A topic is specific (an announcement,
+7. hot_topics: the 5 hottest things being talked about right now, hottest first. ONLY from shows with hot=true in
+   show_ranking (2+ sources agree) - a single source is not enough. Prefer main_show=true shows and shows with
+   verified_facts &gt;= 6 when heat is close. Use at most 2 topics per show and cover at least 3 different shows. A topic is specific (an announcement,
    an episode moment, a fight, a character, a controversy), not just a show name. heat 1-10 from the evidence (news
    recency, discussion volume, buzz, breakout posts); 9-10 = everyone is talking about it today.
 8. summary: 3 sentences for the owner.
@@ -46,7 +50,7 @@ Only claim what the signals support. Return ONLY JSON with exactly these keys:
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

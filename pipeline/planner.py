@@ -167,8 +167,9 @@ def plan_reel(llm, format_name: str, anime_hint: str = "", topic: str = "", rece
             ingested = {"error": 1}
             print(f"[planner] knowledge top-up skipped: {type(exc).__name__}: {str(exc)[:160]}")
         facts = usable_facts(store, entry["name"], recent_ids, format_name, topic)
-    if len(facts) < 3 and hot_anime:
-        # the hot topic is about a show we don't know well yet: tell it as news (live, sourced facts)
+    if len(facts) < 6 and hot_anime:
+        # the hot topic is about a show we know too little about (< 6 verified facts): tell it as news
+        # (live, sourced facts) - no quizzes/backstories built on thin material
         # instead of switching to another show - the topic is the point of this Reel
         print(f"[planner] only {len(facts)} verified facts for {entry['name']}; telling the hot topic as news")
         return hot_news_plan("Why It's Trending", hot_topic, opener)

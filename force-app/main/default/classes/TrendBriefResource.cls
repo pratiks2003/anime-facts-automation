@@ -38,9 +38,11 @@ global with sharing class TrendBriefResource {
         }
         Map<String, Object> request = new Map<String, Object>{
             'watchlist' => signals.get('watchlist'), 'anilist' => signals.get('anilist'), 'youtube' => signals.get('youtube'),
-            'ours' => signals.get('ours'), 'references' => references, 'conversation' => signals.get('conversation')
+            'ours' => signals.get('ours'), 'references' => references, 'conversation' => signals.get('conversation'),
+            'show_ranking' => signals.get('show_ranking')
         };
         Map<String, Object> out = PromptRunner.runJson(TEMPLATE, request);
+        out.put('show_ranking', signals.get('show_ranking')); // the cross-checked ranking travels with the brief
         Boolean soundWanted = false;
         if (out.get('trending_sound') instanceof Map<String, Object>) {
             soundWanted = ((Map<String, Object>) out.get('trending_sound')).get('wanted') == true;

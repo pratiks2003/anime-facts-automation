@@ -232,10 +232,30 @@ def gather_media(script: dict, cache: Path, images: bool, music: bool, music_pic
 
 
 def reset(inspector):
-    """Fresh duplicate memory before re-picking shots (the same Reel is assembled again)."""
+    """Fresh duplicate memory before re-picking shots (the same Reel is assembled again); recent Reels' pictures stay banned."""
     if inspector is not None:
         inspector.seen.clear()
     return inspector
+
+
+def picture_hashes(renderer) -> List[str]:
+    """Fingerprints of the stills this Reel shows (stored so the next Reels don't reuse them)."""
+    from PIL import Image
+
+    from .image_check import dhash
+
+    out = []
+    for shot in renderer.shots:
+        src = getattr(shot, "source", None)
+        if src and not Path(src).is_dir():
+            try:
+                with Image.open(src) as im:
+                    h = format(dhash(im), "016x")
+                if h not in out:
+                    out.append(h)
+            except Exception:
+                continue
+    return out
 
 
 def run_visual_qa(script, narration, style, renderer, gemini, channel: dict, beats, repick, rounds: int = 2) -> dict:
@@ -341,7 +361,7 @@ def official_asset(scene: dict, script: dict, index: int, cache: Path, vision) -
 def render(script_path: str, out_root: str = "output", voice: Optional[str] = None,
            speed: Optional[float] = None, stills: bool = False,
            images: bool = True, music: bool = True, extra_records: Optional[List[dict]] = None,
-           music_picker=None, recent_music=()) -> dict:
+           music_picker=None, recent_music=(), avoid_pictures=()) -> dict:
     script = load_script(script_path)
     try:
         from integrations.instagram import load_env_file
@@ -405,6 +425,9 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         from .image_check import Inspector
 
         inspector = Inspector.create() if images else None
+        if inspector is not None and avoid_pictures:
+            inspector.preset = [int(h, 16) for h in avoid_pictures if h]
+            log(f"skipping {len(inspector.preset)} pictures used in recent Reels")
         clips: List[str] = []
         if images and channel.get("use_clips", True) and style["clip_ratio"] > 0 and script["anime"] != "Anime":
             # footage only from OFFICIAL accounts (channel.json clip_accounts) - never other creators' edits,
@@ -498,6 +521,7 @@ def render(script_path: str, out_root: str = "output", voice: Optional[str] = No
         "voice": voice,
         "style": style,
         "image_rejections": image_rejections,
+        "picture_hashes": picture_hashes(renderer) if cinematic else [],
         "visual_qa": visual_qa,
         "shots": [len(row) for row in shots] if cinematic else None,
         "validation": {"errors": errors, "warnings": warnings, "summary": summary},

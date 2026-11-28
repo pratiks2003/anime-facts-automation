@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_5</activeVersionIdentifier>
     <description>Agent: writes a Reel script for one format from verified facts only.</description>
     <developerName>Insta_Script_Writer</developerName>
     <masterLabel>Insta Script Writer</masterLabel>
@@ -17,6 +17,7 @@ version. Write a completely NEW script that fixes every note - new hook, new str
 WRITE LIKE A PRO EDITOR:
 - Build tension: tease the payoff in the hook, escalate scene by scene, land the biggest reveal or verdict last.
 - Max 18 words per narration sentence and max 2 sentences per scene.
+- People named in cast/staff news are VOICE ACTORS or STAFF: say so (&quot;voiced by Ken Hikasa&quot;), never present them as characters. Release status must match the facts exactly (announced / premieres on DATE / out now).
 - Hook (first 3 seconds): name the payoff and create curiosity. Never generic (&quot;your watchlist is stacked&quot; is banned).
 - Put the strongest item first or save it for a clear final payoff. Never bury the biggest name in the middle.
 - Every item needs one &quot;why should I care&quot; line (premise, stakes, twist) - not just numbers.
@@ -48,7 +49,7 @@ First scene role &quot;hook&quot;, last scene role &quot;outro&quot;.</content>
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_5</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

@@ -411,3 +411,20 @@ class WrongCharacterTests(unittest.TestCase):
         self.assertIsNone(wrong_character("Nico Robin can sprout arms", "Nico Robin smiling", script))
         self.assertIsNone(wrong_character("Her bounty exploded", "Donquixote Doflamingo", script))  # nobody named
         self.assertIsNone(wrong_character("Robin reads in the library", "a library interior", script))  # object shot
+
+
+class PictureMemoryTests(unittest.TestCase):
+    def test_pictures_from_recent_reels_are_skipped(self):
+        import tempfile
+        from PIL import Image
+        from video.image_check import Inspector, dhash
+        with tempfile.TemporaryDirectory() as tmp:
+            y, x = np.mgrid[0:1400, 0:900]
+            g = ((x * 3 + y * 2) % 256).astype(np.uint8)
+            path = Path(tmp) / "p.png"
+            Image.fromarray(np.stack([g, g[::-1], 255 - g], axis=-1)).save(path)
+            with Image.open(path) as im:
+                h = dhash(im)
+            ins = Inspector(clip=None, preset=[h])
+            self.assertIn("recent Reel", ins.inspect(path).reason)
+            self.assertTrue(Inspector(clip=None).inspect(path).ok)

@@ -11,6 +11,7 @@ A Reel is only published if Meta returns a media id AND all cited facts are veri
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 import time
@@ -299,36 +300,122 @@ def topic_words(text: str, anime: str = "") -> set:
     return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(w) > 3 and w not in TOPIC_STOP and w not in skip}
 
 
-def recent_topics(sf, hours: int = 24) -> List[str]:
-    """Text of everything posted / rendered in the last `hours` (topic, hook, strategy)."""
+def recent_reels(sf, exclude: str = "", hours: int = 24) -> List[dict]:
+    """Reels posted / rendered recently (newest first): anime, format, text for topic matching, age in hours."""
     try:
-        rows = sf.query("SELECT Topic__c, Hook__c, Strategy__c FROM Anime_Content__c WHERE Status__c IN "
-                        f"('Published', 'Rendered', 'Approved', 'Publishing') AND CreatedDate = LAST_N_DAYS:2 "
-                        "ORDER BY CreatedDate DESC LIMIT 12") or []
+        rows = sf.query("SELECT External_Id__c, Anime__r.Name, Format__c, Topic__c, Hook__c, Strategy__c, CreatedDate "
+                        "FROM Anime_Content__c WHERE Status__c IN ('Published', 'Rendered', 'Approved', 'Publishing') "
+                        "AND CreatedDate = LAST_N_DAYS:2 ORDER BY CreatedDate DESC LIMIT 15") or []
     except Exception:
         return []
-    return [" ".join(str(r.get(k) or "") for k in ("Topic__c", "Hook__c", "Strategy__c")) for r in rows]
+    now = datetime.now(timezone.utc)
+    out = []
+    for r in rows:
+        if r.get("External_Id__c") == exclude:
+            continue
+        try:
+            age = (now - datetime.fromisoformat(str(r["CreatedDate"]).replace("+0000", "+00:00"))).total_seconds() / 3600
+        except (KeyError, ValueError):
+            age = 0.0
+        out.append({"anime": (r.get("Anime__r") or {}).get("Name") or "", "format": r.get("Format__c") or "", "age_h": age,
+                    "text": " ".join(str(r.get(k) or "") for k in ("Topic__c", "Hook__c", "Strategy__c"))})
+    return [r for r in out if r["age_h"] <= hours or r is out[0]]
 
 
-def uncovered_hot_topic(sf, hot: dict, covered: List[str]) -> Optional[dict]:
-    """The strategist's hot topic, or - if we already covered it in the last day - the next hottest uncovered one."""
-    def is_covered(t: dict) -> bool:
+def recent_topics(sf, hours: int = 24) -> List[str]:
+    return [r["text"] for r in recent_reels(sf, hours=hours)]
+
+
+def same_show(a: str, b: str) -> bool:
+    wa, wb = topic_words(a), topic_words(b)
+    return bool(a and b) and (a.casefold() == b.casefold() or (bool(wa) and wa == wb) or
+                              (bool(wa & wb) and min(len(wa), len(wb)) == len(wa & wb)))
+
+
+def choose_hot_topic(sf, hot: Optional[dict], recent: List[dict], breaking: bool = False) -> Optional[dict]:
+    """Code-enforced variety for hot topics:
+    - never a topic covered in the last 24 h;
+    - never the same show as the previous Reel;
+    - at most one Reel per show per 24 h, unless breaking news (heat >= 9) on a different topic.
+    Falls through the brief's hot topics, then the cross-checked show ranking."""
+    last_show = recent[0]["anime"] if recent else ""
+    shows_24h = [r["anime"] for r in recent if r["age_h"] <= 24]
+    covered = [r["text"] for r in recent if r["age_h"] <= 24]
+
+    def topic_covered(t: dict) -> bool:
         words = topic_words(f"{t.get('topic', '')} {t.get('headline') or ''}", t.get("anime", ""))
         return bool(words) and any(len(words & topic_words(text)) >= min(2, len(words)) for text in covered)
 
-    if not is_covered(hot):
+    def ok(t: dict, strict: bool = True) -> bool:
+        anime = str(t.get("anime") or "")
+        if not anime or topic_covered(t) or same_show(anime, last_show):
+            return False
+        if any(same_show(anime, s) for s in shows_24h):
+            return breaking and (t.get("heat") or 0) >= 9 and not strict
+        return True
+
+    if hot and ok(hot, strict=False):
         return hot
+    candidates: List[dict] = []
     try:
         rows = sf.query("SELECT Brief_JSON__c FROM Trend_Brief__c ORDER BY CreatedDate DESC LIMIT 1") or []
-        candidates = json.loads(rows[0]["Brief_JSON__c"]).get("hot_topics") or [] if rows else []
+        brief = json.loads(rows[0]["Brief_JSON__c"]) if rows else {}
     except Exception:
-        candidates = []
-    for t in sorted(candidates, key=lambda t: -(t.get("heat") or 0)):
-        if isinstance(t, dict) and t.get("anime") and not is_covered(t):
-            log(f"hot topic '{hot.get('topic')}' was covered in the last 24 h; next hottest: '{t.get('topic')}' (heat {t.get('heat')})")
+        brief = {}
+    candidates += sorted([t for t in brief.get("hot_topics") or [] if isinstance(t, dict)], key=lambda t: -(t.get("heat") or 0))
+    for r in brief.get("show_ranking") or []:  # cross-checked shows (2+ sources) as topics
+        if isinstance(r, dict) and r.get("hot"):
+            head = r.get("headline") or {}
+            candidates.append({"topic": head.get("title") or f"why fans are talking about {r['anime']}",
+                               "anime": r["anime"], "heat": min(10, round(r.get("score", 0))), "headline": head.get("title"),
+                               "source_url": head.get("url"), "evidence": "; ".join(r.get("evidence") or [])[:300]})
+    for t in candidates:
+        if ok(t):
+            if hot:
+                log(f"hot topic '{hot.get('topic')}' ({hot.get('anime')}) skipped for variety; "
+                    f"next: '{t.get('topic')}' ({t.get('anime')}, heat {t.get('heat')})")
             return t
-    log(f"hot topic '{hot.get('topic')}' was covered in the last 24 h and no other hot topic is uncovered")
+    log("no hot topic passes the variety rules; planning a regular Reel")
     return None
+
+
+def uncovered_hot_topic(sf, hot: dict, covered: List[str]) -> Optional[dict]:
+    """Back-compat wrapper: topic-only check (used by tests)."""
+    recent = [{"anime": "", "format": "", "age_h": 1.0, "text": c} for c in covered]
+    return choose_hot_topic(sf, hot, recent)
+
+
+ALT_FORMATS = {  # when the planned format repeats the previous Reel's
+    "Why It's Trending": ["Just Announced", "Hype Check"], "Just Announced": ["Why It's Trending", "Hype Check"],
+    "Hype Check": ["Why It's Trending", "Just Announced"], "This Week's Drops": ["Why It's Trending", "Season Preview"],
+    "Season Preview": ["Just Announced", "This Week's Drops"],
+}
+EVERGREEN_ORDER = ["Hidden Details", "Backstory", "Fact", "Fan Theory", "Who Would Win", "Ranking", "What If", "Quiz",
+                   "Behind the Scenes"]
+
+
+def vary_format(fmt: str, last_format: str, seed: str = "") -> str:
+    """Never the same format twice in a row."""
+    if not last_format or fmt != last_format:
+        return fmt
+    options = ALT_FORMATS.get(fmt) or [f for f in EVERGREEN_ORDER if f != fmt]
+    return options[int(hashlib.sha1(seed.encode()).hexdigest(), 16) % len(options)] if seed else options[0]
+
+
+def recent_pictures(sf, limit: int = 10) -> List[str]:
+    """Picture fingerprints used by the last Reels (stored in their Script_JSON__c)."""
+    try:
+        rows = sf.query("SELECT Script_JSON__c FROM Anime_Content__c WHERE Script_JSON__c != null AND Status__c IN "
+                        f"('Published', 'Rendered', 'Approved') ORDER BY CreatedDate DESC LIMIT {int(limit)}") or []
+    except Exception:
+        return []
+    out: List[str] = []
+    for r in rows:
+        try:
+            out += json.loads(r["Script_JSON__c"]).get("picture_hashes") or []
+        except (ValueError, TypeError, KeyError):
+            continue
+    return out
 
 
 def recent_music(sf, limit: int = 20) -> List[str]:
@@ -405,11 +492,20 @@ def generate(args, sf) -> int:
     angle = str(decision.get("angle") or "")
     lessons, idea = learning_inputs(sf, args.format)
     hot_topic = decision.get("hot_topic") if isinstance(decision.get("hot_topic"), dict) else None
-    if hot_topic:  # enforced in code: never the same hot topic twice within 24 h
-        chosen = uncovered_hot_topic(sf, hot_topic, recent_topics(sf))
+    history = recent_reels(sf, exclude=cid)
+    if hot_topic or args.slot == "Morning":  # enforced in code: topic, show and per-day variety
+        chosen = choose_hot_topic(sf, hot_topic, history, breaking=bool(decision.get("breaking")))
         if chosen is not hot_topic:
-            angle = ""  # the strategist's angle was about the covered topic
+            angle = ""  # the strategist's angle was about a different topic
         hot_topic = chosen
+    last = history[0] if history else {}
+    if decision.get("anime") and not hot_topic and same_show(str(decision["anime"]), last.get("anime", "")):
+        log(f"strategist picked {decision['anime']} again right after the last Reel; letting the planner choose another show")
+        decision["anime"], angle = None, ""
+    new_format = vary_format(args.format, last.get("format", ""), cid)
+    if new_format != args.format:
+        log(f"format {args.format} repeats the previous Reel; using {new_format}")
+        args.format = new_format
     if hot_topic and not args.anime and not args.topic and hot_topic.get("anime"):
         anime_hint, topic = str(hot_topic["anime"]), str(hot_topic.get("topic") or "")
         log(f"hot topic (heat {hot_topic.get('heat')}{', breaking' if decision.get('breaking') else ''}): "
@@ -475,7 +571,8 @@ def generate(args, sf) -> int:
     for attempt in range(2):  # render -> QA -> (team repairs -> re-render) at most once
         # a trending sound is added by hand in the Instagram app, so the export carries voice + SFX only
         manifest = render(str(script_path), str(OUTPUT), extra_records=plan.extra_records, music_picker=picker,
-                          music=not trending_sound, recent_music=recent_music(sf))
+                          music=not trending_sound, recent_music=recent_music(sf),
+                          avoid_pictures=recent_pictures(sf))
         errors = manifest["validation"]["errors"]
         if errors:
             raise RuntimeError("video failed validation: " + "; ".join(errors))
@@ -522,6 +619,7 @@ def generate(args, sf) -> int:
     linked = ensure_anime(sf, plan.anime, plan.anilist_id)
     sync_facts(sf, used, plan.anilist_id if linked else None)
 
+    script["picture_hashes"] = manifest.get("picture_hashes") or []  # the next Reels won't reuse these pictures
     hook = script["scenes"][0]["narration"].split(". ")[0][:250]
     fields = {
         "Name": script["title"][:80], "Topic__c": script["title"][:255], "Hook__c": hook, "Format__c": args.format,

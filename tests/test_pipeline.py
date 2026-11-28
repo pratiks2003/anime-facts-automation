@@ -475,3 +475,36 @@ class PostingLimitSettingTests(unittest.TestCase):
         with self.assertRaises(SpacingHold):
             wait_for_posting_window(sf, sleep=lambda s: None, policy={"enabled": True, "max_per_day": 3, "min_gap_minutes": 90})
         wait_for_posting_window(sf, sleep=lambda s: None, policy={"enabled": True, "max_per_day": 4, "min_gap_minutes": 60})
+
+
+class VarietyRulesTests(unittest.TestCase):
+    def _sf(self, brief):
+        import json as _json
+        return type("SF", (), {"query": lambda self, q: [{"Brief_JSON__c": _json.dumps(brief)}]})()
+
+    def test_no_fool_night_four_times(self):
+        from pipeline.run_reel import choose_hot_topic
+        brief = {"hot_topics": [
+            {"topic": "Fool Night Netflix release and cast reveal", "anime": "Fool Night", "heat": 9},
+            {"topic": "Gear 5 animation in the new episode", "anime": "ONE PIECE", "heat": 8}],
+            "show_ranking": [{"anime": "Overgeared", "hot": True, "score": 6, "headline": {"title": "Overgeared climax trailer"}}]}
+        recent = [{"anime": "Fool Night", "format": "Quiz", "age_h": 3, "text": "Can you crack Netflix's plant mystery"}]
+        got = choose_hot_topic(self._sf(brief), brief["hot_topics"][0], recent)
+        self.assertEqual(got["anime"], "ONE PIECE", "same show as the previous Reel is skipped")
+        recent2 = [{"anime": "ONE PIECE", "format": "Fact", "age_h": 1, "text": "gear 5"}] + recent
+        got2 = choose_hot_topic(self._sf(brief), brief["hot_topics"][0], recent2)
+        self.assertEqual(got2["anime"], "Overgeared", "Fool Night already had a Reel today -> next show")
+
+    def test_breaking_allows_second_reel_same_day_on_new_topic(self):
+        from pipeline.run_reel import choose_hot_topic
+        hot = {"topic": "Fool Night season 2 announced", "anime": "Fool Night", "heat": 10}
+        recent = [{"anime": "ONE PIECE", "format": "Fact", "age_h": 2, "text": "gear 5"},
+                  {"anime": "Fool Night", "format": "Quiz", "age_h": 6, "text": "plant mystery quiz"}]
+        self.assertIs(choose_hot_topic(self._sf({}), hot, recent, breaking=True), hot)
+        self.assertIsNone(choose_hot_topic(self._sf({}), hot, recent, breaking=False))
+
+    def test_format_never_repeats(self):
+        from pipeline.run_reel import vary_format
+        self.assertEqual(vary_format("Quiz", "Fact"), "Quiz")
+        self.assertNotEqual(vary_format("Quiz", "Quiz", "seed"), "Quiz")
+        self.assertIn(vary_format("Why It's Trending", "Why It's Trending"), ("Just Announced", "Hype Check"))

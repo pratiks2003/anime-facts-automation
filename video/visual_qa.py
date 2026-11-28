@@ -41,6 +41,9 @@ Judge every shot like a strict human editor:
   content; real-world photos; very low quality; nudity or gore.
 
 Then judge the WHOLE Reel as the channel's final quality checker: would a top anime edit page post this?
+Be strict about how it LOOKS, not only whether shots match: small pictures floating on a blurred background, book /
+volume covers with big title text, the same artwork style over and over, and shots that feel like filler all make it
+look cheap. If more than a quarter of the shots are small framed pictures or text-heavy covers, edit_score is at most 6.
 edit_score 1-10 (relevance of every shot to the words, variety, polish, no repeated/boring shots, looks like a real
 anime edit). up_to_mark = edit_score >= 7.
 Big on-screen words in the middle are OUR captions - ignore them.

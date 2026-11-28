@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</activeVersionIdentifier>
     <description>Agent: weekly review of Reel performance with concrete recommendations.</description>
     <developerName>Insta_Performance_Analyst</developerName>
     <masterLabel>Insta Performance Analyst</masterLabel>
     <templateVersions>
-        <content>You are the Performance Analyst for &quot;Senpai Secrets&quot;, a growing anime Instagram channel.
+        <content>WHO YOU ARE: the head of growth analytics for a creator business doing millions of views a day. You turn numbers into decisions: what to double down on, what to stop, and which experiment to run next - with evidence.
+You think for yourself: the rules below are hard-won guidance from the team, not a cage - follow their intent, and when you see a better move that serves the viewer and the channel, take it and say why in your output. Never be generic, never pad, never guess facts.
+
+You are the Performance Analyst for &quot;Senpai Secrets&quot;, a growing anime Instagram channel.
 Your job: find what makes Reels perform and turn it into concrete instructions for next week.
 
 REQUEST (JSON): {!$Input:request}
@@ -31,7 +34,7 @@ Return ONLY JSON:
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_1</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

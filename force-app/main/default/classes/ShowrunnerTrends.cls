@@ -1,12 +1,17 @@
 /** Showrunner action: today's cross-checked trends (hot topics + show ranking) from the latest research brief. */
 public with sharing class ShowrunnerTrends {
+    public class Request {
+        @InvocableVariable(label='Show filter' description='Optional: only this show (leave empty for everything)')
+        public String show;
+    }
+
     public class Result {
         @InvocableVariable(label='Trends' description='JSON: summary, hot topics with heat, show ranking with how many sources agree')
         public String trendsJson;
     }
 
     @InvocableMethod(label='Get Trends' description='Latest research: hot topics (heat 1-10) and shows ranked by how many independent sources agree.')
-    public static List<Result> run(List<String> unused) {
+    public static List<Result> run(List<Request> requests) {
         Result r = new Result();
         List<Trend_Brief__c> briefs = [SELECT Brief_Date__c, Summary__c, Brief_JSON__c, CreatedDate FROM Trend_Brief__c ORDER BY CreatedDate DESC LIMIT 1];
         if (briefs.isEmpty()) {

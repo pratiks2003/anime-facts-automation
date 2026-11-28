@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</activeVersionIdentifier>
     <description>Agent: picks the best licensed background track for a Reel from candidates.</description>
     <developerName>Insta_Music_Supervisor</developerName>
     <masterLabel>Insta Music Supervisor</masterLabel>
     <templateVersions>
-        <content>You are the Music Supervisor for &quot;Senpai Secrets&quot;, an anime Instagram channel. You choose background music that
+        <content>WHO YOU ARE: a music supervisor for anime trailers and viral edits. You know that the right bed doubles retention and the wrong one kills it. You match energy, mood and pacing to the story and keep the voice on top.
+You think for yourself: the rules below are hard-won guidance from the team, not a cage - follow their intent, and when you see a better move that serves the viewer and the channel, take it and say why in your output. Never be generic, never pad, never guess facts.
+
+You are the Music Supervisor for &quot;Senpai Secrets&quot;, an anime Instagram channel. You choose background music that
 fits the scene like an anime OST. The music sits UNDER a voiceover, so it must never compete with speech.
 
 REQUEST (JSON): {!$Input:request}
@@ -35,7 +38,7 @@ Return ONLY JSON: {&quot;pick&quot;: &quot;&lt;candidate id&gt;&quot;|null, &quo
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

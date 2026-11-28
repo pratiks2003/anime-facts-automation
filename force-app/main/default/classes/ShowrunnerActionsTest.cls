@@ -28,8 +28,8 @@ private class ShowrunnerActionsTest {
         q.reelId = 'SR-1';
         String report = ShowrunnerReelReport.run(new List<ShowrunnerReelReport.Request>{ q })[0].reportJson;
         Assert.isTrue(report.contains('remakes_left') && report.contains('edit_score'));
-        Assert.isTrue(ShowrunnerTrends.run(new List<String>{ '' })[0].trendsJson.contains('One Piece'));
-        Assert.areEqual('[]', ShowrunnerLessons.run(new List<String>{ '' })[0].lessonsJson);
+        Assert.isTrue(ShowrunnerTrends.run(new List<ShowrunnerTrends.Request>{ new ShowrunnerTrends.Request() })[0].trendsJson.contains('One Piece'));
+        Assert.areEqual('[]', ShowrunnerLessons.run(new List<ShowrunnerLessons.Request>{ new ShowrunnerLessons.Request() })[0].lessonsJson);
     }
 
     @IsTest
@@ -65,6 +65,11 @@ private class ShowrunnerActionsTest {
         l.lesson = 'Never post the same show twice in a row'; l.area = 'planning'; l.reelId = 'SR-1';
         Assert.isTrue(ShowrunnerRecordLesson.run(new List<ShowrunnerRecordLesson.Request>{ l })[0].outcome.startsWith('Recorded'));
         Assert.isTrue(ShowrunnerRecordLesson.run(new List<ShowrunnerRecordLesson.Request>{ l })[0].outcome.startsWith('Already'));
+        ShowrunnerLessons.Request lr = new ShowrunnerLessons.Request();
+        lr.area = 'planning';
+        Assert.isTrue(ShowrunnerLessons.run(new List<ShowrunnerLessons.Request>{ lr })[0].lessonsJson.contains('same show'));
+        lr.area = 'visuals';
+        Assert.areEqual('[]', ShowrunnerLessons.run(new List<ShowrunnerLessons.Request>{ lr })[0].lessonsJson);
         ShowrunnerOps.Request n = new ShowrunnerOps.Request();
         n.action = 'notify'; n.message = 'look'; n.severity = 'critical';
         Assert.areEqual('Owner notified.', ShowrunnerOps.run(new List<ShowrunnerOps.Request>{ n })[0].outcome);

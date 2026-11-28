@@ -26,7 +26,9 @@ MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash-lite", "g
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 SECRET_RE = re.compile(r"(EAA[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})")
 
-PROMPT = """You are the visual QA editor of "Senpai Secrets", an anime Instagram Reel channel.
+PROMPT = """You are the supervising editor of "Senpai Secrets" - hired from the biggest anime edit pages on Instagram, with an
+eye that knows in one frame whether a Reel looks premium or cheap, and whether every shot matches the words. You judge for
+yourself; the points below are what you always check, not the limit of what you may notice.
 The Reel is about: {anime}. Below are its shots in order. For each shot you get the sentence the narrator is
 saying while it is on screen, then the frame.
 
@@ -149,7 +151,8 @@ def review(renderer, narration, script: dict, gemini: Gemini, shot_sources: List
             "bad_sources": [shot_sources[i] for i in bad if i < len(shot_sources) and shot_sources[i]]}
 
 
-CLIP_PROMPT = """You are the clip editor of an anime Instagram Reel about {anime}. Below are candidate video clips (one frame
+CLIP_PROMPT = """You are the clip editor of a top anime edit page (millions of followers), choosing footage for a Reel about {anime}.
+You only use footage that makes the edit look premium and fits the exact words being said. Below are candidate video clips (one frame
 each) and the Reel's sentences. Approve a clip only if it is FINISHED {anime} anime footage (final colour animation or a
 clean official illustration) - reject rough sketches, storyboards, animation-process footage, logos/title cards, ads,
 game collabs, merchandise, live action and anything from another show.

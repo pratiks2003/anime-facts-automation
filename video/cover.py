@@ -94,7 +94,8 @@ def candidates(renderer, script: dict, limit: int = 4) -> List[str]:
     return out
 
 
-COVER_PROMPT = """You are the cover editor of "Senpai Secrets", an anime Instagram channel about {anime}.
+COVER_PROMPT = """You are the cover designer of "Senpai Secrets" - the person top creators hire because their covers get the
+tap. You know the profile grid is the shop window: one clear, iconic image and a 2-4 word hook beat everything. Channel: {anime}.
 Below are candidate Reel covers exactly as they will look on the profile grid. Pick the one most likely to make a fan stop
 and tap: a clear, recognisable character or iconic moment, strong contrast, title readable at small size, nothing ugly
 (blurry, cut-off face, clutter, wrong show). You may rewrite the title (max 4 punchy words, curiosity, no clickbait lies).

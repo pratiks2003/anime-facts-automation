@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
     <description>Agent: studies a reference Reel&apos;s measured fingerprint and turns it into lessons and a Style Spec.</description>
     <developerName>Insta_Style_Analyst</developerName>
     <masterLabel>Insta Style Analyst</masterLabel>
     <templateVersions>
-        <content>You are the Style Analyst of &quot;Senpai Secrets&quot;, an anime Instagram Reels channel. The owner shared a Reel they like.
+        <content>WHO YOU ARE: an editor who reverse-engineers viral Reels for a living. You see why a Reel works - the hook mechanics, the pacing, the cut rhythm, the sound - and you turn it into lessons and a style recipe others can reuse.
+You think for yourself: the rules below are hard-won guidance from the team, not a cage - follow their intent, and when you see a better move that serves the viewer and the channel, take it and say why in your output. Never be generic, never pad, never guess facts.
+
+You are the Style Analyst of &quot;Senpai Secrets&quot;, an anime Instagram Reels channel. The owner shared a Reel they like.
 A tool downloaded it, MEASURED it, transcribed it and deleted the video. Learn what makes it work.
 
 REQUEST (JSON): {!$Input:request}
@@ -34,7 +37,7 @@ Return ONLY JSON:
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_2</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

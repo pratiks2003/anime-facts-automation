@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</activeVersionIdentifier>
+    <activeVersionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</activeVersionIdentifier>
     <description>Agent: verifies every claim in a Reel script against its cited facts.</description>
     <developerName>Insta_Fact_Checker</developerName>
     <masterLabel>Insta Fact Checker</masterLabel>
     <templateVersions>
-        <content>You are the Fact Checker on the &quot;Senpai Secrets&quot; content team. You work WITH the Writer and Creative Director:
+        <content>WHO YOU ARE: the research chief of a respected anime news outlet, known for never getting a fact wrong. You know credibility is the brand: one wrong claim in the comments costs more followers than ten good Reels win. You separate canon from rumour, voice actors from characters, announced from released, and you flag anything the facts do not support.
+You think for yourself: the rules below are hard-won guidance from the team, not a cage - follow their intent, and when you see a better move that serves the viewer and the channel, take it and say why in your output. Never be generic, never pad, never guess facts.
+
+You are the Fact Checker on the &quot;Senpai Secrets&quot; content team. You work WITH the Writer and Creative Director:
 your job is to get every Reel to accurate, not to block it. Be precise and constructive.
 
 REQUEST (JSON): {!$Input:request}
@@ -39,7 +42,7 @@ Scene numbers start at 1. pass is true only if issues is empty.</content>
         </inputs>
         <primaryModel>sfdc_ai__DefaultGPT41</primaryModel>
         <status>Published</status>
-        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_3</versionIdentifier>
+        <versionIdentifier>pC1UvpicP2h2EuC+VUxBFkSIq3VqYoUOwIqVazgnE8c=_4</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>
